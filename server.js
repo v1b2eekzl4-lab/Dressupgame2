@@ -10,7 +10,7 @@ const bcrypt = require('bcrypt');
 
 const app = express();
 const port = process.env.PORT || 3000;
-if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
+if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 2);
 
 /** Atomic write: write to .tmp then rename, so we never leave a half-written file (safer with concurrent users). */
 function writeAtomic(filePath, content) {
@@ -44,7 +44,17 @@ function withLock(key, fn) {
   if (q.length === 1) wrapped();
 }
 
-const usersFile = path.join(__dirname, 'users.json');
+// Data directory for users.json, profiles.json (use DATA_DIR env if server runs from another path)
+const dataDir = path.resolve(process.env.DATA_DIR || __dirname);
+const usersFile = path.join(dataDir, 'users.json');
+try {
+  if (!fs.existsSync(usersFile)) {
+    fs.writeFileSync(usersFile, '[]', 'utf8');
+    console.log('[auth] Created', usersFile);
+  }
+} catch (e) {
+  console.error('[auth] Could not ensure users.json:', e.message || e);
+}
 const EARN_CURRENCY_CAP = 50;
 const USERNAME_MIN = 3;
 const USERNAME_MAX = 30;
@@ -201,8 +211,8 @@ app.use(session({
   resave: false,
   saveUninitialized: true,
   cookie: {
-    secure: isProduction,
-    sameSite: isProduction ? 'strict' : 'lax',
+    secure: isProduction || process.env.USE_HTTPS === '1',
+    sameSite: isProduction ? 'lax' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000
   }
 }));
@@ -601,6 +611,16 @@ app.use(express.static(path.join(__dirname, 'public'), {
 // Routes (API and redirects)
 app.get('/api/health', (req, res) => {
   res.status(200).json({ ok: true });
+});
+
+app.get('/api/session-check', (req, res) => {
+  res.json({
+    hasUser: !!(req.session && req.session.user),
+    userId: req.session && req.session.userId,
+    NODE_ENV: process.env.NODE_ENV || '(not set)',
+    TRUST_PROXY: process.env.TRUST_PROXY || '(not set)',
+    protocol: req.protocol
+  });
 });
 
 function passwordMatches(stored, plain) {
@@ -1756,7 +1776,7 @@ const vintageFile = path.join(__dirname, 'vintage.json');
 const wardrobeDebugLog = path.join(__dirname, 'wardrobe-debug.log');
 const equippedFile = path.join(__dirname, 'equipped.json');
 const outfitsFile = path.join(__dirname, 'outfits.json');
-const profilesFile = path.join(__dirname, 'profiles.json');
+const profilesFile = path.join(dataDir, 'profiles.json');
 const hoverCardFoilFile = path.join(__dirname, 'hover-card-foil.json');
 const hoverCardStickersDir = path.join(uploadsDir, 'hover-card-stickers');
 const hoverCardStickersFile = path.join(__dirname, 'hover-card-stickers.json');
@@ -4143,4 +4163,5 @@ app.use((err, req, res, next) => {
 // Start server on all network interfaces
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server running at http://192.168.86.249:${port}`);
+  console.log('[auth] Data dir:', dataDir, '| users.json exists:', fs.existsSync(usersFile), '| profiles.json exists:', fs.existsSync(profilesFile));
 });
