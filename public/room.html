@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Room - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', 'Nunito', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #e5e7eb; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .room-page { max-width: 1000px; margin: 0 auto; padding: 16px; }
+    .room-area {
+      position: relative;
+      width: 100%;
+      max-width: 900px;
+      height: 500px;
+      margin: 0 auto;
+      background: linear-gradient(180deg, #a7f3d0 0%, #d1fae5 30%, #fef3c7 70%, #fde68a 100%);
+      border-radius: 12px;
+      border: 2px solid #d1d5db;
+      overflow: hidden;
+    }
+    .room-avatar {
+      position: absolute;
+      width: 250px;
+      height: 350px;
+      left: 100px;
+      bottom: 40px;
+      z-index: 5;
+      cursor: move;
+    }
+    .room-avatar .room-base {
+      position: absolute;
+      width: 250px;
+      height: 350px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      image-rendering: pixelated;
+      object-fit: none;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .room-avatar .room-item {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      image-rendering: pixelated;
+      object-fit: none;
+      max-width: 250px;
+      max-height: 350px;
+      pointer-events: none;
+    }
+    .speech-bubble {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-bottom: 8px;
+      padding: 10px 14px;
+      background: #fff;
+      border: 2px solid #374151;
+      border-radius: 12px;
+      font-size: 14px;
+      max-width: 200px;
+      word-wrap: break-word;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      z-index: 10;
+      pointer-events: none;
+    }
+    .speech-bubble::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 8px solid transparent;
+      border-top-color: #374151;
+    }
+    .deco-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0;
+      padding: 8px;
+      background: #f9fafb;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+    .deco-bar span { font-size: 12px; color: #6b7280; margin-right: 8px; align-self: center; }
+    .deco-btn {
+      padding: 6px 12px;
+      background: #e5e7eb;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .deco-btn:hover { background: #d1d5db; }
+    .deco-btn.selected { background: #fce4ec; border-color: #ec4899; }
+    .chat-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 12px 16px;
+      background: #f9fafb;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      gap: 8px;
+      max-width: 600px;
+      margin: 0 auto;
+      z-index: 20;
+    }
+    .chat-bar input {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .chat-bar button {
+      padding: 10px 20px;
+      background: var(--btn-pink-gradient);
+      color: white;
+      border: var(--btn-pink-border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      box-shadow: var(--btn-pink-shadow);
+    }
+    .chat-bar button:hover { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); }
+    .room-deco {
+      position: absolute;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .room-deco.plant { width: 60px; height: 80px; background: #22c55e; border-radius: 4px; }
+    .room-deco.rug { width: 180px; height: 100px; background: #a78bfa; border-radius: 8px; opacity: 0.9; }
+    .room-deco.poster { width: 80px; height: 100px; background: #fbbf24; border: 3px solid #b45309; }
+    .room-deco.lamp { width: 40px; height: 100px; background: #f59e0b; border-radius: 4px; }
+    .room-label { font-size: 12px; color: #6b7280; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="room-page" style="padding-bottom: 80px;">
+    <h1 style="margin: 0 0 8px 0;">My Room</h1>
+    <p class="room-label">Move your avatar with arrow keys. Click a decoration, then click in the room to place it.</p>
+    <div class="deco-bar">
+      <span>Decorate:</span>
+      <button type="button" class="deco-btn" data-deco="plant">Plant</button>
+      <button type="button" class="deco-btn" data-deco="rug">Rug</button>
+      <button type="button" class="deco-btn" data-deco="poster">Poster</button>
+      <button type="button" class="deco-btn" data-deco="lamp">Lamp</button>
+      <button type="button" class="deco-btn" id="room-clear-decorations" style="margin-left: auto;">Clear decorations</button>
+    </div>
+    <div class="room-area" id="room-area">
+      <div class="room-avatar" id="room-avatar">
+        <img src="/Uploads/character.png" class="room-base" alt="Character" id="room-base">
+        <div id="room-outfit-items"></div>
+        <div class="speech-bubble" id="speech-bubble" style="display: none;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="chat-bar">
+    <input type="text" id="chat-input" placeholder="Type a message..." maxlength="100" autocomplete="off" aria-label="Chat message">
+    <button type="button" id="chat-send" aria-label="Send message">Send</button>
+  </div>
+
+  <script>
+    (function () {
+      var roomArea = document.getElementById('room-area');
+      var avatarEl = document.getElementById('room-avatar');
+      var outfitContainer = document.getElementById('room-outfit-items');
+      var speechBubble = document.getElementById('speech-bubble');
+      var chatInput = document.getElementById('chat-input');
+      var chatSend = document.getElementById('chat-send');
+
+      var roomW = 900;
+      var roomH = 500;
+      var avatarW = 250;
+      var avatarH = 350;
+      var moveSpeed = 12;
+      var savedPos = { x: 100, y: 110 };
+      try {
+        var sp = sessionStorage.getItem('roomAvatarPos');
+        if (sp) savedPos = JSON.parse(sp);
+      } catch (e) {}
+      var avatarX = Math.max(0, Math.min(roomW - avatarW, savedPos.x));
+      var avatarY = Math.max(0, Math.min(roomH - 40, savedPos.y));
+      var selectedDeco = null;
+      var decorations = [];
+      var bubbleTimeout = null;
+      var isDragging = false;
+      var dragStartX = 0;
+      var dragStartY = 0;
+      var avatarXAtDrag = 0;
+      var avatarYAtDrag = 0;
+
+      function loadOutfit() {
+        outfitContainer.innerHTML = '';
+        fetch('/api/outfits', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (outfits) {
+          if (!Array.isArray(outfits) || outfits.length === 0) return;
+          var last = outfits[outfits.length - 1];
+          if (!last) return;
+          /* Prefer layered items (same as wardrobe) over merged image so display matches wardrobe */
+          if (last.items && typeof last.items === 'object') {
+          var slotOrder = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
+          var all = [];
+          slotOrder.forEach(function (slotId) {
+            var arr = last.items[slotId];
+            if (Array.isArray(arr)) arr.forEach(function (item) { all.push({ ...item, slotId }); });
+          });
+          all.forEach(function (item) {
+            var img = document.createElement('img');
+            img.className = 'room-item';
+            img.src = item.src || '';
+            img.alt = item.alt || '';
+            img.style.zIndex = item.zIndex != null ? item.zIndex : 2;
+            img.style.transform = 'translate(-50%, -50%) translate(' + (item.x || 0) + 'px, ' + (item.y || 0) + 'px)';
+            img.onerror = function () { img.style.display = 'none'; };
+            outfitContainer.appendChild(img);
+          });
+          return;
+          }
+          /* Fallback: merged image only when no items */
+          if (last.mergedImageUrl) {
+            var framesW = last.mergedFramesW || 1;
+            var frameDuration = last.mergedFrameDuration || 150;
+            var img = document.createElement('img');
+            img.className = 'room-item room-merged';
+            img.src = last.mergedImageUrl;
+            img.alt = last.name || '';
+            img.style.zIndex = 2;
+            img.style.width = (avatarW * framesW) + 'px';
+            img.style.height = avatarH + 'px';
+            img.style.maxWidth = 'none';
+            img.style.position = 'absolute';
+            img.style.left = '50%';
+            img.style.top = '50%';
+            img.style.transform = 'translate(-50%, -50%)';
+            img.style.imageRendering = 'pixelated';
+            img.onerror = function () { img.style.display = 'none'; };
+            if (framesW > 1) {
+              var wrap = document.createElement('div');
+              wrap.className = 'room-merged-wrap';
+              wrap.style.cssText = 'position:absolute;width:' + avatarW + 'px;height:' + avatarH + 'px;left:50%;top:50%;transform:translate(-50%,-50%);overflow:hidden;z-index:2;';
+              wrap.appendChild(img);
+              var frame = 0;
+              setInterval(function () {
+                frame = (frame + 1) % framesW;
+                img.style.marginLeft = (-frame * avatarW) + 'px';
+              }, frameDuration);
+              outfitContainer.appendChild(wrap);
+            } else {
+              img.style.objectFit = 'contain';
+              outfitContainer.appendChild(img);
+            }
+          }
+        }).catch(function () {});
+      }
+
+      function updateAvatarPosition() {
+        avatarX = Math.max(0, Math.min(roomW - avatarW, avatarX));
+        avatarY = Math.max(0, Math.min(roomH - 40, avatarY));
+        avatarEl.style.left = avatarX + 'px';
+        avatarEl.style.bottom = avatarY + 'px';
+        try {
+          sessionStorage.setItem('roomAvatarPos', JSON.stringify({ x: avatarX, y: avatarY }));
+        } catch (e) {}
+      }
+
+      avatarEl.addEventListener('mousedown', function (e) {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        avatarXAtDrag = avatarX;
+        avatarYAtDrag = avatarY;
+      });
+      document.addEventListener('mousemove', function (e) {
+        if (!isDragging) return;
+        var dx = e.clientX - dragStartX;
+        var dy = dragStartY - e.clientY;
+        avatarX = avatarXAtDrag + dx;
+        avatarY = avatarYAtDrag + dy;
+        updateAvatarPosition();
+      });
+      document.addEventListener('mouseup', function (e) {
+        if (e.button === 0) isDragging = false;
+      });
+      document.addEventListener('mouseleave', function () {
+        isDragging = false;
+      });
+
+      avatarEl.addEventListener('touchstart', function (e) {
+        if (e.touches.length !== 1) return;
+        e.preventDefault();
+        isDragging = true;
+        dragStartX = e.touches[0].clientX;
+        dragStartY = e.touches[0].clientY;
+        avatarXAtDrag = avatarX;
+        avatarYAtDrag = avatarY;
+      }, { passive: false });
+      document.addEventListener('touchmove', function (e) {
+        if (!isDragging || e.touches.length !== 1) return;
+        e.preventDefault();
+        var dx = e.touches[0].clientX - dragStartX;
+        var dy = dragStartY - e.touches[0].clientY;
+        avatarX = avatarXAtDrag + dx;
+        avatarY = avatarYAtDrag + dy;
+        updateAvatarPosition();
+        dragStartX = e.touches[0].clientX;
+        dragStartY = e.touches[0].clientY;
+        avatarXAtDrag = avatarX;
+        avatarYAtDrag = avatarY;
+      }, { passive: false });
+      document.addEventListener('touchend', function (e) {
+        if (e.touches.length === 0) isDragging = false;
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (document.activeElement === chatInput) return;
+        e.preventDefault();
+        if (e.code === 'ArrowLeft') avatarX -= moveSpeed;
+        if (e.code === 'ArrowRight') avatarX += moveSpeed;
+        if (e.code === 'ArrowUp') avatarY += moveSpeed;
+        if (e.code === 'ArrowDown') avatarY -= moveSpeed;
+        updateAvatarPosition();
+      });
+
+      function loadDecorations() {
+        try {
+          var s = sessionStorage.getItem('roomDecorations');
+          if (s) decorations = JSON.parse(s);
+        } catch (e) {}
+        decorations.forEach(function (d) {
+          var el = document.createElement('div');
+          el.className = 'room-deco ' + d.type;
+          el.style.left = d.x + 'px';
+          el.style.bottom = d.y + 'px';
+          roomArea.appendChild(el);
+        });
+      }
+
+      function saveDecorations() {
+        sessionStorage.setItem('roomDecorations', JSON.stringify(decorations));
+      }
+
+      document.querySelectorAll('.deco-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          document.querySelectorAll('.deco-btn').forEach(function (b) { b.classList.remove('selected'); });
+          if (selectedDeco === btn.dataset.deco) {
+            selectedDeco = null;
+            return;
+          }
+          selectedDeco = btn.dataset.deco;
+          btn.classList.add('selected');
+        });
+      });
+
+      roomArea.addEventListener('click', function (e) {
+        if (!selectedDeco) return;
+        if (e.target.closest('#room-avatar')) return;
+        var rect = roomArea.getBoundingClientRect();
+        var x = e.clientX - rect.left;
+        var y = rect.bottom - e.clientY;
+        var el = document.createElement('div');
+        el.className = 'room-deco ' + selectedDeco;
+        el.style.left = (x - 30) + 'px';
+        el.style.bottom = (y - 40) + 'px';
+        roomArea.appendChild(el);
+        decorations.push({ type: selectedDeco, x: x - 30, y: y - 40 });
+        saveDecorations();
+      });
+
+      var clearDecoBtn = document.getElementById('room-clear-decorations');
+      if (clearDecoBtn) {
+        clearDecoBtn.addEventListener('click', function () {
+          decorations = [];
+          roomArea.querySelectorAll('.room-deco').forEach(function (el) { el.remove(); });
+          saveDecorations();
+        });
+      }
+
+      function showSpeechBubble(text) {
+        speechBubble.textContent = text;
+        speechBubble.style.display = 'block';
+        if (bubbleTimeout) clearTimeout(bubbleTimeout);
+        bubbleTimeout = setTimeout(function () {
+          speechBubble.style.display = 'none';
+          bubbleTimeout = null;
+        }, 5000);
+      }
+
+      chatSend.addEventListener('click', function () {
+        var text = (chatInput.value || '').trim();
+        if (!text) return;
+        showSpeechBubble(text);
+        chatInput.value = '';
+      });
+      chatInput.addEventListener('keydown', function (e) {
+        if (e.code === 'Enter') {
+          e.preventDefault();
+          chatSend.click();
+        }
+      });
+
+      loadOutfit();
+      loadDecorations();
+      updateAvatarPosition();
+    })();
+  </script>
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+</body>
+</html>

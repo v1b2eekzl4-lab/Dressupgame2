@@ -1,0 +1,3220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Wardrobe - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body {
+      font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif;
+      background: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding-top: 76px;
+      overflow: hidden;
+    }
+    #game-area {
+      width: 1300px;
+      height: 600px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      position: relative;
+      overflow: hidden;
+      margin: auto;
+    }
+    #character-area {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 8px;
+      width: auto;
+      max-width: 320px;
+      margin-left: 0;
+      margin-top: 94px;
+      flex-shrink: 0;
+    }
+    .character-controls-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    #character {
+      position: relative;
+      width: 250px;
+      height: 350px;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 5px;
+      background-color: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      background-image: radial-gradient(circle, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+      background-size: 10px 10px;
+      overflow: hidden;
+      transform: translateZ(0);
+      backface-visibility: hidden;
+    }
+    #character-base, #fixed-base {
+      position: absolute;
+      width: 250px;
+      height: 350px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: -webkit-optimize-contrast;
+      object-fit: none;
+    }
+    #fixed-base {
+      z-index: 0;
+      pointer-events: none;
+    }
+    #character-base {
+      z-index: 1;
+    }
+    #character-backgrounds {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+    #character-backgrounds img {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: -webkit-optimize-contrast;
+      object-fit: none;
+      max-width: 250px;
+      max-height: 350px;
+    }
+    .slot img {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: -webkit-optimize-contrast;
+      object-fit: none;
+      max-width: 250px;
+      max-height: 350px;
+    }
+    .equipped-items-bar {
+      width: 56px;
+      max-height: 350px;
+      padding: 8px;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+      background: #f9f9f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .equipped-visibility-toggle {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      padding: 2px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .equipped-visibility-toggle:hover { background: #e5e7eb; }
+    .equipped-visibility-toggle svg { width: 20px; height: 20px; }
+    #equipped-items {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+    #character.equipped-items-hidden .slot { visibility: hidden; }
+    .equipped-item-container {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .equipped-item-container .item-visibility-btn {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      border: none;
+      background: rgba(255,255,255,0.9);
+      border-radius: 3px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
+    }
+    .equipped-item-container .item-visibility-btn:hover { background: #fff; }
+    .equipped-item-container .item-visibility-btn svg { width: 12px; height: 12px; }
+    #equipped-items img {
+      max-width: 100%;
+      max-height: 100%;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      cursor: move;
+      object-fit: contain;
+    }
+    #equipped-items .equipped-item-container.body-slot img { object-fit: cover; object-position: top center; }
+    #equipped-items img.selected {
+      border: 2px solid #6b7280;
+    }
+    #equipped-items img.dragging {
+      opacity: 0.5;
+    }
+    #equipped-items .drag-over {
+      background: #e5e7eb;
+    }
+    /* Wardrobe uses same layout as store: store-style panel and item cards */
+    #wardrobe {
+      flex: 1 1 600px;
+      min-width: 600px;
+      height: 560px;
+      max-height: 560px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #wardrobe h2 { margin: 0 0 10px; text-align: center; flex-shrink: 0; }
+    #wardrobe #icon-menu { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: nowrap; flex-shrink: 0; overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; }
+    #wardrobe #icon-menu::-webkit-scrollbar { height: 6px; }
+    .wardrobe-search-wrap { display: flex; align-items: center; margin-bottom: 10px; gap: 8px; flex-shrink: 0; min-height: 36px; cursor: pointer; position: relative; z-index: 5; pointer-events: auto; }
+    .wardrobe-search-glass { width: 36px; height: 36px; padding: 0; border: 1px solid #d1d5db; border-radius: 8px; background: rgba(255,255,255,0.85); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #4b5563; pointer-events: none; }
+    .wardrobe-search-wrap:hover .wardrobe-search-glass { background: rgba(255,255,255,1); border-color: #9ca3af; color: #111; }
+    .wardrobe-search-input { width: 0; max-width: 0; padding: 0; margin: 0; border: none; border-radius: 8px; font-size: 14px; opacity: 0; visibility: hidden; transition: width 0.2s ease, max-width 0.2s ease, padding 0.2s ease, opacity 0.2s ease, visibility 0.2s; overflow: hidden; }
+    .wardrobe-search-wrap.expanded .wardrobe-search-input { width: 100%; max-width: 220px; padding: 8px 12px; margin: 0; border: 1px solid #d1d5db; opacity: 1; visibility: visible; }
+    .wardrobe-search-wrap.expanded .wardrobe-search-glass { border-color: #f9a8d4; background: #fce4ec; color: #be185d; }
+    #wardrobe #icon-menu::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+    .wardrobe-item-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      width: 90px;
+      flex-shrink: 0;
+      padding: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 8px;
+      background-color: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      background-image: radial-gradient(circle, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+      background-size: 10px 10px;
+      cursor: pointer;
+    }
+    .wardrobe-item-container:hover {
+      border-color: #6b7280;
+    }
+    .wardrobe-item-container img.item {
+      width: 70px;
+      height: 70px;
+      object-fit: contain;
+      cursor: pointer;
+      border-radius: 5px;
+      image-rendering: pixelated;
+      border: none;
+    }
+    .wardrobe-item-container.item-body img.item { object-fit: cover; object-position: top center; }
+    #body .wardrobe-item-container img.item,
+    #saved-outfits .wardrobe-item-container img.item {
+      width: 70px;
+      height: 70px;
+      object-fit: contain;
+    }
+    #full-set .wardrobe-item-container {
+      width: 120px;
+    }
+    #full-set .wardrobe-item-container img.item {
+      width: 100px;
+      height: 140px;
+      object-fit: contain;
+    }
+    .wardrobe-set-preview {
+      position: relative;
+      width: 100px;
+      height: 140px;
+      overflow: hidden;
+      display: block;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .wardrobe-set-preview .wardrobe-set-preview-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .wardrobe-set-preview .wardrobe-set-preview-bg img,
+    .wardrobe-set-preview .wardrobe-set-preview-base,
+    .wardrobe-set-preview .wardrobe-set-preview-layer {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100px;
+      height: 140px;
+      transform: translate(-50%, -50%);
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+      object-fit: none;
+      object-position: center center;
+    }
+    .wardrobe-set-preview .wardrobe-set-preview-base { z-index: 1; pointer-events: none; }
+    .wardrobe-set-preview .wardrobe-set-preview-layers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+    .wardrobe-set-preview .wardrobe-set-preview-layer.body-slot { object-fit: cover; object-position: top center; }
+    .wardrobe-item-container .heart-icon {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      image-rendering: pixelated;
+      z-index: 10;
+      pointer-events: auto;
+    }
+    .wardrobe-item-container .item-info-btn {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      z-index: 10;
+    }
+    .wardrobe-swatch-dots {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      justify-content: center;
+      margin-top: 4px;
+      opacity: 0.85;
+      transition: opacity 0.15s ease;
+    }
+    .wardrobe-item-container:hover .wardrobe-swatch-dots { opacity: 1; }
+    .wardrobe-swatch-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      border: 1px solid #666;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .wardrobe-swatch-dot:hover { border-color: #ec4899; }
+    .wardrobe-swatch-dot.selected { border: 2px solid #ec4899; box-shadow: 0 0 0 1px #fff; }
+    .wardrobe-item-container .sell-to-vintage-btn { margin-top: 6px; width: 24px; height: 24px; padding: 0; font-size: 12px; line-height: 1; background: #78716c; color: #fff; border: none; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; }
+    .wardrobe-item-container .sell-to-vintage-btn:hover { background: #57534e; }
+    .wardrobe-item-container .item[data-dropper-hint] { cursor: crosshair; }
+    #icon-menu {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: nowrap;
+      flex-shrink: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 4px;
+    }
+    #icon-menu::-webkit-scrollbar { height: 6px; }
+    #icon-menu::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+    .menu-icon {
+      width: 50px;
+      height: 50px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      image-rendering: pixelated;
+    }
+    .menu-icon:hover {
+      border-color: #6b7280;
+    }
+    .menu-icon.selected {
+      border: 2px solid #ec4899;
+      box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.3);
+    }
+    .category {
+      display: none;
+      flex-wrap: wrap;
+      gap: 10px;
+      flex: 1 1 0;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      align-content: flex-start;
+    }
+    .category.active {
+      display: flex;
+    }
+    .category::-webkit-scrollbar { width: 8px; }
+    .category::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+    .category::-webkit-scrollbar-track { background: #f0f0f0; }
+    .category-nav {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .category-nav button {
+      box-sizing: border-box;
+      padding: 4px 8px;
+      width: 64px;
+      min-width: 64px;
+      max-width: 64px;
+      font-size: 12px;
+      background: var(--btn-pink-gradient);
+      color: #fff;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 5px;
+      cursor: pointer;
+      box-shadow: var(--btn-pink-shadow);
+      flex: 0 0 64px;
+    }
+    .category-nav button:hover:not(:disabled) {
+      background: var(--btn-pink-gradient-hover);
+      filter: brightness(1.02);
+      box-shadow: 0 3px 8px rgba(244,143,177,0.45), inset 0 1px 0 rgba(255,255,255,0.6);
+    }
+    .category-nav button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      border: 1px solid #d1d5db;
+      box-shadow: none;
+    }
+    .item {
+      cursor: pointer;
+      border-radius: 5px;
+      image-rendering: pixelated;
+    }
+    #equipped-items .item,
+    #equipped-items img { border: 1px solid #ccc; pointer-events: auto; }
+    #equipped-items .item:hover { border-color: #6b7280; }
+    #layering-controls {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      width: 250px;
+      justify-content: center;
+    }
+    #layering-controls button {
+      padding: 5px 10px;
+      background: var(--btn-pink-gradient);
+      color: #fff;
+      border: var(--btn-pink-border);
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex: 0 0 80px;
+      box-shadow: var(--btn-pink-shadow);
+    }
+    #layering-controls button:hover {
+      background: var(--btn-pink-gradient-hover);
+      filter: brightness(1.02);
+      box-shadow: 0 3px 8px rgba(244,143,177,0.45), inset 0 1px 0 rgba(255,255,255,0.6);
+    }
+    #layering-controls button img {
+      width: 16px;
+      height: 16px;
+      image-rendering: pixelated;
+    }
+    #layering-controls a {
+      padding: 5px 10px;
+      background: var(--btn-pink-gradient);
+      color: white;
+      border: var(--btn-pink-border);
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 12px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex: 0 0 80px;
+    }
+    #layering-controls a:hover {
+      background: var(--btn-pink-gradient-hover);
+      filter: brightness(1.02);
+    }
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+      #game-area {
+        width: 100%;
+        height: auto;
+        flex-direction: column;
+        padding: 10px;
+      }
+      #character-area {
+        width: 100%;
+        max-width: 320px;
+        margin-left: 0;
+        margin-top: 0;
+      }
+      #character {
+        width: 200px;
+        height: 280px;
+      }
+      #character-base, #fixed-base, .slot img {
+        width: 200px;
+        height: 280px;
+      }
+      .equipped-items-bar {
+        width: 56px;
+        max-height: 200px;
+      }
+      #wardrobe {
+        width: 100%;
+      }
+      #icon-menu {
+        justify-content: center;
+      }
+      #layering-controls {
+        width: 100%;
+        justify-content: space-around;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div id="item-info-tooltip" class="item-info-tooltip" aria-hidden="true"></div>
+    <div id="game-area">
+    <div id="character-area">
+      <div class="equipped-items-bar">
+        <button type="button" class="equipped-visibility-toggle" id="equipped-visibility-toggle" aria-label="Hide equipped items" title="Hide equipped items">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+        <div id="equipped-items"></div>
+      </div>
+      <div class="character-controls-wrap">
+        <div id="character">
+          <div id="character-backgrounds"></div>
+          <img src="/Uploads/character.png" id="fixed-base" alt="Character Base">
+          <img src="/Uploads/character.png" id="character-base" alt="Character Base">
+          <div id="body-slot" class="slot"></div>
+          <div id="shirt-slot" class="slot"></div>
+          <div id="pants-slot" class="slot"></div>
+          <div id="skirt-slot" class="slot"></div>
+          <div id="dress-slot" class="slot"></div>
+          <div id="jacket-slot" class="slot"></div>
+          <div id="shoes-slot" class="slot"></div>
+          <div id="hat-slot" class="slot"></div>
+          <div id="makeup-slot" class="slot"></div>
+          <div id="jewelry-slot" class="slot"></div>
+          <div id="other-slot" class="slot"></div>
+          <div id="hair-slot" class="slot"></div>
+          <div id="socks-slot" class="slot"></div>
+        </div>
+        <div id="layering-controls">
+          <button id="move-up" aria-label="Move selected item up in layering"><img src="/Uploads/arrow-circle-up.svg" alt="" onerror="this.style.display='none'">Up</button>
+          <button id="move-down" aria-label="Move selected item down in layering"><img src="/Uploads/arrow-circle-down.svg" alt="" onerror="this.style.display='none'">Down</button>
+          <button id="remove-item" aria-label="Remove selected item"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z'/%3E%3Cline x1='10' y1='11' x2='10' y2='17'/%3E%3Cline x1='14' y1='11' x2='14' y2='17'/%3E%3C/svg%3E" alt="" width="20" height="20">Remove</button>
+          <button type="button" id="toggle-background-btn" aria-label="Toggle background on/off" style="display: none;">Background: On</button>
+          <button id="reset-outfit" aria-label="Reset all equipped items">Reset Outfit</button>
+          <button type="button" id="save-outfit" aria-label="Save current outfit" onclick="if(typeof window.handleSaveOutfitClick==='function'){window.handleSaveOutfitClick();}else{alert('Please wait for the page to finish loading, then try again.');} return false;">Save Outfit</button>
+        </div>
+      </div>
+    </div>
+    <div id="wardrobe">
+      <h2>Wardrobe</h2>
+      <div id="icon-menu">
+        <img src="/Uploads/full-sets-icon.png" class="menu-icon" id="full-sets-icon" alt="Full Sets Menu" role="button" aria-label="Open full sets menu" onerror="this.onerror=null;this.src='/img/heart_true.svg'">
+        <img src="/Uploads/saved-outfits-icon.png" class="menu-icon" id="saved-outfits-icon" data-categories="saved-outfits" alt="Saved Outfits Menu" role="button" aria-label="Open saved outfits menu" onerror="this.onerror=null;this.src='/img/heart_true.svg'">
+        <img src="/Uploads/body-icon.png" class="menu-icon" id="body-icon" alt="Body Menu" role="button" aria-label="Open body menu" onerror="this.onerror=null;this.src='/img/heart_true.svg'">
+        <img src="/Uploads/shirt-icon.png" class="menu-icon" data-categories="shirt" alt="Shirt Menu" role="button" aria-label="Open shirt menu" onerror="this.onerror=null;this.src='/img/heart_true.svg'">
+        <img src="/Uploads/pants-icon.png" class="menu-icon" data-categories="pants" alt="Pants Menu" role="button" aria-label="Open pants menu" onerror="this.onerror=null;this.src='/img/heart_true.svg'">
+        <img src="/Uploads/skirt-icon.png" class="menu-icon" data-categories="skirt" alt="Skirt Menu" role="button" aria-label="Open skirt menu" onerror="this.onerror=null;this.src='/img/heart_true.svg'">
+        <img src="/Uploads/dress-icon.png" class="menu-icon" data-categories="dress" alt="Dress Menu" role="button" aria-label="Open dress menu" onerror="this.onerror=null;this.src='/img/heart_true.svg'">
+        <img src="/Uploads/jacket-icon.png" class="menu-icon" data-categories="jacket" alt="Jacket Menu" role="button" aria-label="Open jacket menu" onerror="this.onerror=null;this.src='/img/heart_true.svg'">
+        <img src="/Uploads/shoes-icon.png" class="menu-icon" data-categories="shoes" alt="Shoes Menu" role="button" aria-label="Open shoes menu" onerror="this.onerror=null;this.src='/img/heart_true.svg'">
+        <img src="/Uploads/socks-icon.png" class="menu-icon" data-categories="socks" alt="Socks Menu" role="button" aria-label="Open socks menu" onerror="this.onerror=null;this.src='/img/heart_true.svg'">
+        <img src="/Uploads/hat-icon.png" class="menu-icon" data-categories="hat" alt="Hat Menu" role="button" aria-label="Open hat menu" onerror="this.onerror=null;this.src='/img/heart_true.svg'">
+        <img src="/Uploads/other-icon.png" class="menu-icon" id="other-icon" alt="Other Menu" role="button" aria-label="Open other menu" onerror="this.onerror=null;this.src='/img/heart_true.svg'">
+        <img src="/Uploads/hair-icon.png" class="menu-icon" data-categories="hair" alt="Hair Menu" role="button" aria-label="Open hair menu" onerror="this.onerror=null;this.src='/img/heart_true.svg'">
+        <img src="/Uploads/makeup-icon.png" class="menu-icon" data-categories="makeup" alt="Makeup Menu" role="button" aria-label="Open makeup menu" onerror="this.onerror=null;this.src='/img/heart_true.svg'">
+        <img src="/Uploads/heart-icon.png" class="menu-icon" id="heart-icon" alt="Heart Menu" role="button" aria-label="Open heart menu" onerror="this.onerror=null;this.src='/img/heart_true.svg'">
+      </div>
+      <div id="wardrobe-search-wrap" class="wardrobe-search-wrap" title="Hover to search by name or tags">
+        <span class="wardrobe-search-glass" aria-hidden="true">
+          <svg class="wardrobe-search-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </span>
+        <input type="text" id="wardrobe-search-input" class="wardrobe-search-input" placeholder="Search by name or tags…" aria-label="Search wardrobe by name or tags" autocomplete="off">
+      </div>
+      <div id="all" class="category active"><div class="store-empty" style="padding:12px;">Loading wardrobe…</div></div>
+      <div id="saved-outfits" class="category"></div>
+      <div id="full-set" class="category"></div>
+      <div id="body" class="category"></div>
+      <div id="shirt" class="category"></div>
+      <div id="pants" class="category"></div>
+      <div id="skirt" class="category"></div>
+      <div id="dress" class="category"></div>
+      <div id="jacket" class="category"></div>
+      <div id="shoes" class="category"></div>
+      <div id="socks" class="category"></div>
+      <div id="hat" class="category"></div>
+      <div id="jewelry" class="category"></div>
+      <div id="other" class="category"></div>
+      <div id="hair" class="category"></div>
+      <div id="makeup" class="category"></div>
+      <div id="hearted-items" class="category"></div>
+    </div>
+  </div>
+  <canvas id="outfit-merge-canvas" width="250" height="350" style="display:none;"></canvas>
+  <script src="/js/slots.js"></script>
+  <script>
+    (function bootstrapWardrobe() {
+      var allDiv = document.getElementById('all');
+      if (!allDiv) return;
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest) return;
+        var panel = e.target.closest('#wardrobe');
+        if (!panel) return;
+        var container = e.target.closest('.wardrobe-item-container');
+        if (!container || container.classList.contains('wardrobe-set-card')) return;
+        var img = container.querySelector('img.item');
+        if (!img) return;
+        if (e.target !== img && e.target !== container) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof window.handleItemClick === 'function') {
+          window.handleItemClick(e);
+          return;
+        }
+        var filename = (img.dataset.filename || (img.src && img.src.split('/').pop().replace(/\?.*$/, '')) || '').trim();
+        if (!filename) return;
+        var slotId = (img.dataset.slot || 'other-slot');
+        if (slotId.indexOf('slot') === -1) slotId = slotId + '-slot';
+        var slotIds = window.VALID_SLOT_IDS && window.VALID_SLOT_IDS.has(slotId) ? [slotId] : ['other-slot'];
+        var eq = window.equippedItems || {};
+        var bootItems = (window.__wardrobeBootstrapData && window.__wardrobeBootstrapData.items) || [];
+        var coordItem = bootItems.find(function(i) { return i && i.filename === filename; });
+        var dx = (coordItem && coordItem.defaultX != null) ? Number(coordItem.defaultX) : 0;
+        var dy = (coordItem && coordItem.defaultY != null) ? Number(coordItem.defaultY) : 0;
+        slotIds.forEach(function(sid) {
+          if (!eq[sid]) eq[sid] = [];
+          var itemId = sid + '-' + eq[sid].length;
+          var srcPath = '/Uploads/' + filename;
+          eq[sid].push({ id: itemId, slotId: sid, src: srcPath, alt: img.alt || filename, zIndex: 10 + eq[sid].length, x: dx, y: dy });
+          var slotEl = document.getElementById(sid);
+          if (slotEl) {
+            var newImg = document.createElement('img');
+            newImg.src = srcPath;
+            newImg.alt = img.alt || filename;
+            newImg.dataset.itemId = itemId;
+            newImg.dataset.slotId = sid;
+            newImg.style.zIndex = 10 + eq[sid].length;
+            newImg.style.transform = 'translate(-50%, -50%) translate(' + dx + 'px, ' + dy + 'px)';
+            newImg.onerror = function() { newImg.style.display = 'none'; };
+            if (typeof hookPixelPerfect === 'function') hookPixelPerfect(newImg);
+            slotEl.appendChild(newImg);
+          }
+        });
+        try { if (typeof window.saveEquippedItems === 'function') window.saveEquippedItems(); } catch (_) {}
+        try { if (typeof window.updateEquippedItems === 'function') window.updateEquippedItems(); } catch (_) {}
+      }, true);
+      function draw(items, purchasedList) {
+        window.__wardrobeBootstrapData = { items: items || [], purchased: purchasedList || [] };
+        if (!items || !items.length) {
+          allDiv.innerHTML = '<div class="store-empty" style="padding:12px;">No items in your wardrobe. <a href="./store.html">Buy from the Shop</a>.</div>';
+        } else {
+          var html = '';
+          for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            if (!it || !it.filename) continue;
+            var src = '/Uploads/' + encodeURIComponent(it.filename);
+            var slot = (it.slotId && String(it.slotId).indexOf('slot') >= 0) ? it.slotId : (it.slotId ? it.slotId + '-slot' : 'other-slot');
+            var name = (it.name || it.filename).replace(/"/g, '&quot;');
+            html += '<div class="wardrobe-item-container"><img class="item" src="' + src + '" alt="' + name + '" data-filename="' + it.filename + '" data-slot="' + slot + '"></div>';
+          }
+          allDiv.innerHTML = html;
+        }
+        if (typeof window.wardrobeBootstrapDone === 'function') window.wardrobeBootstrapDone(items || [], purchasedList || []);
+      }
+      var done = false;
+      setTimeout(function() {
+        if (done) return;
+        done = true;
+        if (allDiv.innerHTML.indexOf('Loading') !== -1)
+          allDiv.innerHTML = '<div class="store-empty" style="padding:12px;">Loading timed out. <a href="wardrobe.html">Refresh the page</a>.</div>';
+      }, 10000);
+      fetch('/api/user-inventory', { credentials: 'same-origin' }).then(function(r) { return r.ok ? r.json() : {}; }).catch(function() { return {}; }).then(function(d) {
+        if (done) return;
+        var purchased = Array.isArray(d && d.purchased) ? d.purchased : [];
+        return fetch('/api/items', { credentials: 'same-origin' }).then(function(r) { return r && r.ok ? r.json() : []; }).catch(function() { return []; }).then(function(data) {
+          if (done) return;
+          done = true;
+          var list = Array.isArray(data) ? data : [];
+          if (list.length && list[0] && Array.isArray(list[0])) list = list.flat();
+          var withFilename = list.filter(function(i) { return i && i.filename; });
+          var owned = withFilename.filter(function(i) { return purchased.indexOf(i.filename) !== -1; });
+          draw(owned, purchased);
+        });
+      }).catch(function() {
+        if (done) return;
+        done = true;
+        allDiv.innerHTML = '<div class="store-empty" style="padding:12px;">Could not load. <a href="wardrobe.html">Refresh the page</a>.</div>';
+        window.__wardrobeBootstrapData = { items: [], purchased: [] };
+        if (typeof window.wardrobeBootstrapDone === 'function') window.wardrobeBootstrapDone([], []);
+      });
+    })();
+  </script>
+  <script>
+    (function() {
+      if (typeof window.getFlatItemsForMerge !== 'function') window.getFlatItemsForMerge = function() { return []; };
+      if (typeof window.equippedItems === 'undefined') window.equippedItems = {};
+      if (typeof window.compositeOutfitToCanvas !== 'function') window.compositeOutfitToCanvas = function(c, d) { if (c) { c.width = 250; c.height = 350; } if (d) d(); };
+      if (typeof window.loadSavedOutfits !== 'function') window.loadSavedOutfits = function() {};
+      if (typeof window.showError !== 'function') window.showError = function(m) { alert(m); };
+    })();
+    function applyPixelPerfectSize(img, maxW, maxH) {
+      maxW = maxW || 250; maxH = maxH || 350;
+      var nw = img.naturalWidth, nh = img.naturalHeight;
+      if (!nw || !nh) return;
+      var scale = Math.min(1, maxW / nw, maxH / nh);
+      if (scale < 1) scale = 1 / Math.ceil(1 / scale);
+      var w = Math.round(nw * scale), h = Math.round(nh * scale);
+      if (w % 2 !== 0) w++; if (h % 2 !== 0) h++;
+      img.style.width = w + 'px';
+      img.style.height = h + 'px';
+    }
+    function hookPixelPerfect(img, maxW, maxH) {
+      img.addEventListener('load', function () { applyPixelPerfectSize(img, maxW, maxH); });
+      if (img.complete) applyPixelPerfectSize(img, maxW, maxH);
+    }
+    (function () {
+      var base = document.getElementById('character-base');
+      var fixed = document.getElementById('fixed-base');
+      if (base) hookPixelPerfect(base);
+      if (fixed) hookPixelPerfect(fixed);
+    })();
+    function parseTransformXY(transformStr) {
+      if (!transformStr || typeof transformStr !== 'string') return { x: 0, y: 0 };
+      var x = 0, y = 0;
+      var translateRe = /translate\([^)]+\)\s*translate\((-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px\)/;
+      var t = transformStr.match(translateRe);
+      if (t) {
+        x = parseFloat(t[1]) || 0;
+        y = parseFloat(t[2]) || 0;
+        return { x: x, y: y };
+      }
+      var matrixMatch = transformStr.match(/matrix(?:3d)?\s*\(([^)]+)\)/);
+      if (matrixMatch) {
+        var parts = matrixMatch[1].split(',').map(function(s) { return parseFloat(s.trim()); });
+        if (parts.length >= 6) {
+          x = parts[4];
+          y = parts[5];
+        } else if (parts.length >= 16) {
+          x = parts[12];
+          y = parts[13];
+        }
+        return { x: x || 0, y: y || 0 };
+      }
+      return { x: 0, y: 0 };
+    }
+    function getEquippedFromDOM() {
+      var slotIds = window.VALID_SLOT_IDS ? Array.from(window.VALID_SLOT_IDS) : ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','makeup-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
+      var order = window.SLOT_LAYER_ORDER || {};
+      var slotOrder = Object.keys(order).length ? Object.keys(order).sort(function(a, b) { return (order[a] || 0) - (order[b] || 0); }) : slotIds;
+      var bySlot = {};
+      var flat = [];
+      slotOrder.forEach(function(slotId) {
+        var slotEl = document.getElementById(slotId);
+        if (!slotEl) return;
+        var imgs = slotEl.querySelectorAll('img[data-item-id]');
+        for (var i = 0; i < imgs.length; i++) {
+          var img = imgs[i];
+          var id = img.getAttribute('data-item-id') || (slotId + '-' + i);
+          var src = img.src || '';
+          var slotIdFromDom = img.getAttribute('data-slot-id') || slotId;
+          var z = parseInt(img.style.zIndex, 10) || 0;
+          var transformStr = img.style.transform || (window.getComputedStyle ? window.getComputedStyle(img).transform : '');
+          var xy = parseTransformXY(transformStr);
+          var item = { id: id, src: src, x: xy.x, y: xy.y, zIndex: z };
+          if (!bySlot[slotIdFromDom]) bySlot[slotIdFromDom] = [];
+          bySlot[slotIdFromDom].push(item);
+          flat.push(Object.assign({}, item, { slotId: slotIdFromDom }));
+        }
+      });
+      flat.sort(function(a, b) { return (a.zIndex || 0) - (b.zIndex || 0); });
+      return { bySlot: bySlot, flat: flat };
+    }
+    window.getEquippedFromDOM = getEquippedFromDOM;
+    /* handleSaveOutfitClick is provided by the main script block after initializeGame() runs. */
+  </script>
+  <script>(function(){var e=document.getElementById('wardrobe-debug');if(e)e.textContent='Wardrobe: script ran';})();</script>
+  <script>
+    window.VALID_SLOT_IDS=window.VALID_SLOT_IDS||new Set(['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','makeup-slot','jewelry-slot','other-slot','hair-slot','socks-slot']);
+    window.SLOT_LAYER_ORDER=window.SLOT_LAYER_ORDER||{'body-slot':0,'pants-slot':1,'skirt-slot':2,'dress-slot':3,'shirt-slot':4,'jacket-slot':5,'socks-slot':6,'shoes-slot':7,'hat-slot':8,'makeup-slot':9,'jewelry-slot':10,'hair-slot':11,'other-slot':12};
+    window.BACKGROUND_LAYER_Z=window.BACKGROUND_LAYER_Z||0;
+  </script>
+  <script>
+    (function () {
+      var slotIds = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','makeup-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
+      var slotOrder = {'body-slot':0,'pants-slot':1,'skirt-slot':2,'dress-slot':3,'shirt-slot':4,'jacket-slot':5,'socks-slot':6,'shoes-slot':7,'hat-slot':8,'makeup-slot':9,'jewelry-slot':10,'hair-slot':11,'other-slot':12};
+      if (!window.VALID_SLOT_IDS || !(window.VALID_SLOT_IDS instanceof Set)) window.VALID_SLOT_IDS = new Set(slotIds);
+      if (!window.SLOT_LAYER_ORDER || typeof window.SLOT_LAYER_ORDER !== 'object') window.SLOT_LAYER_ORDER = slotOrder;
+    })();
+    document.addEventListener('DOMContentLoaded', function() {
+      var e = document.getElementById('wardrobe-debug');
+      if (e) e.textContent = 'Wardrobe: DOM ready';
+    });
+    async function handleSaveOutfitClick() {
+      var mergeCanvas = document.getElementById('outfit-merge-canvas');
+      if (!mergeCanvas) {
+        alert('Save outfit is not available. Please refresh the page.');
+        return;
+      }
+      try {
+        var items = typeof getFlatItemsForMerge === 'function' ? getFlatItemsForMerge() : [];
+        if (!items || items.length === 0) {
+          var fromDom = typeof window.getEquippedFromDOM === 'function' ? window.getEquippedFromDOM() : { bySlot: {}, flat: [] };
+          items = fromDom.flat || [];
+          if (items.length > 0 && fromDom.bySlot) {
+            window.equippedItems = fromDom.bySlot;
+          }
+        }
+        if (!items || items.length === 0) {
+          alert('Equip at least one item before saving.');
+          return;
+        }
+        var itemsPayloadToSave = (function() {
+          var src = (typeof window !== 'undefined' && window.equippedItems && typeof window.equippedItems === 'object' && Object.keys(window.equippedItems).some(function(k) { return Array.isArray(window.equippedItems[k]) && window.equippedItems[k].length > 0; })) ? window.equippedItems : equippedItems;
+          var hasAny = src && Object.keys(src).some(function(k) { return Array.isArray(src[k]) && src[k].length > 0; });
+          if (hasAny) return JSON.parse(JSON.stringify(src));
+          var bySlot = {};
+          items.forEach(function(item) {
+            var sid = item.slotId || 'other-slot';
+            if (!bySlot[sid]) bySlot[sid] = [];
+            bySlot[sid].push({ id: item.id, src: item.src, x: item.x, y: item.y, zIndex: item.zIndex, alt: item.alt });
+          });
+          return bySlot;
+        })();
+        var outfitName = prompt('Enter a name for this outfit:');
+        if (!outfitName || !outfitName.trim()) return;
+        var framesW = Math.max(1, Math.min(8, parseInt(prompt('Animation frames (1 = static, 2\u20138 = spritesheet):', '1') || '1', 10) || 1));
+        var frameDuration = Math.max(50, parseInt(prompt('Frame duration (ms):', '150') || '150', 10) || 150);
+        var W = 250, H = 350;
+        mergeCanvas.width = W;
+        mergeCanvas.height = H;
+        var outW = W * framesW, outH = H;
+        var spritesheetCanvas = document.createElement('canvas');
+        spritesheetCanvas.width = outW;
+        spritesheetCanvas.height = outH;
+        var sctx = spritesheetCanvas.getContext('2d');
+        for (var f = 0; f < framesW; f++) {
+          await new Promise(function(resolve) {
+            compositeOutfitToCanvas(mergeCanvas, function() {
+              sctx.drawImage(mergeCanvas, 0, 0, W, H, f * W, 0, W, H);
+              resolve();
+            });
+          });
+        }
+        spritesheetCanvas.toBlob(async function(blob) {
+          if (!blob) { alert('Could not create merged image.'); return; }
+          try {
+            var formData = new FormData();
+            formData.append('name', outfitName.trim());
+            formData.append('items', JSON.stringify(itemsPayloadToSave));
+            formData.append('merged', new File([blob], 'outfit.png', { type: 'image/png' }));
+            formData.append('mergedFramesW', String(framesW));
+            formData.append('mergedFrameDuration', String(frameDuration));
+            var response = await fetch('/api/outfits', { method: 'POST', credentials: 'same-origin', body: formData });
+            if (!response.ok) {
+              var errBody = await response.json().catch(function() { return {}; });
+              var msg = errBody.error || response.statusText || 'Failed to save outfit';
+              if (response.status === 401) {
+                alert('You need to log in to save outfits. Go to Create and sign in or register.');
+                return;
+              }
+              throw new Error(msg);
+            }
+            if (typeof loadSavedOutfits === 'function') await loadSavedOutfits();
+            if (typeof showToast === 'function') showToast('Outfit "' + outfitName.trim() + '" saved!');
+            else alert('Outfit "' + outfitName.trim() + '" saved!');
+          } catch (err) {
+            alert('Failed to save outfit: ' + (err && err.message ? err.message : String(err)));
+          }
+        }, 'image/png');
+      } catch (err) {
+        alert('Failed to save outfit: ' + (err && err.message ? err.message : String(err)));
+      }
+    }
+    const equippedItems = {};
+    window.equippedItems = equippedItems;
+    let lastLoadedSavedOutfits = [];
+    let activeCategory = 'body';
+    let selectedItemId = null;
+    let dragItemId = null;
+    let wardrobeItems = [];
+    /** Purchased filenames (from /api/user-inventory), used when falling back to /api/items. */
+    let purchased = [];
+    const itemsPerPage = 20;
+    let currentPages = {};
+    /** Most recently equipped non-body item id; cleared when user reorders (Up/Down/Drag). */
+    let lastEquippedId = null;
+    /** Selected variant filename per root filename (for swatch switching). */
+    const selectedVariantByRoot = {};
+    /** Current wardrobe search query (filters items by name, id, designer, filename). */
+    let wardrobeSearchQuery = '';
+    /** When false, equipped items are hidden on the character (eye toggle). */
+    let equippedItemsVisible = true;
+    function itemMatchesSearch(item, q) {
+      if (!q || !item) return true;
+      const lower = (q || '').toLowerCase();
+      const s = (v) => (v || '').toLowerCase();
+      if (s(item.id).includes(lower) || s(item.name).includes(lower) || s(item.designer).includes(lower) || s(item.filename).includes(lower)) return true;
+      if (Array.isArray(item.tags)) {
+        for (let i = 0; i < item.tags.length; i++) {
+          if (typeof item.tags[i] === 'string' && s(item.tags[i]).includes(lower)) return true;
+        }
+      }
+      return false;
+    }
+    function getSetId(item) {
+      if (!item || !Array.isArray(item.tags)) return null;
+      const tag = item.tags.find(t => typeof t === 'string' && t.startsWith('set-id:'));
+      return tag ? tag.replace('set-id:', '').trim() : null;
+    }
+    function getSetName(item) {
+      if (!item || !Array.isArray(item.tags)) return null;
+      const tag = item.tags.find(t => typeof t === 'string' && t.startsWith('set-name:'));
+      return tag ? tag.replace('set-name:', '').trim() : null;
+    }
+    function getSetGroupKey(item) {
+      const sid = getSetId(item);
+      if (sid && sid !== 'DefaultSet') return { id: sid, name: getSetName(item) || sid };
+      if (!item || !Array.isArray(item.tags)) return null;
+      const setTag = item.tags.find(t => typeof t === 'string' && t.startsWith('set:'));
+      if (setTag) {
+        const name = setTag.replace('set:', '').trim();
+        if (name === 'DefaultSet') return null;
+        return { id: 'tag_' + name, name: name };
+      }
+      return null;
+    }
+    function getBrandFromItem(item) {
+      if (!item || !Array.isArray(item.tags)) return '';
+      const t = item.tags.find(x => typeof x === 'string' && x.startsWith('set-brand:'));
+      return t ? t.replace('set-brand:', '').trim() : '';
+    }
+    function getSetItemsFromAll(allItems, setKey) {
+      if (!setKey || !Array.isArray(allItems)) return [];
+      return allItems.filter(i => { const k = getSetGroupKey(i); return k && k.id === setKey.id; });
+    }
+    function getSetsFromWardrobe() {
+      const bySet = {};
+      wardrobeItems.forEach(item => {
+        const key = getSetGroupKey(item);
+        if (key) {
+          if (!bySet[key.id]) bySet[key.id] = { id: key.id, name: key.name, items: [] };
+          bySet[key.id].items.push(item);
+        }
+      });
+      return Object.values(bySet).filter(s => s.items.length >= 2);
+    }
+    function compositeSetToImg(setItems, imgEl) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 125;
+      canvas.height = 175;
+      compositeSetToCanvas(setItems, canvas, function() {
+        try { imgEl.src = canvas.toDataURL('image/png'); } catch (e) {}
+      });
+    }
+    function escapeHtml(s) {
+      if (s == null) return '';
+      const str = String(s);
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function showItemInfoTooltip(e, item, allItems) {
+      const tip = document.getElementById('item-info-tooltip');
+      if (!tip) return;
+      const setKey = getSetGroupKey(item);
+      const setItems = setKey ? getSetItemsFromAll(allItems || [], setKey) : [];
+      const designer = (item.designer || '').trim() || '—';
+      const brand = getBrandFromItem(item) || '—';
+      let html = '';
+      if (setItems.length > 0) {
+        html += '<div class="item-info-set-img-wrap"><img class="item-info-set-img" id="item-info-set-img" alt="" src="data:image/gif;base64,R0lGOODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></div>';
+        tip.innerHTML = html + '<div class="item-info-line"><span class="item-info-label">Set:</span> ' + escapeHtml(setKey ? setKey.name : '') + '</div><div class="item-info-line"><span class="item-info-label">Designer:</span> ' + escapeHtml(designer) + '</div><div class="item-info-line"><span class="item-info-label">Brand:</span> ' + escapeHtml(brand) + '</div>';
+        const imgEl = document.getElementById('item-info-set-img');
+        if (imgEl) compositeSetToImg(setItems, imgEl);
+      } else {
+        tip.innerHTML = '<div class="item-info-line"><span class="item-info-label">Designer:</span> ' + escapeHtml(designer) + '</div><div class="item-info-line"><span class="item-info-label">Brand:</span> ' + escapeHtml(brand) + '</div>';
+      }
+      tip.classList.add('visible');
+      tip.setAttribute('aria-hidden', 'false');
+      const rect = e.target && e.target.getBoundingClientRect ? e.target.getBoundingClientRect() : { right: 0, top: 0 };
+      let x = rect.right + 8, y = rect.top;
+      if (x + tip.offsetWidth > window.innerWidth - 8) x = rect.left - tip.offsetWidth - 8;
+      if (x < 8) x = 8;
+      if (y + tip.offsetHeight > window.innerHeight - 8) y = window.innerHeight - tip.offsetHeight - 8;
+      if (y < 8) y = 8;
+      tip.style.left = x + 'px';
+      tip.style.top = y + 'px';
+    }
+    function hideItemInfoTooltip() {
+      const tip = document.getElementById('item-info-tooltip');
+      if (tip) { tip.classList.remove('visible'); tip.setAttribute('aria-hidden', 'true'); }
+    }
+    document.body.addEventListener('mouseout', function(ev) {
+      if (ev.relatedTarget && (ev.relatedTarget.closest && (ev.relatedTarget.closest('.item-info-btn') || ev.relatedTarget.closest('#item-info-tooltip')))) return;
+      if (ev.target && ev.target.closest && ev.target.closest('.item-info-btn')) hideItemInfoTooltip();
+    });
+    function normalizeSlotId(slotId) {
+      if (!slotId || typeof slotId !== 'string') return 'other-slot';
+      return slotId.endsWith('-slot') ? slotId : slotId + '-slot';
+    }
+    function equipSet(set) {
+      if (!set || !Array.isArray(set.items) || set.items.length === 0) return;
+      if (typeof window.VALID_SLOT_IDS === 'undefined' || typeof window.SLOT_LAYER_ORDER === 'undefined') {
+        if (typeof console !== 'undefined') console.error('Wardrobe: slots.js not loaded');
+        showError('Slots not loaded. Please refresh the page.');
+        return;
+      }
+      try {
+      const SLOT_LAYER_ORDER = window.SLOT_LAYER_ORDER;
+      const sorted = [...set.items].sort((a, b) => (SLOT_LAYER_ORDER[normalizeSlotId(a.slotId)] ?? 12) - (SLOT_LAYER_ORDER[normalizeSlotId(b.slotId)] ?? 12));
+      let zOffset = 2;
+      try {
+        const all = getAllItems();
+        zOffset = all.length + 2;
+      } catch (e) {
+        Object.keys(equippedItems).forEach(slotId => { zOffset += (equippedItems[slotId] || []).length; });
+        zOffset += 2;
+      }
+      sorted.forEach(wi => {
+        if (wi.bundleParts && Array.isArray(wi.bundleParts) && wi.bundleParts.length > 0) {
+          wi.bundleParts.forEach((part, idx) => {
+            const slotId = normalizeSlotId(part.slotId);
+            if (!VALID_SLOT_IDS.has(slotId)) return;
+            if (!equippedItems[slotId]) equippedItems[slotId] = [];
+            const itemId = `${slotId}-${equippedItems[slotId].length}`;
+            const newItem = {
+              id: itemId,
+              slotId,
+              src: '/Uploads/' + part.filename,
+              alt: (wi.name || '') + (idx === 0 ? ' (1)' : ' (2)'),
+              zIndex: (part.defaultZ != null) ? part.defaultZ : zOffset++,
+              x: (part.defaultX != null) ? part.defaultX : 0,
+              y: (part.defaultY != null) ? part.defaultY : 0,
+              heart: wi.heart || false,
+              tags: wi.tags || []
+            };
+            equippedItems[slotId].push(newItem);
+            if (slotId !== 'body-slot') lastEquippedId = itemId;
+            const slot = document.getElementById(slotId);
+            if (slot) {
+              const img = document.createElement('img');
+              img.src = newItem.src;
+              img.alt = newItem.alt;
+              img.onerror = () => { img.style.display = 'none'; };
+              img.dataset.itemId = itemId;
+              img.dataset.slotId = slotId;
+              img.style.zIndex = newItem.zIndex;
+              img.style.transform = `translate(-50%, -50%) translate(${newItem.x}px, ${newItem.y}px)`;
+              img.tabIndex = 0;
+              img.setAttribute('aria-label', `Select ${newItem.alt}`);
+              img.addEventListener('click', (e) => { selectItem(itemId); e.stopPropagation(); });
+              img.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { selectItem(itemId); e.stopPropagation(); } });
+              img.draggable = true;
+              img.addEventListener('dragstart', handleDragStart);
+              slot.appendChild(img);
+            }
+          });
+        } else {
+          const slotId = normalizeSlotId(wi.slotId);
+          if (!VALID_SLOT_IDS.has(slotId)) return;
+          if (!equippedItems[slotId]) equippedItems[slotId] = [];
+          const itemId = `${slotId}-${equippedItems[slotId].length}`;
+          const coordItem = getCoordItem(wi, sorted);
+          const newItem = {
+            id: itemId,
+            slotId,
+            src: '/Uploads/' + wi.filename,
+            alt: wi.name || wi.filename || '',
+            zIndex: (coordItem.defaultZ != null) ? coordItem.defaultZ : zOffset++,
+            x: (coordItem.defaultX != null) ? coordItem.defaultX : 0,
+            y: (coordItem.defaultY != null) ? coordItem.defaultY : 0,
+            heart: wi.heart || false,
+            tags: wi.tags || []
+          };
+          if (wi.background && wi.background.filename) {
+            newItem.background = {
+              filename: wi.background.filename,
+              defaultX: wi.background.defaultX != null ? wi.background.defaultX : 0,
+              defaultY: wi.background.defaultY != null ? wi.background.defaultY : 0,
+              defaultZ: wi.background.defaultZ != null ? wi.background.defaultZ : 0,
+              src: '/Uploads/' + (wi.background.filename || '')
+            };
+            newItem.backgroundOn = true;
+          }
+          equippedItems[slotId].push(newItem);
+          if (slotId !== 'body-slot') lastEquippedId = itemId;
+          const slot = document.getElementById(slotId);
+          if (slot) {
+            const img = document.createElement('img');
+            img.src = newItem.src;
+            img.alt = newItem.alt;
+            img.onerror = () => { img.style.display = 'none'; };
+            img.dataset.itemId = itemId;
+            img.dataset.slotId = slotId;
+            img.style.zIndex = newItem.zIndex;
+            img.style.transform = `translate(-50%, -50%) translate(${newItem.x}px, ${newItem.y}px)`;
+            img.tabIndex = 0;
+            img.setAttribute('aria-label', `Select ${newItem.alt}`);
+            img.addEventListener('click', (e) => { selectItem(itemId); e.stopPropagation(); });
+            img.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { selectItem(itemId); e.stopPropagation(); } });
+            img.draggable = true;
+            img.addEventListener('dragstart', handleDragStart);
+            slot.appendChild(img);
+          }
+        }
+        try { zOffset = getAllItems().length + 2; } catch (e) { zOffset += sorted.length; }
+      });
+      renderBackgrounds();
+      saveEquippedItems();
+      try {
+        if (typeof updateEquippedItems === 'function') updateEquippedItems();
+      } catch (e) {
+        if (typeof console !== 'undefined' && console.error) console.error('updateEquippedItems', e);
+      }
+      updateEquippedItemsDebounced();
+      updateHeartedItemsDebounced();
+      updateWardrobeHeartsDebounced();
+      } catch (err) {
+        if (typeof console !== 'undefined' && console.error) console.error('equipSet error', err);
+        showError('Could not equip set: ' + (err && err.message ? err.message : 'unknown error'));
+      }
+    }
+    function hasSetPreviewHidden(item) {
+      if (!item || !Array.isArray(item.tags)) return false;
+      return item.tags.some(function(t) { return t === 'set-preview-hidden'; });
+    }
+    function getSetPreviewZ(item) {
+      if (!item || !Array.isArray(item.tags)) return null;
+      var tag = item.tags.find(function(t) { return typeof t === 'string' && t.indexOf('set-preview-z:') === 0; });
+      if (!tag) return null;
+      var n = parseInt(tag.replace('set-preview-z:', '').trim(), 10);
+      return isNaN(n) ? null : n;
+    }
+    function getFlatItemsFromSet(setItems) {
+      const SLOT_LAYER_ORDER = window.SLOT_LAYER_ORDER || { 'body-slot': 0, 'pants-slot': 1, 'skirt-slot': 2, 'dress-slot': 3, 'shirt-slot': 4, 'jacket-slot': 5, 'socks-slot': 6, 'shoes-slot': 7, 'hat-slot': 8, 'makeup-slot': 9, 'jewelry-slot': 10, 'hair-slot': 11, 'other-slot': 12 };
+      const backgrounds = [];
+      const layers = [];
+      const visible = (setItems || []).filter(function(item) { return !hasSetPreviewHidden(item); });
+      visible.forEach(item => {
+        if (item.background && item.background.filename) {
+          backgrounds.push({
+            src: '/Uploads/' + item.background.filename,
+            x: item.background.defaultX != null ? item.background.defaultX : 0,
+            y: item.background.defaultY != null ? item.background.defaultY : 0,
+            zIndex: item.background.defaultZ != null ? item.background.defaultZ : 0
+          });
+        }
+        const slotId = item.slotId || 'other-slot';
+        const slotOrder = SLOT_LAYER_ORDER[slotId] != null ? SLOT_LAYER_ORDER[slotId] : 12;
+        const customZ = getSetPreviewZ(item);
+        const baseZ = customZ != null ? customZ : slotOrder * 100;
+        if (item.bundleParts && Array.isArray(item.bundleParts) && item.bundleParts.length > 0) {
+          item.bundleParts.forEach((part, idx) => {
+            layers.push({
+              src: '/Uploads/' + (part.filename || ''),
+              x: part.defaultX != null ? part.defaultX : 0,
+              y: part.defaultY != null ? part.defaultY : 0,
+              zIndex: part.defaultZ != null ? part.defaultZ : baseZ + idx,
+              slotId: slotId
+            });
+          });
+        } else {
+          const coordItem = getCoordItem(item, visible);
+          layers.push({
+            src: '/Uploads/' + (item.filename || ''),
+            x: coordItem.defaultX != null ? coordItem.defaultX : 0,
+            y: coordItem.defaultY != null ? coordItem.defaultY : 0,
+            zIndex: coordItem.defaultZ != null ? coordItem.defaultZ : baseZ,
+            slotId: slotId
+          });
+        }
+      });
+      backgrounds.sort((a, b) => a.zIndex - b.zIndex);
+      layers.sort((a, b) => a.zIndex - b.zIndex);
+      const flat = [{ src: '/Uploads/character.png', x: 0, y: 0, slotId: 'body-slot', zIndex: -1 }];
+      backgrounds.forEach(b => flat.push({ ...b, slotId: 'bg' }));
+      layers.forEach(l => flat.push(l));
+      return flat.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+    }
+    function compositeSetToCanvas(setItems, canvas, done) {
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width || 250;
+      const H = canvas.height || 350;
+      var refW = 250, refH = 350;
+      var s = Math.min(W / refW, H / refH);
+      var refCenterX = refW / 2, refCenterY = refH / 2;
+      const items = getFlatItemsFromSet(setItems);
+      if (items.length === 0) { ctx.clearRect(0, 0, W, H); done(); return; }
+      const loadedImages = new Array(items.length);
+      let loadedCount = 0;
+      function tryDrawAll() {
+        if (loadedCount !== items.length) return;
+        ctx.clearRect(0, 0, W, H);
+        for (let i = 0; i < items.length; i++) {
+          const img = loadedImages[i];
+          const item = items[i];
+          if (!img || !img.complete) continue;
+          const nw = img.naturalWidth || refW, nh = img.naturalHeight || refH;
+          var refScale = Math.min(1, refW / nw, refH / nh);
+          var refDrawW = nw * refScale, refDrawH = nh * refScale;
+          var refCx = refCenterX + (item.x || 0), refCy = refCenterY + (item.y || 0);
+          var drawW = refDrawW * s, drawH = refDrawH * s;
+          var drawX = refCx * s - drawW / 2, drawY = refCy * s - drawH / 2;
+          ctx.drawImage(img, 0, 0, nw, nh, drawX, drawY, drawW, drawH);
+        }
+        done();
+      }
+      items.forEach((item, i) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => { loadedImages[i] = img; loadedCount++; tryDrawAll(); };
+        img.onerror = () => { loadedCount++; tryDrawAll(); };
+        img.src = item.src || '';
+      });
+    }
+    function buildSetPreview(setItems, scale) {
+      const SLOT_LAYER_ORDER = window.SLOT_LAYER_ORDER || { 'body-slot': 0, 'pants-slot': 1, 'skirt-slot': 2, 'dress-slot': 3, 'shirt-slot': 4, 'jacket-slot': 5, 'socks-slot': 6, 'shoes-slot': 7, 'hat-slot': 8, 'makeup-slot': 9, 'jewelry-slot': 10, 'hair-slot': 11, 'other-slot': 12 };
+      const visible = (setItems || []).filter(function(item) { return !hasSetPreviewHidden(item); });
+      const wrap = document.createElement('div');
+      wrap.className = 'wardrobe-set-preview';
+      wrap.style.width = '70px';
+      wrap.style.height = '98px';
+      const backgrounds = [];
+      const layers = [];
+      visible.forEach(item => {
+        if (item.background && item.background.filename) {
+          backgrounds.push({
+            src: '/Uploads/' + item.background.filename,
+            defaultX: (item.background.defaultX != null ? item.background.defaultX : 0) * scale,
+            defaultY: (item.background.defaultY != null ? item.background.defaultY : 0) * scale,
+            defaultZ: item.background.defaultZ != null ? item.background.defaultZ : 0
+          });
+        }
+        const slotId = item.slotId || 'other-slot';
+        const slotOrder = SLOT_LAYER_ORDER[slotId] != null ? SLOT_LAYER_ORDER[slotId] : 12;
+        const customZ = getSetPreviewZ(item);
+        const baseZ = customZ != null ? customZ : slotOrder * 100;
+        if (item.bundleParts && Array.isArray(item.bundleParts) && item.bundleParts.length > 0) {
+          item.bundleParts.forEach((part, idx) => {
+            layers.push({
+              src: '/Uploads/' + (part.filename || ''),
+              defaultX: (part.defaultX != null ? part.defaultX : 0) * scale,
+              defaultY: (part.defaultY != null ? part.defaultY : 0) * scale,
+              defaultZ: part.defaultZ != null ? part.defaultZ : baseZ + idx,
+              slotId: slotId
+            });
+          });
+        } else {
+          const coordItem = getCoordItem(item, visible);
+          layers.push({
+            src: '/Uploads/' + (item.filename || ''),
+            defaultX: (coordItem.defaultX != null ? coordItem.defaultX : 0) * scale,
+            defaultY: (coordItem.defaultY != null ? coordItem.defaultY : 0) * scale,
+            defaultZ: coordItem.defaultZ != null ? coordItem.defaultZ : baseZ,
+            slotId: slotId
+          });
+        }
+      });
+      backgrounds.sort((a, b) => a.defaultZ - b.defaultZ);
+      layers.sort((a, b) => a.defaultZ - b.defaultZ);
+      const bgDiv = document.createElement('div');
+      bgDiv.className = 'wardrobe-set-preview-bg';
+      backgrounds.forEach(bg => {
+        const img = document.createElement('img');
+        img.src = bg.src;
+        img.alt = '';
+        img.style.zIndex = bg.defaultZ;
+        img.style.width = '70px';
+        img.style.height = '98px';
+        img.style.transform = 'translate(-50%, -50%) translate(' + bg.defaultX + 'px, ' + bg.defaultY + 'px)';
+        img.onerror = () => { img.style.display = 'none'; };
+        bgDiv.appendChild(img);
+      });
+      wrap.appendChild(bgDiv);
+      const base = document.createElement('img');
+      base.src = '/Uploads/character.png';
+      base.alt = 'Base';
+      base.className = 'wardrobe-set-preview-base';
+      base.style.width = '70px';
+      base.style.height = '98px';
+      wrap.appendChild(base);
+      const layersDiv = document.createElement('div');
+      layersDiv.className = 'wardrobe-set-preview-layers';
+      layers.forEach((lay, idx) => {
+        const img = document.createElement('img');
+        img.src = lay.src;
+        img.alt = '';
+        img.className = 'wardrobe-set-preview-layer ' + (lay.slotId || '');
+        img.style.zIndex = 2 + idx;
+        img.style.transform = 'translate(-50%, -50%) translate(' + lay.defaultX + 'px, ' + lay.defaultY + 'px)';
+        img.style.width = '70px';
+        img.style.height = '98px';
+        img.onerror = () => { img.style.display = 'none'; };
+        layersDiv.appendChild(img);
+      });
+      wrap.appendChild(layersDiv);
+      return wrap;
+    }
+    function getSwatchParentFilename(item) {
+      if (!item || !Array.isArray(item.tags)) return null;
+      const tag = item.tags.find(t => typeof t === 'string' && t.startsWith('swatch-parent:'));
+      return tag ? tag.replace('swatch-parent:', '').trim() : null;
+    }
+    function getCoordItem(it, list) {
+      if (!it || !list) return it;
+      const parentFn = getSwatchParentFilename(it);
+      if (!parentFn) return it;
+      const root = list.find(i => i.filename === parentFn);
+      return root || it;
+    }
+    function getSwatchColor(item) {
+      if (!item || !Array.isArray(item.tags)) return null;
+      const tag = item.tags.find(t => typeof t === 'string' && t.startsWith('swatch-color:'));
+      return tag ? tag.replace('swatch-color:', '').trim() : null;
+    }
+    function hexToRgb(hex) {
+      const m = hex.replace(/^#/, '').match(/^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+      return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : null;
+    }
+    function colorDistance(hex1, hex2) {
+      const a = hexToRgb(hex1);
+      const b = hexToRgb(hex2);
+      if (!a || !b) return Infinity;
+      return (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
+    }
+    function pickColorFromWardrobeImage(imgSrc, onPicked) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const w = canvas.width, h = canvas.height;
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;cursor:crosshair;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;';
+        const preview = document.createElement('div');
+        preview.style.cssText = 'background:#fff;padding:12px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+        const instr = document.createElement('p');
+        instr.textContent = 'Click on the image to pick a color and switch to that variant (click outside to cancel)';
+        instr.style.margin = '0 0 8px 0';
+        preview.appendChild(instr);
+        const small = document.createElement('img');
+        small.src = imgSrc;
+        small.style.cssText = 'max-width:200px;max-height:200px;display:block;cursor:crosshair;';
+        preview.appendChild(small);
+        overlay.appendChild(preview);
+        document.body.appendChild(overlay);
+        function rgbToHex(r, g, b) {
+          return '#' + [r, g, b].map(x => { const h = Math.max(0, Math.min(255, Math.round(x))).toString(16); return h.length === 1 ? '0' + h : h; }).join('');
+        }
+        function getColorAt(clientX, clientY) {
+          const rect = small.getBoundingClientRect();
+          const scaleX = img.naturalWidth / rect.width, scaleY = img.naturalHeight / rect.height;
+          const x = Math.floor((clientX - rect.left) * scaleX);
+          const y = Math.floor((clientY - rect.top) * scaleY);
+          if (x < 0 || x >= w || y < 0 || y >= h) return null;
+          const data = ctx.getImageData(x, y, 1, 1).data;
+          return rgbToHex(data[0], data[1], data[2]);
+        }
+        function done(hex) {
+          document.body.removeChild(overlay);
+          small.removeEventListener('click', onImgClick);
+          overlay.removeEventListener('click', onOverlayClick);
+          if (hex && onPicked) onPicked(hex);
+        }
+        function onImgClick(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const hex = getColorAt(e.clientX, e.clientY);
+          if (hex) done(hex);
+        }
+        function onOverlayClick(e) {
+          if (e.target === overlay) done(null);
+        }
+        small.addEventListener('click', onImgClick);
+        overlay.addEventListener('click', onOverlayClick);
+      };
+      img.onerror = () => { if (onPicked) onPicked(null); };
+      img.src = imgSrc;
+    }
+    function debounce(func, wait) {
+      let timeout;
+      return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+      };
+    }
+    function showError(message) {
+      alert('Error: ' + message);
+    }
+    window.showError = showError;
+    function setWardrobeDebug(msg) {
+      try {
+        const el = document.getElementById('wardrobe-debug');
+        if (el) {
+          el.textContent = msg ? String(msg) : (el.textContent || 'Wardrobe: —');
+          el.style.display = 'block';
+        }
+        if (typeof console !== 'undefined' && console.log) console.log('[wardrobe]', msg);
+      } catch (e) { if (typeof console !== 'undefined' && console.error) console.error(e); }
+    }
+
+    /** Load purchased list (for fallback path). */
+    async function loadWardrobeInventory() {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(function () { controller.abort(); }, 8000);
+        const r = await fetch('/api/user-inventory', { credentials: 'same-origin', signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          purchased = Array.isArray(d.purchased) ? d.purchased : [];
+        }
+      } catch (e) { purchased = []; }
+    }
+
+    function populateAllCategoryDirect() {
+      var allEl = document.getElementById('all');
+      if (!allEl) return;
+      allEl.classList.add('active');
+      allEl.innerHTML = '';
+      if (!wardrobeItems || wardrobeItems.length === 0) {
+        allEl.innerHTML = '<div class="store-empty" style="padding:12px;">No items in your wardrobe. <a href="./store.html">Buy items in the Store</a> to add them here.</div>';
+        return;
+      }
+      wardrobeItems.forEach(function (item) {
+        if (!item || !item.filename) return;
+        var slot = (item.slotId && String(item.slotId).indexOf('slot') >= 0) ? item.slotId : (item.slotId ? item.slotId + '-slot' : 'other-slot');
+        var cont = document.createElement('div');
+        cont.className = 'wardrobe-item-container';
+        var infoBtnDirect = document.createElement('button');
+        infoBtnDirect.type = 'button';
+        infoBtnDirect.className = 'item-info-btn';
+        infoBtnDirect.innerHTML = '=';
+        infoBtnDirect.title = 'Item info';
+        infoBtnDirect.setAttribute('aria-label', 'Item info');
+        infoBtnDirect.addEventListener('mouseover', function (e) { if (typeof showItemInfoTooltip === 'function') showItemInfoTooltip(e, item, wardrobeItems); });
+        infoBtnDirect.addEventListener('mouseout', function () { if (typeof hideItemInfoTooltip === 'function') hideItemInfoTooltip(); });
+        var img = document.createElement('img');
+        img.className = 'item';
+        img.src = '/Uploads/' + item.filename;
+        img.alt = item.name || item.filename;
+        img.dataset.slot = slot;
+        img.dataset.filename = item.filename;
+        img.onerror = function () { img.style.display = 'none'; };
+        img.addEventListener('click', function (e) { if (typeof handleItemClick === 'function') handleItemClick(e); });
+        img.addEventListener('contextmenu', function (e) { e.preventDefault(); if (typeof handleItemClick === 'function') handleItemClick(e); });
+        cont.appendChild(img);
+        cont.insertBefore(infoBtnDirect, cont.firstChild);
+        var sellBtn = document.createElement('button');
+        sellBtn.type = 'button';
+        sellBtn.className = 'sell-to-vintage-btn';
+        sellBtn.textContent = '\u267B';
+        sellBtn.title = 'List this item in Vintage for others to buy';
+        sellBtn.setAttribute('aria-label', 'Sell to vintage');
+        sellBtn.addEventListener('click', async function (e) {
+          e.stopPropagation();
+          e.preventDefault();
+          var fn = item.filename;
+          if (!confirm('Sell "' + (item.name || fn) + '" to Vintage? You will no longer own it.')) return;
+          try {
+            var r = await fetch('/api/vintage/sell/' + encodeURIComponent(fn), { method: 'POST', credentials: 'same-origin' });
+            var data = await r.json().catch(function () { return {}; });
+            if (!r.ok) { showError(data.error || 'Could not sell to vintage'); return; }
+            if (typeof showToast === 'function') showToast('Item listed in Vintage');
+            await fetchWardrobeItems();
+            updateHeartedItemsDebounced();
+            updateWardrobeHeartsDebounced();
+          } catch (err) { showError('Failed to sell to vintage: ' + (err && err.message ? err.message : '')); }
+        });
+        cont.appendChild(sellBtn);
+        allEl.appendChild(cont);
+      });
+    }
+
+    /** WARDROBE RENDER PATHS – when adding/changing UI (e.g. Sell button, swatch dots), update ALL of these:
+     * 1. renderInto() – bootstrap: one card per root, swatch dots when variants>1, sellBtn (getSwatchParentBoot/getSwatchColorBoot, bootstrapSwatchByRoot).
+     * 2. updateWardrobeDisplay() – main grid: heart, img, sellBtn, swatch dots + dblclick color pick, selectedVariantByRoot.
+     * 3. renderWardrobeFallback() – fallback: img, swatch dots + dblclick color pick, sellBtn (uses img.dataset.filename for sell).
+     * 4. updateHeartedItems() – hearted tab: same as main (swatch dots + dblclick, sellBtn).
+     * 5. populateAllCategoryDirect() – unused; has sellBtn, no swatch grouping.
+     * 6. loadSavedOutfits() – outfit thumbnails only (no sell, no swatch).
+     * 7. full-set cards – set cards, no per-item sell/swatch. */
+    /** Fetch wardrobe items: load inventory first, then /api/items; keep only items the user owns (same layout/behavior as store). */
+    async function fetchWardrobeItems() {
+      setWardrobeDebug('1/5 Loading inventory…');
+      await loadWardrobeInventory();
+      try {
+        setWardrobeDebug('2/5 Calling /api/items…');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(function () { controller.abort(); }, 12000);
+        const r = await fetch('/api/items', { credentials: 'same-origin', signal: controller.signal });
+        clearTimeout(timeoutId);
+        setWardrobeDebug('3/5 Parsing response…');
+        const data = await r.json().catch(function () { return []; });
+        if (!r.ok) {
+          setWardrobeDebug('API error: ' + (data && typeof data.error === 'string' ? data.error : r.status));
+          showError((data && typeof data.error === 'string') ? data.error : 'Failed to load items');
+          wardrobeItems = [];
+          updateWardrobeDisplay();
+          return;
+        }
+        let list = Array.isArray(data) ? data : [];
+        if (list.length && list[0] && Array.isArray(list[0])) list = list.flat();
+        var allWithFilename = list.filter(function (item) { return item && item.filename; });
+        wardrobeItems = allWithFilename.filter(function (item) { return purchased.indexOf(item.filename) !== -1; });
+        Object.keys(currentPages).forEach(function (c) { currentPages[c] = 1; });
+        setWardrobeDebug('4/5 Items: ' + wardrobeItems.length + ', drawing…');
+        try {
+          updateWardrobeDisplay();
+          window.__wardrobeMainDrawn = true;
+          setWardrobeDebug('Items: ' + wardrobeItems.length + ' | display OK');
+        } catch (displayErr) {
+          setWardrobeDebug('Display error: ' + (displayErr && displayErr.message ? displayErr.message : 'unknown'));
+          if (typeof console !== 'undefined' && console.error) console.error('updateWardrobeDisplay', displayErr);
+          try {
+            if (typeof renderWardrobeFallback === 'function') renderWardrobeFallback();
+            window.__wardrobeMainDrawn = true;
+          } catch (e) {}
+        }
+      } catch (error) {
+        var errMsg = error && error.message ? error.message : String(error);
+        setWardrobeDebug('Fetch error: ' + errMsg);
+        if (typeof console !== 'undefined') console.error('Wardrobe fetch', error);
+        showError('Failed to load wardrobe: ' + (error && error.message ? error.message : 'Try refreshing.'));
+        wardrobeItems = [];
+        try { updateWardrobeDisplay(); } catch (e) {}
+        try {
+          if (typeof renderWardrobeFallback === 'function') renderWardrobeFallback();
+          window.__wardrobeMainDrawn = true;
+        } catch (e2) {}
+      }
+    }
+    function updateWardrobeDisplay() {
+      if (!Array.isArray(wardrobeItems)) wardrobeItems = [];
+      const categories = ['all', 'full-set', 'body', 'shirt', 'pants', 'skirt', 'dress', 'jacket', 'shoes', 'socks', 'hat', 'jewelry', 'other', 'hair', 'makeup'];
+      categories.forEach(category => {
+        try {
+        const categoryDiv = document.getElementById(category);
+        if (categoryDiv) {
+          categoryDiv.innerHTML = '';
+          if (category === 'full-set') {
+            let sets = getSetsFromWardrobe();
+            if (wardrobeSearchQuery) {
+              const q = wardrobeSearchQuery.toLowerCase();
+              sets = sets.filter(s => (s.name || '').toLowerCase().includes(q) || (s.items || []).some(it => itemMatchesSearch(it, wardrobeSearchQuery)));
+            }
+            const page = currentPages[category] || 1;
+            const start = (page - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const paginatedSets = sets.slice(start, end);
+            paginatedSets.forEach(set => {
+              const container = document.createElement('div');
+              container.classList.add('wardrobe-item-container', 'wardrobe-set-card');
+              container.title = 'Click to equip whole set';
+              container.dataset.setId = set.id;
+              container._equipSetData = set;
+              container.style.cursor = 'pointer';
+              container.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (set && Array.isArray(set.items) && set.items.length > 0) equipSet(set);
+              });
+              const img = document.createElement('img');
+              img.classList.add('item');
+              img.alt = set.name || 'Set';
+              img.dataset.outfitName = set.name || 'Set';
+              img.setAttribute('aria-label', 'Equip set ' + (set.name || ''));
+              img.tabIndex = 0;
+              img.src = 'https://via.placeholder.com/70x98?text=...';
+              img.onerror = () => { img.style.display = 'none'; };
+              const canvas = document.createElement('canvas');
+              canvas.width = 250;
+              canvas.height = 350;
+              compositeSetToCanvas(set.items, canvas, () => {
+                try {
+                  img.src = canvas.toDataURL('image/png');
+                } catch (e) {}
+              });
+              img.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); container.click(); }
+              });
+              container.appendChild(img);
+              categoryDiv.appendChild(container);
+            });
+            const navDiv = document.createElement('div');
+            navDiv.className = 'category-nav';
+            const prevButton = document.createElement('button');
+            prevButton.textContent = 'Previous';
+            prevButton.disabled = page === 1;
+            prevButton.addEventListener('click', (e) => { e.preventDefault(); currentPages[category] = page - 1; updateWardrobeDisplay(); });
+            const nextButton = document.createElement('button');
+            nextButton.textContent = 'Next';
+            nextButton.disabled = end >= sets.length;
+            nextButton.addEventListener('click', (e) => { e.preventDefault(); currentPages[category] = page + 1; updateWardrobeDisplay(); });
+            navDiv.appendChild(prevButton);
+            navDiv.appendChild(nextButton);
+            if (sets.length > itemsPerPage) categoryDiv.appendChild(navDiv);
+            return;
+          }
+          const slotMatch = (item) => normalizeSlotId(item && item.slotId) === `${category}-slot`;
+          let rawItems = category === 'all' ? (Array.isArray(wardrobeItems) ? wardrobeItems : []) : (Array.isArray(wardrobeItems) ? wardrobeItems.filter(slotMatch) : []);
+          if (wardrobeSearchQuery) rawItems = rawItems.filter(item => itemMatchesSearch(item, wardrobeSearchQuery));
+          let roots = rawItems.filter(item => !getSwatchParentFilename(item));
+          if (roots.length === 0 && category === 'all' && rawItems.length > 0) roots = rawItems;
+          if (roots.length === 0) {
+            const emptyMsg = category === 'all' && (!wardrobeItems || wardrobeItems.length === 0)
+              ? 'No items in your wardrobe. <a href="./store.html">Buy from the Shop</a>.'
+              : 'No items in this category.';
+            categoryDiv.innerHTML = '<div class="store-empty" style="padding:12px;">' + emptyMsg + '</div>';
+            return;
+          }
+          const page = currentPages[category] || 1;
+          const start = (page - 1) * itemsPerPage;
+          const end = start + itemsPerPage;
+          const paginatedRoots = roots.slice(start, end);
+          paginatedRoots.forEach(rootItem => {
+            const swatches = rawItems.filter(i => getSwatchParentFilename(i) === rootItem.filename);
+            const variants = [rootItem, ...swatches];
+            const currentFilename = selectedVariantByRoot[rootItem.filename] || rootItem.filename;
+            const currentItem = variants.find(v => v.filename === currentFilename) || rootItem;
+
+            const container = document.createElement('div');
+            container.classList.add('wardrobe-item-container');
+            if (normalizeSlotId(rootItem.slotId) === 'body-slot') container.classList.add('item-body');
+            container.dataset.rootFilename = rootItem.filename;
+
+            const infoBtn = document.createElement('button');
+            infoBtn.type = 'button';
+            infoBtn.className = 'item-info-btn';
+            infoBtn.innerHTML = '=';
+            infoBtn.title = 'Item info';
+            infoBtn.setAttribute('aria-label', 'Item info');
+            infoBtn.addEventListener('mouseover', (e) => { showItemInfoTooltip(e, currentItem, wardrobeItems); });
+            infoBtn.addEventListener('mouseout', hideItemInfoTooltip);
+
+            const heart = document.createElement('img');
+            heart.src = currentItem.heart ? '/img/heart_true.svg' : '/img/heart_false.svg';
+            heart.classList.add('heart-icon');
+            heart.dataset.src = currentItem.filename;
+            heart.tabIndex = 0;
+            heart.setAttribute('aria-label', currentItem.heart ? 'Remove from favorites' : 'Add to favorites');
+            heart.addEventListener('click', async (e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              const targetItem = wardrobeItems.find(i => i.filename === currentItem.filename);
+              if (targetItem) {
+                targetItem.heart = !targetItem.heart;
+                heart.src = targetItem.heart ? '/img/heart_true.svg' : '/img/heart_false.svg';
+                heart.setAttribute('aria-label', targetItem.heart ? 'Remove from favorites' : 'Add to favorites');
+                try {
+                  const response = await fetch(`/api/items/update/${currentItem.filename}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...targetItem, heart: targetItem.heart })
+                  });
+                  if (!response.ok) throw new Error('Failed to update item heart status');
+                  updateHeartedItemsDebounced();
+                  updateWardrobeHeartsDebounced();
+                } catch (error) {
+                  showError('Failed to update heart status: ' + error.message);
+                }
+              }
+            });
+            heart.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); heart.click(); }
+            });
+
+            const img = document.createElement('img');
+            img.src = `/Uploads/${currentItem.filename}`;
+            img.alt = currentItem.name;
+            img.onerror = () => { img.style.display = 'none'; };
+            img.classList.add('item');
+            img.dataset.slot = normalizeSlotId(currentItem.slotId);
+            img.dataset.filename = currentItem.filename;
+            img.tabIndex = 0;
+            img.setAttribute('aria-label', `Equip ${currentItem.name}`);
+            if (variants.length > 1) img.title = 'Click to equip • Double-click and pick color from image to switch variant';
+            img.addEventListener('click', (e) => { if (e.detail === 1 && !e.shiftKey) handleItemClick(e); });
+            img.addEventListener('contextmenu', (e) => { e.preventDefault(); handleItemClick(e); });
+            img.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); img.click(); }
+            });
+            container.appendChild(img);
+
+            const sellBtn = document.createElement('button');
+            sellBtn.type = 'button';
+            sellBtn.className = 'sell-to-vintage-btn';
+            sellBtn.textContent = '\u267B';
+            sellBtn.title = 'List this item in Vintage for others to buy';
+            sellBtn.setAttribute('aria-label', 'Sell to vintage');
+            sellBtn.addEventListener('click', async (e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              const fn = currentItem.filename;
+              if (!confirm('Sell "' + (currentItem.name || fn) + '" to Vintage? You will no longer own it and it will appear in the Vintage shop.')) return;
+              try {
+                const r = await fetch('/api/vintage/sell/' + encodeURIComponent(fn), { method: 'POST', credentials: 'same-origin' });
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok) {
+                  showError(data.error || 'Could not sell to vintage');
+                  return;
+                }
+                if (typeof showToast === 'function') showToast('Item listed in Vintage');
+                await fetchWardrobeItems();
+                updateWardrobeDisplay();
+                updateHeartedItemsDebounced();
+                updateWardrobeHeartsDebounced();
+              } catch (err) {
+                showError('Failed to sell to vintage: ' + (err && err.message ? err.message : ''));
+              }
+            });
+            container.appendChild(sellBtn);
+
+            if (variants.length > 1) {
+              const dotsWrap = document.createElement('div');
+              dotsWrap.classList.add('wardrobe-swatch-dots');
+              variants.forEach((v, idx) => {
+                const dot = document.createElement('button');
+                dot.type = 'button';
+                dot.classList.add('wardrobe-swatch-dot');
+                const hex = getSwatchColor(v) || (idx === 0 ? null : '#999');
+                dot.style.background = hex || '#ccc';
+                dot.title = v.name || 'Variant';
+                if (v.filename === currentFilename) dot.classList.add('selected');
+                dot.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  selectedVariantByRoot[rootItem.filename] = v.filename;
+                  img.src = '/Uploads/' + v.filename;
+                  img.alt = v.name;
+                  img.dataset.filename = v.filename;
+                  img.dataset.slot = normalizeSlotId(v.slotId);
+                  container.querySelectorAll('.wardrobe-swatch-dot').forEach(d => d.classList.remove('selected'));
+                  dot.classList.add('selected');
+                  heart.dataset.src = v.filename;
+                  const vi = wardrobeItems.find(i => i.filename === v.filename);
+                  heart.src = (vi && vi.heart) ? '/img/heart_true.svg' : '/img/heart_false.svg';
+                });
+                dotsWrap.appendChild(dot);
+              });
+              container.appendChild(dotsWrap);
+
+              img.addEventListener('dblclick', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                pickColorFromWardrobeImage(img.src, (pickedHex) => {
+                  if (!pickedHex) return;
+                  let best = null, bestDist = Infinity;
+                  variants.forEach(v => {
+                    const h = getSwatchColor(v);
+                    if (!h) return;
+                    const d = colorDistance(pickedHex, h);
+                    if (d < bestDist) { bestDist = d; best = v; }
+                  });
+                  if (best) {
+                    selectedVariantByRoot[rootItem.filename] = best.filename;
+                    img.src = '/Uploads/' + best.filename;
+                    img.alt = best.name;
+                    img.dataset.filename = best.filename;
+                    img.dataset.slot = normalizeSlotId(best.slotId);
+                    container.querySelectorAll('.wardrobe-swatch-dot').forEach(d => d.classList.remove('selected'));
+                    const dotIdx = variants.indexOf(best);
+                    if (dotsWrap.children[dotIdx]) dotsWrap.children[dotIdx].classList.add('selected');
+                    heart.dataset.src = best.filename;
+                    const vi = wardrobeItems.find(i => i.filename === best.filename);
+                    heart.src = (vi && vi.heart) ? '/img/heart_true.svg' : '/img/heart_false.svg';
+                  }
+                });
+              });
+            }
+
+            container.insertBefore(heart, container.firstChild);
+            container.insertBefore(infoBtn, container.firstChild);
+            categoryDiv.appendChild(container);
+          });
+          const navDiv = document.createElement('div');
+          navDiv.classList.add('category-nav');
+          const prevButton = document.createElement('button');
+          prevButton.textContent = 'Previous';
+          prevButton.disabled = page === 1;
+          prevButton.addEventListener('click', () => {
+            if (page > 1) { currentPages[category] = page - 1; updateWardrobeDisplay(); }
+          });
+          const nextButton = document.createElement('button');
+          nextButton.textContent = 'Next';
+          nextButton.disabled = end >= roots.length;
+          nextButton.addEventListener('click', () => {
+            if (end < roots.length) { currentPages[category] = page + 1; updateWardrobeDisplay(); }
+          });
+          navDiv.appendChild(prevButton);
+          navDiv.appendChild(nextButton);
+          if (roots.length > itemsPerPage) {
+            categoryDiv.appendChild(navDiv);
+          }
+        }
+        } catch (catErr) {
+          if (typeof console !== 'undefined' && console.error) console.error('updateWardrobeDisplay category ' + category, catErr);
+        }
+      });
+      updateHeartedItemsDebounced();
+    }
+    function initWardrobeSearch() {
+      const wrap = document.getElementById('wardrobe-search-wrap');
+      const input = document.getElementById('wardrobe-search-input');
+      if (!wrap || !input) return;
+      function expand() {
+        wrap.classList.add('expanded');
+        input.focus();
+      }
+      function collapse() {
+        if (input === document.activeElement) return;
+        wrap.classList.remove('expanded');
+      }
+      wrap.addEventListener('mouseenter', expand);
+      wrap.addEventListener('mouseover', function (e) {
+        if (e.relatedTarget && wrap.contains(e.relatedTarget)) return;
+        expand();
+      });
+      wrap.addEventListener('mouseleave', function () { collapse(); });
+      wrap.addEventListener('click', function (e) {
+        if (e.target === input) return;
+        e.preventDefault();
+        if (wrap.classList.contains('expanded')) return;
+        expand();
+      });
+      input.addEventListener('input', function () {
+        wardrobeSearchQuery = (input.value || '').trim();
+        try { if (typeof updateWardrobeDisplay === 'function') updateWardrobeDisplay(); } catch (err) {}
+      });
+      input.addEventListener('blur', function () {
+        setTimeout(function () {
+          if (document.activeElement !== input && !wrap.contains(document.activeElement)) wrap.classList.remove('expanded');
+        }, 150);
+      });
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          wrap.classList.remove('expanded');
+          input.value = '';
+          wardrobeSearchQuery = '';
+          try { if (typeof updateWardrobeDisplay === 'function') updateWardrobeDisplay(); } catch (err) {}
+          input.blur();
+        }
+      });
+    }
+    /* initWardrobeSearch() is called from initializeGame() so it runs after the main path is ready. */
+    /** Minimal fallback: render items into #all when updateWardrobeDisplay throws. */
+    function renderWardrobeFallback() {
+      const allDiv = document.getElementById('all');
+      if (!allDiv) return;
+      allDiv.innerHTML = '';
+      allDiv.classList.add('active');
+      document.querySelectorAll('.category').forEach(c => c.classList.remove('active'));
+      allDiv.classList.add('active');
+      if (!wardrobeItems || wardrobeItems.length === 0) {
+        allDiv.innerHTML = '<div class="store-empty" style="padding:12px;">No items.</div>';
+        return;
+      }
+      let roots = wardrobeItems.filter(function (item) { return item && item.filename && !getSwatchParentFilename(item); });
+      if (wardrobeSearchQuery) roots = roots.filter(item => itemMatchesSearch(item, wardrobeSearchQuery));
+      roots.forEach(function (rootItem) {
+        const swatches = wardrobeItems.filter(function (i) { return getSwatchParentFilename(i) === rootItem.filename; });
+        const variants = [rootItem].concat(swatches);
+        const currentFilename = selectedVariantByRoot[rootItem.filename] || rootItem.filename;
+        const currentItem = variants.find(function (v) { return v.filename === currentFilename; }) || rootItem;
+
+        const container = document.createElement('div');
+        container.className = 'wardrobe-item-container';
+        if (normalizeSlotId(rootItem.slotId) === 'body-slot') container.classList.add('item-body');
+        const infoBtnFallback = document.createElement('button');
+        infoBtnFallback.type = 'button';
+        infoBtnFallback.className = 'item-info-btn';
+        infoBtnFallback.innerHTML = '=';
+        infoBtnFallback.title = 'Item info';
+        infoBtnFallback.setAttribute('aria-label', 'Item info');
+        infoBtnFallback.addEventListener('mouseover', function (e) { if (typeof showItemInfoTooltip === 'function') showItemInfoTooltip(e, currentItem, wardrobeItems); });
+        infoBtnFallback.addEventListener('mouseout', function () { if (typeof hideItemInfoTooltip === 'function') hideItemInfoTooltip(); });
+        const img = document.createElement('img');
+        img.className = 'item';
+        img.src = '/Uploads/' + currentItem.filename;
+        img.alt = currentItem.name || currentItem.filename;
+        img.dataset.slot = (currentItem.slotId && String(currentItem.slotId).endsWith('-slot')) ? currentItem.slotId : (currentItem.slotId ? currentItem.slotId + '-slot' : 'other-slot');
+        img.dataset.filename = currentItem.filename;
+        img.onerror = function () { img.style.display = 'none'; };
+        img.addEventListener('click', function (e) { if (typeof handleItemClick === 'function') handleItemClick(e); });
+        container.appendChild(img);
+        container.insertBefore(infoBtnFallback, container.firstChild);
+        if (variants.length > 1) {
+          const dotsWrap = document.createElement('div');
+          dotsWrap.className = 'wardrobe-swatch-dots';
+          variants.forEach(function (v, idx) {
+            const dot = document.createElement('button');
+            dot.type = 'button';
+            dot.className = 'wardrobe-swatch-dot';
+            var hex = getSwatchColor(v) || (idx === 0 ? null : '#999');
+            dot.style.background = hex || '#ccc';
+            dot.title = v.name || 'Variant';
+            if (v.filename === currentFilename) dot.classList.add('selected');
+            dot.addEventListener('click', function (e) {
+              e.stopPropagation();
+              e.preventDefault();
+              selectedVariantByRoot[rootItem.filename] = v.filename;
+              img.src = '/Uploads/' + v.filename;
+              img.alt = v.name || v.filename;
+              img.dataset.filename = v.filename;
+              img.dataset.slot = (v.slotId && String(v.slotId).endsWith('-slot')) ? v.slotId : (v.slotId ? v.slotId + '-slot' : 'other-slot');
+              container.querySelectorAll('.wardrobe-swatch-dot').forEach(function (d) { d.classList.remove('selected'); });
+              dot.classList.add('selected');
+            });
+            dotsWrap.appendChild(dot);
+          });
+          container.appendChild(dotsWrap);
+          img.title = 'Click to equip • Double-click and pick color from image to switch variant';
+          img.addEventListener('dblclick', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof pickColorFromWardrobeImage !== 'function') return;
+            pickColorFromWardrobeImage(img.src, function (pickedHex) {
+              if (!pickedHex) return;
+              var best = null, bestDist = Infinity;
+              variants.forEach(function (v) {
+                var h = getSwatchColor(v);
+                if (!h) return;
+                var d = colorDistance(pickedHex, h);
+                if (d < bestDist) { bestDist = d; best = v; }
+              });
+              if (best) {
+                selectedVariantByRoot[rootItem.filename] = best.filename;
+                img.src = '/Uploads/' + best.filename;
+                img.alt = best.name || best.filename;
+                img.dataset.filename = best.filename;
+                img.dataset.slot = (best.slotId && String(best.slotId).endsWith('-slot')) ? best.slotId : (best.slotId ? best.slotId + '-slot' : 'other-slot');
+                container.querySelectorAll('.wardrobe-swatch-dot').forEach(function (d) { d.classList.remove('selected'); });
+                var dotIdx = variants.indexOf(best);
+                if (dotsWrap.children[dotIdx]) dotsWrap.children[dotIdx].classList.add('selected');
+              }
+            });
+          });
+        }
+        const sellBtn = document.createElement('button');
+        sellBtn.type = 'button';
+        sellBtn.className = 'sell-to-vintage-btn';
+        sellBtn.textContent = '\u267B';
+        sellBtn.title = 'List this item in Vintage for others to buy';
+        sellBtn.setAttribute('aria-label', 'Sell to vintage');
+        sellBtn.addEventListener('click', async function (e) {
+          e.stopPropagation();
+          e.preventDefault();
+          var fn = img.dataset.filename;
+          var name = (variants.find(function (v) { return v.filename === fn; }) || currentItem).name || fn;
+          if (!confirm('Sell "' + name + '" to Vintage? You will no longer own it.')) return;
+          try {
+            const r = await fetch('/api/vintage/sell/' + encodeURIComponent(fn), { method: 'POST', credentials: 'same-origin' });
+            const data = await r.json().catch(function () { return {}; });
+            if (!r.ok) {
+              showError(data.error || 'Could not sell to vintage');
+              return;
+            }
+            if (typeof showToast === 'function') showToast('Item listed in Vintage');
+            await fetchWardrobeItems();
+            updateHeartedItemsDebounced();
+            updateWardrobeHeartsDebounced();
+          } catch (err) {
+            showError('Failed to sell to vintage: ' + (err && err.message ? err.message : ''));
+          }
+        });
+        container.appendChild(sellBtn);
+        allDiv.appendChild(container);
+      });
+      setWardrobeDebug('Items: ' + roots.length + ' (fallback render)');
+    }
+    async function loadEquippedItems() {
+      const slotSet = typeof window !== 'undefined' && window.VALID_SLOT_IDS ? window.VALID_SLOT_IDS : new Set(['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','makeup-slot','jewelry-slot','other-slot','hair-slot','socks-slot']);
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(function () { controller.abort(); }, 8000);
+        const response = await fetch('/api/equipped-items', { credentials: 'same-origin', signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!response.ok) {
+          slotSet.forEach(slotId => { equippedItems[slotId] = []; });
+          updateEquippedItems();
+          updateHeartedItemsDebounced();
+          updateWardrobeHeartsDebounced();
+          return;
+        }
+        const parsed = await response.json();
+        if (!parsed || typeof parsed !== 'object') {
+          slotSet.forEach(slotId => { equippedItems[slotId] = []; });
+          updateEquippedItems();
+          updateHeartedItemsDebounced();
+          updateWardrobeHeartsDebounced();
+          return;
+        }
+        slotSet.forEach(slotId => { equippedItems[slotId] = []; });
+        Object.assign(equippedItems, parsed);
+        Object.keys(equippedItems).forEach(k => { if (!slotSet.has(k)) delete equippedItems[k]; });
+        Object.keys(equippedItems).forEach(slotId => {
+          if (!slotSet.has(slotId)) return;
+          (equippedItems[slotId] || []).forEach(item => {
+            if (item.background && item.backgroundOn === undefined) item.backgroundOn = true;
+            if (item.background && !item.background.src) item.background.src = '/Uploads/' + (item.background.filename || '');
+            if (item.src && String(item.src).indexOf('/') === 0) item.src = window.location.origin + item.src;
+            if (item.x == null && item.defaultX != null) item.x = Number(item.defaultX);
+            if (item.y == null && item.defaultY != null) item.y = Number(item.defaultY);
+          });
+        });
+        slotSet.forEach(slotId => {
+          const slot = document.getElementById(slotId);
+          if (slot) slot.innerHTML = '';
+        });
+        Object.keys(equippedItems).forEach(slotId => {
+          if (!slotSet.has(slotId)) return;
+          const slot = document.getElementById(slotId);
+          if (slot) {
+            (equippedItems[slotId] || []).forEach(item => {
+              var itemX = item.x != null ? item.x : (item.defaultX != null ? Number(item.defaultX) : 0);
+              var itemY = item.y != null ? item.y : (item.defaultY != null ? Number(item.defaultY) : 0);
+              const img = document.createElement('img');
+              img.src = item.src || '';
+              img.onerror = () => { img.style.display = 'none'; };
+              img.alt = item.alt || '';
+              img.dataset.itemId = item.id;
+              img.dataset.slotId = slotId;
+              img.style.zIndex = item.zIndex || 2;
+              img.style.visibility = (item.visible !== false) ? 'visible' : 'hidden';
+              img.style.transform = `translate(-50%, -50%) translate(${itemX}px, ${itemY}px)`;
+              img.tabIndex = 0;
+              img.setAttribute('aria-label', `Select ${item.alt || 'Item'}`);
+              img.addEventListener('click', (e) => {
+                selectItem(item.id);
+                e.stopPropagation();
+              });
+              img.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  selectItem(item.id);
+                  e.stopPropagation();
+                }
+              });
+              img.draggable = true;
+              img.addEventListener('dragstart', handleDragStart);
+              if (typeof hookPixelPerfect === 'function') hookPixelPerfect(img);
+              slot.appendChild(img);
+            });
+          }
+        });
+        renderBackgrounds();
+        updateEquippedItems();
+        updateHeartedItemsDebounced();
+        updateWardrobeHeartsDebounced();
+      } catch (error) {
+        slotSet.forEach(slotId => { equippedItems[slotId] = []; });
+        updateEquippedItems();
+        updateHeartedItemsDebounced();
+        updateWardrobeHeartsDebounced();
+      }
+    }
+    function applySavedOutfitToCharacter(outfit) {
+      if (!outfit || typeof outfit.items !== 'object') return;
+      const slotSet = typeof window !== 'undefined' && window.VALID_SLOT_IDS ? window.VALID_SLOT_IDS : new Set(['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','makeup-slot','jewelry-slot','other-slot','hair-slot','socks-slot']);
+      Object.keys(equippedItems).forEach(k => { if (!slotSet.has(k)) delete equippedItems[k]; });
+      slotSet.forEach(slotId => {
+        equippedItems[slotId] = [];
+        const slot = document.getElementById(slotId);
+        if (slot) slot.innerHTML = '';
+      });
+      Object.assign(equippedItems, JSON.parse(JSON.stringify(outfit.items)));
+      Object.keys(equippedItems).forEach(k => { if (!slotSet.has(k)) delete equippedItems[k]; });
+      Object.keys(equippedItems).forEach(slotId => {
+        if (!slotSet.has(slotId)) return;
+        (equippedItems[slotId] || []).forEach(item => {
+          if (item.background && item.backgroundOn === undefined) item.backgroundOn = true;
+          if (item.background && !item.background.src) item.background.src = '/Uploads/' + (item.background.filename || '');
+          if (item.src && String(item.src).indexOf('/') === 0) item.src = window.location.origin + item.src;
+          if (item.x == null && item.defaultX != null) item.x = Number(item.defaultX);
+          if (item.y == null && item.defaultY != null) item.y = Number(item.defaultY);
+        });
+      });
+      Object.keys(equippedItems).forEach(slotId => {
+        if (!slotSet.has(slotId)) return;
+        const slot = document.getElementById(slotId);
+        if (slot) {
+          (equippedItems[slotId] || []).forEach(item => {
+            const itemX = item.x != null ? item.x : (item.defaultX != null ? Number(item.defaultX) : 0);
+            const itemY = item.y != null ? item.y : (item.defaultY != null ? Number(item.defaultY) : 0);
+            const img = document.createElement('img');
+            img.src = item.src || '';
+            img.onerror = () => { img.style.display = 'none'; };
+            img.alt = item.alt || '';
+            img.dataset.itemId = item.id;
+            img.dataset.slotId = slotId;
+            img.style.zIndex = item.zIndex || 2;
+            img.style.visibility = (item.visible !== false) ? 'visible' : 'hidden';
+            img.style.transform = `translate(-50%, -50%) translate(${itemX}px, ${itemY}px)`;
+            img.tabIndex = 0;
+            img.setAttribute('aria-label', `Select ${item.alt || 'Item'}`);
+            img.addEventListener('click', (e) => { selectItem(item.id); e.stopPropagation(); });
+            img.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') { selectItem(item.id); e.stopPropagation(); }
+            });
+            img.draggable = true;
+            img.addEventListener('dragstart', handleDragStart);
+            if (typeof hookPixelPerfect === 'function') hookPixelPerfect(img);
+            slot.appendChild(img);
+          });
+        }
+      });
+      renderBackgrounds();
+      selectedItemId = null;
+      updateEquippedItems();
+    }
+    async function loadSavedOutfits() {
+      try {
+        const savedOutfitsCategory = document.getElementById('saved-outfits');
+        if (savedOutfitsCategory) {
+          savedOutfitsCategory.innerHTML = '';
+          const response = await fetch('/api/outfits', { credentials: 'same-origin' });
+          if (!response.ok) throw new Error('Failed to fetch saved outfits');
+          const savedOutfits = await response.json();
+          const list = Array.isArray(savedOutfits) ? savedOutfits : [];
+          lastLoadedSavedOutfits = list.filter(function (o) {
+            return o && typeof o.name === 'string' && o.name.trim() !== '' && (typeof o.items === 'object' && o.items !== null);
+          });
+          for (const outfit of lastLoadedSavedOutfits) {
+            const container = document.createElement('div');
+            container.classList.add('wardrobe-item-container');
+            const img = document.createElement('img');
+            img.classList.add('item');
+            img.dataset.outfitName = outfit.name;
+            img.alt = outfit.name;
+            img.tabIndex = 0;
+            img.setAttribute('aria-label', `Load outfit ${outfit.name}`);
+            img.src = outfit.mergedImageUrl || 'https://via.placeholder.com/70x98?text=Outfit';
+            img.onerror = () => { img.style.display = 'none'; };
+            img.addEventListener('click', async () => {
+              try {
+                applySavedOutfitToCharacter(outfit);
+                await saveEquippedItems();
+                updateEquippedItemsDebounced();
+                updateHeartedItemsDebounced();
+                updateWardrobeHeartsDebounced();
+              } catch (error) {
+                showError('Failed to load outfit: ' + error.message);
+              }
+            });
+            img.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                img.click();
+              }
+            });
+            container.appendChild(img);
+            savedOutfitsCategory.appendChild(container);
+          }
+        }
+      } catch (error) {
+        showError('Failed to load saved outfits: ' + error.message);
+        lastLoadedSavedOutfits = [];
+        const savedOutfitsCategory = document.getElementById('saved-outfits');
+        if (savedOutfitsCategory) savedOutfitsCategory.innerHTML = '';
+      }
+    }
+    window.loadSavedOutfits = loadSavedOutfits;
+    window.saveEquippedItems = saveEquippedItems;
+    async function saveEquippedItems() {
+      const slotSet = typeof window !== 'undefined' && window.VALID_SLOT_IDS ? window.VALID_SLOT_IDS : new Set(['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','makeup-slot','jewelry-slot','other-slot','hair-slot','socks-slot']);
+      try {
+        const toSave = {};
+        slotSet.forEach(slotId => { toSave[slotId] = (equippedItems[slotId] || []).slice(); });
+        const response = await fetch('/api/equipped-items', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(toSave)
+        });
+        if (!response.ok) throw new Error('Failed to save equipped items');
+        Object.keys(equippedItems).forEach(k => { if (!slotSet.has(k)) delete equippedItems[k]; });
+      } catch (error) {
+        showError('Failed to save equipped items: ' + error.message);
+      }
+    }
+    function getFlatItemsForMerge() {
+      const source = (typeof window !== 'undefined' && window.equippedItems && typeof window.equippedItems === 'object' && Object.keys(window.equippedItems).some(k => Array.isArray(window.equippedItems[k]) && window.equippedItems[k].length > 0)) ? window.equippedItems : equippedItems;
+      const slotOrder = Object.keys(SLOT_LAYER_ORDER).sort((a, b) => (SLOT_LAYER_ORDER[a] ?? 0) - (SLOT_LAYER_ORDER[b] ?? 0));
+      const all = [];
+      slotOrder.forEach(slotId => {
+        if (!source[slotId]) return;
+        (source[slotId] || []).forEach(item => all.push({ ...item, slotId }));
+      });
+      return all.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+    }
+    window.getFlatItemsForMerge = getFlatItemsForMerge;
+    function compositeOutfitToCanvas(canvas, done) {
+      const W = 250, H = 350;
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      ctx.mozImageSmoothingEnabled = false;
+      ctx.webkitImageSmoothingEnabled = false;
+      ctx.msImageSmoothingEnabled = false;
+      const items = getFlatItemsForMerge();
+      if (items.length === 0) { ctx.clearRect(0, 0, W, H); done(); return; }
+      const loadedImages = new Array(items.length);
+      let loadedCount = 0;
+      let errorCount = 0;
+      function tryDrawAll() {
+        if (loadedCount !== items.length) return;
+        ctx.clearRect(0, 0, W, H);
+        for (let i = 0; i < items.length; i++) {
+          const img = loadedImages[i];
+          const item = items[i];
+          if (!img || !img.complete) continue;
+          const nw = img.naturalWidth || W, nh = img.naturalHeight || H;
+          /* Integer-scale only for crisp pixels: 1x, 0.5x, 0.33x, etc. */
+          let scale = Math.min(1, W / nw, H / nh);
+          if (scale < 1) scale = 1 / Math.ceil(1 / scale);
+          let drawW = Math.round(nw * scale), drawH = Math.round(nh * scale);
+          if (drawW % 2 !== 0) drawW++; if (drawH % 2 !== 0) drawH++;
+          const cx = 125 + (item.x || 0), cy = 175 + (item.y || 0);
+          ctx.drawImage(img, 0, 0, nw, nh, Math.round(cx - drawW / 2), Math.round(cy - drawH / 2), drawW, drawH);
+        }
+        if (typeof saveOutfitLog === 'function') saveOutfitLog('compositeOutfitToCanvas done()', { loadedCount: loadedCount, errorCount: errorCount });
+        done();
+      }
+      items.forEach((item, i) => {
+        const img = new Image();
+        var src = (item.src || '').trim();
+        if (src && src.indexOf('/') === 0) src = window.location.origin + src;
+        else if (src && src.indexOf('http') === 0) {
+          try {
+            var u = new URL(src);
+            if (u.origin !== window.location.origin) src = window.location.origin + u.pathname + (u.search || '');
+          } catch (e) {}
+        }
+        img.onload = () => { loadedImages[i] = img; loadedCount++; tryDrawAll(); };
+        img.onerror = () => { errorCount++; loadedCount++; tryDrawAll(); };
+        img.src = src || '';
+      });
+    }
+    window.compositeOutfitToCanvas = compositeOutfitToCanvas;
+    // #region agent log
+    function saveOutfitLog(msg, data) {
+      try {
+        fetch('http://127.0.0.1:7242/ingest/b96235e9-13f3-4cda-bf3f-0bf4bd9e9e77', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'wardrobe.html:setupSaveOutfit', message: msg, data: data || {}, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: data && data.hypothesisId ? data.hypothesisId : 'A' }) }).catch(function () {});
+      } catch (e) {}
+    }
+    // #endregion
+    function setupSaveOutfit() {
+      const saveOutfit = document.getElementById('save-outfit');
+      const mergeCanvas = document.getElementById('outfit-merge-canvas');
+      if (!saveOutfit) return;
+      if (!mergeCanvas) {
+        saveOutfit.disabled = true;
+        saveOutfit.title = 'Save outfit unavailable';
+        return;
+      }
+      saveOutfit.addEventListener('click', function (e) {
+        e.preventDefault();
+        handleSaveOutfitClick();
+      });
+    }
+    (function () {
+      document.addEventListener('click', function (e) {
+        var t = e.target;
+        if (t && (t.id === 'save-outfit' || (t.closest && t.closest('#save-outfit')))) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (typeof window.handleSaveOutfitClick === 'function') window.handleSaveOutfitClick();
+        }
+      });
+    })();
+    window.getFlatItemsForMerge = getFlatItemsForMerge;
+    window.equippedItems = equippedItems;
+    window.compositeOutfitToCanvas = compositeOutfitToCanvas;
+    window.loadSavedOutfits = loadSavedOutfits;
+    window.showError = showError;
+    window.handleSaveOutfitClick = handleSaveOutfitClick;
+    function selectItem(itemId) {
+      selectedItemId = itemId;
+      document.querySelectorAll('#equipped-items img').forEach(img => {
+        img.classList.toggle('selected', img.dataset.itemId === itemId);
+      });
+      updateBackgroundToggle();
+    }
+    function updateBackgroundToggle() {
+      const btn = document.getElementById('toggle-background-btn');
+      if (!btn) return;
+      if (!selectedItemId) {
+        btn.style.display = 'none';
+        return;
+      }
+      const { slotId, index } = findItemById(selectedItemId);
+      const item = slotId != null && index >= 0 && equippedItems[slotId] ? equippedItems[slotId][index] : null;
+      if (!item || !item.background) {
+        btn.style.display = 'none';
+        return;
+      }
+      btn.style.display = 'inline-block';
+      btn.textContent = item.backgroundOn !== false ? 'Background: On' : 'Background: Off';
+    }
+    const updateEquippedItemsDebounced = debounce(() => {
+      requestAnimationFrame(updateEquippedItems);
+    }, 100);
+    const updateHeartedItemsDebounced = debounce(() => {
+      requestAnimationFrame(updateHeartedItems);
+    }, 1000);
+    const updateWardrobeHeartsDebounced = debounce(() => {
+      requestAnimationFrame(updateWardrobeHearts);
+    }, 1000);
+    function updateEquippedItems() {
+      try {
+        const equippedBox = document.getElementById('equipped-items');
+        if (!equippedBox) return;
+        equippedBox.innerHTML = '';
+        const allItems = getAllItems();
+        allItems.forEach((item, index) => {
+          const container = document.createElement('div');
+          container.classList.add('equipped-item-container');
+          if (item.slotId === 'body-slot') container.classList.add('body-slot');
+          container.dataset.itemId = item.id;
+          const img = document.createElement('img');
+          img.src = item.src;
+          img.onerror = () => { img.style.display = 'none'; };
+          img.alt = item.alt;
+          img.dataset.itemId = item.id;
+          img.dataset.slotId = item.slotId;
+          img.classList.toggle('selected', item.id === selectedItemId);
+          img.draggable = true;
+          img.addEventListener('dragstart', handleDragStart);
+          img.addEventListener('click', (e) => {
+            selectItem(item.id);
+            e.stopPropagation();
+          });
+          const actual = (equippedItems[item.slotId] || []).find(i => i.id === item.id);
+          if (actual && actual.visible === false) {
+            const slotImg = document.querySelector(`#${item.slotId} [data-item-id="${item.id}"]`);
+            if (slotImg) slotImg.style.visibility = 'hidden';
+          }
+          const eyeBtn = document.createElement('button');
+          eyeBtn.type = 'button';
+          eyeBtn.className = 'item-visibility-btn';
+          eyeBtn.setAttribute('aria-label', (actual && actual.visible === false) ? 'Show this item' : 'Hide this item');
+          eyeBtn.title = (actual && actual.visible === false) ? 'Show this item' : 'Hide this item';
+          function setEyeIcon(visible) {
+            eyeBtn.innerHTML = visible
+              ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+              : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+            eyeBtn.setAttribute('aria-label', visible ? 'Hide this item' : 'Show this item');
+            eyeBtn.title = visible ? 'Hide this item' : 'Show this item';
+          }
+          setEyeIcon((actual && actual.visible !== false) || !actual);
+          eyeBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!actual) return;
+            actual.visible = actual.visible === false;
+            const slotImgEl = document.querySelector(`#${item.slotId} [data-item-id="${item.id}"]`);
+            if (slotImgEl) slotImgEl.style.visibility = actual.visible ? 'visible' : 'hidden';
+            setEyeIcon(actual.visible);
+          });
+          container.appendChild(img);
+          container.appendChild(eyeBtn);
+          equippedBox.appendChild(container);
+          const z = allItems.length - index + 2;
+          item.zIndex = z;
+          if (actual) actual.zIndex = z;
+          const slotImg = document.querySelector(`#${item.slotId} [data-item-id="${item.id}"]`);
+          if (slotImg) {
+            slotImg.style.zIndex = z;
+            if (actual && actual.visible === false) slotImg.style.visibility = 'hidden';
+          }
+        });
+      } catch (error) {
+        showError('Error updating equipped items: ' + error.message);
+      }
+    }
+    function updateHeartedItems() {
+      try {
+        const heartedCategory = document.getElementById('hearted-items');
+        if (heartedCategory) {
+          heartedCategory.innerHTML = '';
+          const heartedSet = new Set((wardrobeItems.filter(i => i.heart) || []).map(i => getSwatchParentFilename(i) || i.filename));
+          const rootsWithHearted = Array.from(heartedSet).filter(rootFilename => {
+            const root = wardrobeItems.find(i => i.filename === rootFilename && !getSwatchParentFilename(i));
+            return root;
+          });
+          const page = currentPages['hearted-items'] || 1;
+          const start = (page - 1) * itemsPerPage;
+          const end = start + itemsPerPage;
+          const paginatedRoots = rootsWithHearted.slice(start, end);
+          paginatedRoots.forEach(rootFilename => {
+            const rootItem = wardrobeItems.find(i => i.filename === rootFilename && !getSwatchParentFilename(i));
+            if (!rootItem) return;
+            const swatches = wardrobeItems.filter(i => getSwatchParentFilename(i) === rootFilename);
+            const variants = [rootItem, ...swatches];
+            const currentFilename = selectedVariantByRoot[rootFilename] || rootItem.filename;
+            const currentItem = variants.find(v => v.filename === currentFilename) || rootItem;
+
+            const container = document.createElement('div');
+            container.classList.add('wardrobe-item-container');
+            if (normalizeSlotId(rootItem.slotId) === 'body-slot') container.classList.add('item-body');
+            container.dataset.rootFilename = rootFilename;
+
+            const infoBtnHearted = document.createElement('button');
+            infoBtnHearted.type = 'button';
+            infoBtnHearted.className = 'item-info-btn';
+            infoBtnHearted.innerHTML = '=';
+            infoBtnHearted.title = 'Item info';
+            infoBtnHearted.setAttribute('aria-label', 'Item info');
+            infoBtnHearted.addEventListener('mouseover', (e) => { showItemInfoTooltip(e, currentItem, wardrobeItems); });
+            infoBtnHearted.addEventListener('mouseout', hideItemInfoTooltip);
+
+            const heart = document.createElement('img');
+            heart.src = currentItem.heart ? '/img/heart_true.svg' : '/img/heart_false.svg';
+            heart.classList.add('heart-icon');
+            heart.dataset.src = currentItem.filename;
+            heart.tabIndex = 0;
+            heart.setAttribute('aria-label', currentItem.heart ? 'Remove from favorites' : 'Add to favorites');
+            heart.addEventListener('click', async (e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              const targetItem = wardrobeItems.find(i => i.filename === currentItem.filename);
+              if (targetItem) {
+                targetItem.heart = !targetItem.heart;
+                heart.src = targetItem.heart ? '/img/heart_true.svg' : '/img/heart_false.svg';
+                heart.setAttribute('aria-label', targetItem.heart ? 'Remove from favorites' : 'Add to favorites');
+                try {
+                  const response = await fetch(`/api/items/update/${currentItem.filename}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...targetItem, heart: targetItem.heart })
+                  });
+                  if (!response.ok) throw new Error('Failed to update item heart status');
+                  updateHeartedItemsDebounced();
+                  updateWardrobeHeartsDebounced();
+                } catch (error) {
+                  showError('Failed to update heart status: ' + error.message);
+                }
+              }
+            });
+            heart.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); heart.click(); }
+            });
+
+            const img = document.createElement('img');
+            img.src = `/Uploads/${currentItem.filename}`;
+            img.alt = currentItem.name;
+            img.onerror = () => { img.style.display = 'none'; };
+            img.classList.add('item');
+            img.dataset.slot = normalizeSlotId(currentItem.slotId);
+            img.dataset.filename = currentItem.filename;
+            img.tabIndex = 0;
+            img.setAttribute('aria-label', `Equip ${currentItem.name}`);
+            if (variants.length > 1) img.title = 'Click to equip • Double-click and pick color from image to switch variant';
+            img.addEventListener('click', (e) => { if (e.detail === 1 && !e.shiftKey) handleItemClick(e); });
+            img.addEventListener('contextmenu', (e) => { e.preventDefault(); handleItemClick(e); });
+            img.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); img.click(); }
+            });
+            container.appendChild(img);
+
+            if (variants.length > 1) {
+              const dotsWrap = document.createElement('div');
+              dotsWrap.classList.add('wardrobe-swatch-dots');
+              variants.forEach((v, idx) => {
+                const dot = document.createElement('button');
+                dot.type = 'button';
+                dot.classList.add('wardrobe-swatch-dot');
+                const hex = getSwatchColor(v) || (idx === 0 ? null : '#999');
+                dot.style.background = hex || '#ccc';
+                dot.title = v.name || 'Variant';
+                if (v.filename === currentFilename) dot.classList.add('selected');
+                dot.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  selectedVariantByRoot[rootFilename] = v.filename;
+                  img.src = '/Uploads/' + v.filename;
+                  img.alt = v.name;
+                  img.dataset.filename = v.filename;
+                  img.dataset.slot = normalizeSlotId(v.slotId);
+                  container.querySelectorAll('.wardrobe-swatch-dot').forEach(d => d.classList.remove('selected'));
+                  dot.classList.add('selected');
+                  heart.dataset.src = v.filename;
+                  const vi = wardrobeItems.find(i => i.filename === v.filename);
+                  heart.src = (vi && vi.heart) ? '/img/heart_true.svg' : '/img/heart_false.svg';
+                });
+                dotsWrap.appendChild(dot);
+              });
+              container.appendChild(dotsWrap);
+              img.addEventListener('dblclick', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                pickColorFromWardrobeImage(img.src, (pickedHex) => {
+                  if (!pickedHex) return;
+                  let best = null, bestDist = Infinity;
+                  variants.forEach(v => {
+                    const h = getSwatchColor(v);
+                    if (!h) return;
+                    const d = colorDistance(pickedHex, h);
+                    if (d < bestDist) { bestDist = d; best = v; }
+                  });
+                  if (best) {
+                    selectedVariantByRoot[rootFilename] = best.filename;
+                    img.src = '/Uploads/' + best.filename;
+                    img.alt = best.name;
+                    img.dataset.filename = best.filename;
+                    img.dataset.slot = normalizeSlotId(best.slotId);
+                    container.querySelectorAll('.wardrobe-swatch-dot').forEach(d => d.classList.remove('selected'));
+                    const dotIdx = variants.indexOf(best);
+                    if (dotsWrap.children[dotIdx]) dotsWrap.children[dotIdx].classList.add('selected');
+                    heart.dataset.src = best.filename;
+                    const vi = wardrobeItems.find(i => i.filename === best.filename);
+                    heart.src = (vi && vi.heart) ? '/img/heart_true.svg' : '/img/heart_false.svg';
+                  }
+                });
+              });
+            }
+
+            const sellBtn = document.createElement('button');
+            sellBtn.type = 'button';
+            sellBtn.className = 'sell-to-vintage-btn';
+            sellBtn.textContent = '\u267B';
+            sellBtn.title = 'List this item in Vintage for others to buy';
+            sellBtn.setAttribute('aria-label', 'Sell to vintage');
+            sellBtn.addEventListener('click', async (e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              const fn = currentItem.filename;
+              if (!confirm('Sell "' + (currentItem.name || fn) + '" to Vintage? You will no longer own it.')) return;
+              try {
+                const r = await fetch('/api/vintage/sell/' + encodeURIComponent(fn), { method: 'POST', credentials: 'same-origin' });
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok) { showError(data.error || 'Could not sell to vintage'); return; }
+                if (typeof showToast === 'function') showToast('Item listed in Vintage');
+                await fetchWardrobeItems();
+                updateHeartedItems();
+                updateWardrobeDisplay();
+                updateHeartedItemsDebounced();
+                updateWardrobeHeartsDebounced();
+              } catch (err) { showError('Failed to sell to vintage: ' + (err && err.message ? err.message : '')); }
+            });
+            container.appendChild(sellBtn);
+
+            container.insertBefore(heart, container.firstChild);
+            container.insertBefore(infoBtnHearted, container.firstChild);
+            heartedCategory.appendChild(container);
+          });
+          const navDiv = document.createElement('div');
+          navDiv.classList.add('category-nav');
+          const prevButton = document.createElement('button');
+          prevButton.textContent = 'Previous';
+          prevButton.disabled = page === 1;
+          prevButton.addEventListener('click', () => {
+            if (page > 1) { currentPages['hearted-items'] = page - 1; updateHeartedItems(); }
+          });
+          const nextButton = document.createElement('button');
+          nextButton.textContent = 'Next';
+          nextButton.disabled = end >= rootsWithHearted.length;
+          nextButton.addEventListener('click', () => {
+            if (end < rootsWithHearted.length) { currentPages['hearted-items'] = page + 1; updateHeartedItems(); }
+          });
+          navDiv.appendChild(prevButton);
+          navDiv.appendChild(nextButton);
+          if (rootsWithHearted.length > itemsPerPage) heartedCategory.appendChild(navDiv);
+        }
+      } catch (error) {
+        showError('Error updating hearted items: ' + error.message);
+      }
+    }
+    function updateWardrobeHearts() {
+      try {
+        const wardrobeItemsElements = document.querySelectorAll('.category:not(#hearted-items):not(#saved-outfits) .wardrobe-item-container');
+        wardrobeItemsElements.forEach(container => {
+          if (container.classList.contains('wardrobe-set-card')) return;
+          const img = container.querySelector('.item');
+          const existingHeart = container.querySelector('.heart-icon');
+          if (existingHeart) existingHeart.remove();
+          if (!img || !img.dataset.slot) return;
+          const filename = img.src.split('/').pop();
+          const slotId = img.dataset.slot.split(',')[0];
+            const item = wardrobeItems.find(i => i.filename === filename && normalizeSlotId(i.slotId) === slotId);
+            if (item) {
+              const heart = document.createElement('img');
+              heart.src = item.heart ? '/img/heart_true.svg' : '/img/heart_false.svg';
+              heart.classList.add('heart-icon');
+              heart.dataset.src = filename;
+              heart.tabIndex = 0;
+              heart.setAttribute('aria-label', item.heart ? 'Remove from favorites' : 'Add to favorites');
+              heart.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const targetItem = wardrobeItems.find(i => i.filename === filename && normalizeSlotId(i.slotId) === slotId);
+                if (targetItem) {
+                  targetItem.heart = !targetItem.heart;
+                  heart.src = targetItem.heart ? '/img/heart_true.svg' : '/img/heart_false.svg';
+                  heart.setAttribute('aria-label', targetItem.heart ? 'Remove from favorites' : 'Add to favorites');
+                  try {
+                    const response = await fetch(`/api/items/update/${filename}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ ...targetItem, heart: targetItem.heart })
+                    });
+                    if (!response.ok) throw new Error('Failed to update item heart status');
+                    updateHeartedItemsDebounced();
+                    updateWardrobeHeartsDebounced();
+                  } catch (error) {
+                    showError('Failed to update heart status: ' + error.message);
+                  }
+                }
+              });
+              heart.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  heart.click();
+                }
+              });
+              container.insertBefore(heart, container.firstChild);
+            }
+        });
+      } catch (error) {
+        showError('Error updating wardrobe hearts: ' + error.message);
+      }
+    }
+    function handleDragStart(e) {
+      dragItemId = e.target.dataset.itemId;
+      if (e.target) e.target.classList.add('dragging');
+      e.dataTransfer.setData('text/plain', dragItemId);
+    }
+    function handleDragOver(e) {
+      e.preventDefault();
+      const equippedBox = document.getElementById('equipped-items');
+      if (equippedBox) {
+        const rect = equippedBox.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const itemHeight = 40 + 5;
+        const containers = Array.from(equippedBox.querySelectorAll('.equipped-item-container'));
+        const index = Math.max(0, Math.min(containers.length - 1, Math.floor(y / itemHeight)));
+        containers.forEach(c => c.classList.remove('drag-over'));
+        if (index >= 0 && index < containers.length) {
+          containers[index].classList.add('drag-over');
+        }
+      }
+    }
+    function handleDragLeave(e) {
+      const containers = document.querySelectorAll('.equipped-item-container');
+      containers.forEach(c => c.classList.remove('drag-over'));
+    }
+    function handleDrop(e) {
+      e.preventDefault();
+      const dropItemId = e.target.closest('.equipped-item-container')?.dataset.itemId;
+      const equippedBox = document.getElementById('equipped-items');
+      if (equippedBox && dragItemId && dropItemId && dragItemId !== dropItemId) {
+        const dragItem = findItemById(dragItemId);
+        const dropItem = findItemById(dropItemId);
+        if (dragItem.slotId && dropItem.slotId) {
+          const dragIndex = equippedItems[dragItem.slotId].findIndex(item => item.id === dragItemId);
+          const dropIndex = equippedItems[dropItem.slotId].findIndex(item => item.id === dropItemId);
+          if (dragIndex >= 0 && dropIndex >= 0) {
+            const dragItemData = equippedItems[dragItem.slotId][dragIndex];
+            equippedItems[dragItem.slotId].splice(dragIndex, 1);
+            equippedItems[dropItem.slotId].splice(dropIndex, 0, dragItemData);
+            lastEquippedId = null;
+            saveEquippedItems();
+            updateEquippedItemsDebounced();
+          }
+        }
+      }
+      const containers = document.querySelectorAll('.equipped-item-container');
+      containers.forEach(c => c.classList.remove('drag-over'));
+      const dragging = document.querySelector('.dragging');
+      if (dragging) dragging.classList.remove('dragging');
+      dragItemId = null;
+    }
+    function setupEquippedItemsDrag() {
+      const equippedItemsDiv = document.getElementById('equipped-items');
+      if (equippedItemsDiv) {
+        equippedItemsDiv.addEventListener('dragover', handleDragOver);
+        equippedItemsDiv.addEventListener('dragleave', handleDragLeave);
+        equippedItemsDiv.addEventListener('drop', handleDrop);
+      }
+      const visibilityBtn = document.getElementById('equipped-visibility-toggle');
+      const characterEl = document.getElementById('character');
+      if (visibilityBtn && characterEl) {
+        function updateEquippedVisibilityButton() {
+          if (equippedItemsVisible) {
+            visibilityBtn.setAttribute('aria-label', 'Hide equipped items');
+            visibilityBtn.title = 'Hide equipped items';
+            visibilityBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+            characterEl.classList.remove('equipped-items-hidden');
+          } else {
+            visibilityBtn.setAttribute('aria-label', 'Show equipped items');
+            visibilityBtn.title = 'Show equipped items';
+            visibilityBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+            characterEl.classList.add('equipped-items-hidden');
+          }
+        }
+        visibilityBtn.addEventListener('click', function () {
+          equippedItemsVisible = !equippedItemsVisible;
+          updateEquippedVisibilityButton();
+        });
+        updateEquippedVisibilityButton();
+      }
+    }
+    function setWardrobeActiveCategory(cat) {
+      if (cat === activeCategory) cat = 'all'; // same as store: click selected category again → show all
+      activeCategory = cat;
+      const categories = document.querySelectorAll('.category');
+      categories.forEach(c => c.classList.remove('active'));
+      const target = document.getElementById(cat);
+      if (target) target.classList.add('active');
+      document.querySelectorAll('.menu-icon').forEach(icon => icon.classList.remove('selected'));
+      if (cat === 'body' && document.getElementById('body-icon')) document.getElementById('body-icon').classList.add('selected');
+      else if (cat === 'full-set' && document.getElementById('full-sets-icon')) document.getElementById('full-sets-icon').classList.add('selected');
+      else if (cat === 'hearted-items' && document.getElementById('heart-icon')) document.getElementById('heart-icon').classList.add('selected');
+      else if ((cat === 'other' || cat === 'jewelry') && document.getElementById('other-icon')) document.getElementById('other-icon').classList.add('selected');
+      else if (cat === 'saved-outfits' && document.getElementById('saved-outfits-icon')) document.getElementById('saved-outfits-icon').classList.add('selected');
+      else if (cat !== 'all') {
+        const icon = document.querySelector('.menu-icon[data-categories="' + cat + '"]');
+        if (icon) icon.classList.add('selected');
+      }
+      updateWardrobeDisplay();
+    }
+    function setupIconMenu() {
+      const menuIcons = document.querySelectorAll('.menu-icon');
+      if (menuIcons.length > 0) {
+        menuIcons.forEach(icon => {
+          icon.addEventListener('click', () => {
+            if (icon.id === 'full-sets-icon') setWardrobeActiveCategory('full-set');
+            else if (icon.id === 'body-icon') setWardrobeActiveCategory('body');
+            else if (icon.id === 'heart-icon') setWardrobeActiveCategory('hearted-items');
+            else if (icon.id === 'other-icon') setWardrobeActiveCategory('other');
+            else if (icon.id === 'saved-outfits-icon') setWardrobeActiveCategory('saved-outfits');
+            else {
+              const categoryList = (icon.dataset.categories || '').split(',');
+              const cat = categoryList[0] || 'all';
+              setWardrobeActiveCategory(cat);
+            }
+          });
+        });
+      }
+    }
+    function setDefaultCategory() {
+      setWardrobeActiveCategory('all');
+    }
+    const wardrobePanel = document.getElementById('wardrobe');
+    if (wardrobePanel) {
+      wardrobePanel.addEventListener('wheel', function(e) {
+        const cat = e.target.closest('.category.active');
+        if (cat && cat.scrollHeight > cat.clientHeight) {
+          cat.scrollTop += e.deltaY;
+          e.preventDefault();
+        }
+      }, { passive: false });
+    }
+    function handleItemClick(e) {
+      const container = e.target.closest('.wardrobe-item-container');
+      if (!container) return;
+      if (container.classList.contains('wardrobe-set-card')) return;
+      const item = container.querySelector('img.item');
+      if (!item || !item.src) return;
+      e.preventDefault();
+      try {
+        const filename = (item.dataset.filename || (item.src && item.src.split('/').pop().replace(/\?.*$/, '')) || '').trim();
+        if (!filename) return;
+        let wardrobeItem = wardrobeItems.find(i => i && i.filename === filename);
+        if (!wardrobeItem) {
+          wardrobeItem = { filename: filename, slotId: item.dataset.slot || 'other-slot' };
+        }
+        const isCombo = wardrobeItem.bundleParts && Array.isArray(wardrobeItem.bundleParts) && wardrobeItem.bundleParts.length > 0;
+        let slotIds = item.dataset.slot ? item.dataset.slot.split(',').map(function (s) { return normalizeSlotId(s); }) : [];
+        if (slotIds.length === 0 && wardrobeItem.slotId) slotIds = [normalizeSlotId(wardrobeItem.slotId)];
+        let itemExists = false;
+        let existingItemId = null;
+        let bundleIdsToRemove = [];
+        if (isCombo) {
+          const bundleSrcs = wardrobeItem.bundleParts.map(p => '/Uploads/' + p.filename);
+          for (const slotId of Object.keys(equippedItems)) {
+            (equippedItems[slotId] || []).forEach(equippedItem => {
+              if (bundleSrcs.indexOf(equippedItem.src) !== -1) {
+                itemExists = true;
+                bundleIdsToRemove.push({ slotId, id: equippedItem.id });
+              }
+            });
+          }
+        } else {
+          const itemSrcPath = '/Uploads/' + filename;
+          for (const slotId of slotIds) {
+            if (equippedItems[slotId]) {
+              const existingItem = equippedItems[slotId].find(i => (i.src === item.src || i.src === itemSrcPath));
+              if (existingItem) {
+                itemExists = true;
+                existingItemId = existingItem.id;
+                break;
+              }
+            }
+          }
+        }
+        if (itemExists) {
+          if (isCombo && bundleIdsToRemove.length > 0) {
+            bundleIdsToRemove.forEach(({ slotId, id }) => {
+              const index = (equippedItems[slotId] || []).findIndex(i => i.id === id);
+              if (index >= 0) {
+                equippedItems[slotId].splice(index, 1);
+                const slot = document.getElementById(slotId);
+                if (slot) {
+                  const slotImg = slot.querySelector(`[data-item-id="${id}"]`);
+                  if (slotImg) slotImg.remove();
+                }
+                const equippedBox = document.getElementById('equipped-items');
+                if (equippedBox) {
+                  const equippedImg = equippedBox.querySelector(`.equipped-item-container [data-item-id="${id}"]`);
+                  if (equippedImg && equippedImg.parentElement) equippedImg.parentElement.remove();
+                }
+              }
+            });
+            selectedItemId = null;
+            saveEquippedItems();
+            updateEquippedItemsDebounced();
+            updateHeartedItemsDebounced();
+            updateWardrobeHeartsDebounced();
+          } else if (!isCombo && existingItemId) {
+            const { slotId, index } = findItemById(existingItemId);
+            if (slotId && VALID_SLOT_IDS.has(slotId) && index >= 0) {
+              equippedItems[slotId].splice(index, 1);
+              const slot = document.getElementById(slotId);
+              if (slot) {
+                const slotImg = slot.querySelector(`[data-item-id="${existingItemId}"]`);
+                if (slotImg) slotImg.remove();
+              }
+              const equippedBox = document.getElementById('equipped-items');
+              if (equippedBox) {
+                const equippedImg = equippedBox.querySelector(`.equipped-item-container [data-item-id="${existingItemId}"]`);
+                if (equippedImg && equippedImg.parentElement) equippedImg.parentElement.remove();
+              }
+              selectedItemId = null;
+              saveEquippedItems();
+              updateEquippedItemsDebounced();
+              updateHeartedItemsDebounced();
+              updateWardrobeHeartsDebounced();
+            }
+          }
+        } else {
+          if (isCombo) {
+            const allItems = getAllItems();
+            let zOffset = allItems.length + 2;
+            wardrobeItem.bundleParts.forEach((part, idx) => {
+              const slotId = normalizeSlotId(part.slotId);
+              if (!VALID_SLOT_IDS.has(slotId)) return;
+              if (!equippedItems[slotId]) equippedItems[slotId] = [];
+              const itemId = `${slotId}-${equippedItems[slotId].length}`;
+              const newItem = {
+                id: itemId,
+                slotId,
+                src: '/Uploads/' + part.filename,
+                alt: (wardrobeItem.name || '') + (idx === 0 ? ' (1)' : ' (2)'),
+                zIndex: (part.defaultZ != null) ? part.defaultZ : zOffset++,
+                x: (part.defaultX != null) ? part.defaultX : 0,
+                y: (part.defaultY != null) ? part.defaultY : 0,
+                heart: wardrobeItem.heart || false,
+                tags: wardrobeItem.tags || []
+              };
+              equippedItems[slotId].push(newItem);
+              if (slotId !== 'body-slot') lastEquippedId = itemId;
+              const slot = document.getElementById(slotId);
+              if (slot) {
+                const img = document.createElement('img');
+                img.src = newItem.src;
+                img.alt = newItem.alt;
+                img.onerror = () => { img.style.display = 'none'; };
+                img.dataset.itemId = itemId;
+                img.dataset.slotId = slotId;
+                img.style.zIndex = newItem.zIndex;
+                img.style.transform = `translate(-50%, -50%) translate(${newItem.x}px, ${newItem.y}px)`;
+                img.tabIndex = 0;
+                img.setAttribute('aria-label', `Select ${newItem.alt}`);
+                img.addEventListener('click', (e) => { selectItem(itemId); e.stopPropagation(); });
+                img.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { selectItem(itemId); e.stopPropagation(); } });
+                img.draggable = true;
+                img.addEventListener('dragstart', handleDragStart);
+                if (typeof hookPixelPerfect === 'function') hookPixelPerfect(img);
+                slot.appendChild(img);
+              }
+            });
+          } else {
+            const wi = wardrobeItem;
+            const srcPath = '/Uploads/' + filename;
+            const catalog = Array.isArray(wardrobeItems) && wardrobeItems.length > 0 ? wardrobeItems : getAllItems();
+            const coordItem = getCoordItem(wi, catalog);
+            slotIds.forEach(slotId => {
+              if (!VALID_SLOT_IDS.has(slotId)) return;
+              if (!equippedItems[slotId]) equippedItems[slotId] = [];
+              const itemId = `${slotId}-${equippedItems[slotId].length}`;
+              const newItem = {
+                id: itemId,
+                slotId,
+                src: srcPath,
+                alt: (wi && wi.name) ? wi.name : (item.alt || filename),
+                zIndex: (coordItem && coordItem.defaultZ != null) ? coordItem.defaultZ : (getAllItems().length + 2),
+                x: (coordItem && coordItem.defaultX != null) ? coordItem.defaultX : 0,
+                y: (coordItem && coordItem.defaultY != null) ? coordItem.defaultY : 0,
+                heart: wi ? wi.heart : false,
+                tags: wi ? wi.tags : []
+              };
+              if (wi && wi.background) {
+                newItem.background = {
+                  filename: wi.background.filename,
+                  defaultX: wi.background.defaultX != null ? wi.background.defaultX : 0,
+                  defaultY: wi.background.defaultY != null ? wi.background.defaultY : 0,
+                  defaultZ: wi.background.defaultZ != null ? wi.background.defaultZ : 0,
+                  src: '/Uploads/' + (wi.background.filename || '')
+                };
+                newItem.backgroundOn = true;
+              }
+              equippedItems[slotId].push(newItem);
+              if (slotId !== 'body-slot') lastEquippedId = itemId;
+              const slot = document.getElementById(slotId);
+              if (slot) {
+                const img = document.createElement('img');
+                img.src = newItem.src;
+                img.alt = newItem.alt;
+                img.onerror = () => { img.style.display = 'none'; };
+                img.dataset.itemId = itemId;
+                img.dataset.slotId = slotId;
+                img.style.zIndex = newItem.zIndex;
+                img.style.transform = `translate(-50%, -50%) translate(${newItem.x}px, ${newItem.y}px)`;
+                img.tabIndex = 0;
+                img.setAttribute('aria-label', `Select ${newItem.alt}`);
+                img.addEventListener('click', (e) => { selectItem(itemId); e.stopPropagation(); });
+                img.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { selectItem(itemId); e.stopPropagation(); } });
+                img.draggable = true;
+                img.addEventListener('dragstart', handleDragStart);
+                if (typeof hookPixelPerfect === 'function') hookPixelPerfect(img);
+                slot.appendChild(img);
+              }
+            });
+          }
+          renderBackgrounds();
+          saveEquippedItems();
+          updateEquippedItemsDebounced();
+          updateHeartedItemsDebounced();
+          updateWardrobeHeartsDebounced();
+        }
+      } catch (error) {
+        showError('Error handling item click: ' + error.message);
+      }
+    }
+    function renderBackgrounds() {
+      const container = document.getElementById('character-backgrounds');
+      if (!container) return;
+      container.innerHTML = '';
+      const withBg = [];
+      Object.keys(equippedItems).forEach(slotId => {
+        (equippedItems[slotId] || []).forEach(item => {
+          if (item.background && item.backgroundOn !== false) withBg.push(item);
+        });
+      });
+      withBg.sort((a, b) => (a.background.defaultZ != null ? a.background.defaultZ : 0) - (b.background.defaultZ != null ? b.background.defaultZ : 0));
+      withBg.forEach(item => {
+        const bg = item.background;
+        const src = bg.src || ('/Uploads/' + (bg.filename || ''));
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = (item.alt || '') + ' (background)';
+        img.style.zIndex = (bg.defaultZ != null ? bg.defaultZ : 0);
+        img.style.transform = `translate(-50%, -50%) translate(${bg.defaultX != null ? bg.defaultX : 0}px, ${bg.defaultY != null ? bg.defaultY : 0}px)`;
+        img.onerror = () => { img.style.display = 'none'; };
+        if (typeof hookPixelPerfect === 'function') hookPixelPerfect(img);
+        container.appendChild(img);
+      });
+    }
+    function getAllItems() {
+      const order = (typeof window !== 'undefined' && window.SLOT_LAYER_ORDER && typeof window.SLOT_LAYER_ORDER === 'object') ? window.SLOT_LAYER_ORDER : { 'body-slot': 0, 'pants-slot': 1, 'skirt-slot': 2, 'dress-slot': 3, 'shirt-slot': 4, 'jacket-slot': 5, 'socks-slot': 6, 'shoes-slot': 7, 'hat-slot': 8, 'makeup-slot': 9, 'jewelry-slot': 10, 'hair-slot': 11, 'other-slot': 12 };
+      const slotOrder = Object.keys(order).sort((a, b) => (order[a] ?? 0) - (order[b] ?? 0));
+      const allItems = [];
+      slotOrder.forEach(slotId => {
+        if (!equippedItems[slotId]) return;
+        equippedItems[slotId].forEach((item, index) =>
+          allItems.push({ ...item, slotId, index })
+        );
+      });
+      const bodyItems = allItems.filter(o => o.slotId === 'body-slot').sort((a, b) => a.index - b.index);
+      const nonBody = allItems.filter(o => o.slotId !== 'body-slot').sort((a, b) => {
+        const layerA = order[a.slotId] ?? 0;
+        const layerB = order[b.slotId] ?? 0;
+        if (layerA !== layerB) return layerA - layerB;
+        return a.index - b.index;
+      });
+      const mostRecent = lastEquippedId && nonBody.some(o => o.id === lastEquippedId) ? lastEquippedId : null;
+      const nonBodyWithoutRecent = mostRecent ? nonBody.filter(o => o.id !== mostRecent) : nonBody;
+      const onTop = mostRecent ? nonBody.find(o => o.id === mostRecent) : null;
+      const bottomToTop = bodyItems.concat(nonBodyWithoutRecent).concat(onTop ? [onTop] : []);
+      const ordered = bottomToTop.slice().reverse();
+      ordered.forEach((item, idx) => { item._hierarchyPosition = idx; });
+      return ordered;
+    }
+    function findItemById(itemId) {
+      for (const slotId of Object.keys(equippedItems)) {
+        const index = equippedItems[slotId].findIndex(item => item.id === itemId);
+        if (index !== -1) return { slotId, index };
+      }
+      return { slotId: null, index: -1 };
+    }
+    function setupMoveUp() {
+      const moveUp = document.getElementById('move-up');
+      if (moveUp) {
+        moveUp.addEventListener('click', () => {
+          if (!selectedItemId) return;
+          const { slotId, index } = findItemById(selectedItemId);
+          if (!slotId || index <= 0) return;
+          const item = equippedItems[slotId][index];
+          equippedItems[slotId].splice(index, 1);
+          equippedItems[slotId].splice(index - 1, 0, item);
+          lastEquippedId = null;
+          saveEquippedItems();
+          updateEquippedItemsDebounced();
+        });
+      }
+    }
+    function setupMoveDown() {
+      const moveDown = document.getElementById('move-down');
+      if (moveDown) {
+        moveDown.addEventListener('click', () => {
+          if (!selectedItemId) return;
+          const { slotId, index } = findItemById(selectedItemId);
+          if (!slotId || index >= equippedItems[slotId].length - 1) return;
+          const item = equippedItems[slotId][index];
+          equippedItems[slotId].splice(index, 1);
+          equippedItems[slotId].splice(index + 1, 0, item);
+          lastEquippedId = null;
+          saveEquippedItems();
+          updateEquippedItemsDebounced();
+        });
+      }
+    }
+    function setupToggleBackground() {
+      const btn = document.getElementById('toggle-background-btn');
+      if (btn) {
+        btn.addEventListener('click', () => {
+          if (!selectedItemId) return;
+          const { slotId, index } = findItemById(selectedItemId);
+          if (slotId == null || index < 0 || !equippedItems[slotId] || !equippedItems[slotId][index].background) return;
+          const item = equippedItems[slotId][index];
+          item.backgroundOn = item.backgroundOn === false;
+          renderBackgrounds();
+          updateBackgroundToggle();
+          saveEquippedItems();
+          updateEquippedItemsDebounced();
+        });
+      }
+    }
+    function setupRemoveItem() {
+      const removeItem = document.getElementById('remove-item');
+      if (removeItem) {
+        removeItem.addEventListener('click', () => {
+          if (!selectedItemId) return;
+          const { slotId, index } = findItemById(selectedItemId);
+          if (!slotId || index < 0 || !VALID_SLOT_IDS.has(slotId)) return;
+          equippedItems[slotId].splice(index, 1);
+          const slot = document.getElementById(slotId);
+          const slotImg = slot ? slot.querySelector(`[data-item-id="${selectedItemId}"]`) : null;
+          if (slotImg) slotImg.remove();
+          const equippedBox = document.getElementById('equipped-items');
+          if (!equippedBox) return;
+          const equippedImg = equippedBox.querySelector(`.equipped-item-container [data-item-id="${selectedItemId}"]`);
+          const container = equippedImg ? equippedImg.parentElement : null;
+          if (container && container.classList.contains('equipped-item-container') && equippedBox.contains(container)) {
+            container.remove();
+          }
+          selectedItemId = null;
+          renderBackgrounds();
+          saveEquippedItems();
+          updateEquippedItemsDebounced();
+          updateHeartedItemsDebounced();
+          updateWardrobeHeartsDebounced();
+        });
+      }
+    }
+    function setupResetOutfit() {
+      const resetOutfit = document.getElementById('reset-outfit');
+      if (resetOutfit) {
+        resetOutfit.addEventListener('click', async () => {
+          VALID_SLOT_IDS.forEach(slotId => {
+            equippedItems[slotId] = [];
+            const slot = document.getElementById(slotId);
+            if (slot) slot.innerHTML = '';
+          });
+          const bgEl = document.getElementById('character-backgrounds');
+          if (bgEl) bgEl.innerHTML = '';
+          const equippedBox = document.getElementById('equipped-items');
+          if (equippedBox) equippedBox.innerHTML = '';
+          selectedItemId = null;
+          await saveEquippedItems();
+          updateEquippedItems();
+          updateHeartedItemsDebounced();
+          updateWardrobeHeartsDebounced();
+        });
+      }
+    }
+    function setupFullSetClickDelegation() {
+      const fullSetDiv = document.getElementById('full-set');
+      if (!fullSetDiv) return;
+      fullSetDiv.addEventListener('click', function fullSetClick(e) {
+        const card = e.target.closest('.wardrobe-set-card');
+        if (!card || !card._equipSetData) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const set = card._equipSetData;
+        if (set && Array.isArray(set.items) && set.items.length > 0) equipSet(set);
+      }, true);
+    }
+    window.wardrobeBootstrapDone = function(items, purchasedList) {
+      wardrobeItems = items || [];
+      purchased = purchasedList || [];
+      try { updateWardrobeDisplay(); } catch (e) { try { if (typeof renderWardrobeFallback === 'function') renderWardrobeFallback(); } catch (e2) {} }
+      try { setDefaultCategory(); } catch (_) {}
+    };
+    window.handleItemClick = handleItemClick;
+    if (window.__wardrobeBootstrapData) {
+      var d = window.__wardrobeBootstrapData;
+      window.__wardrobeBootstrapData = null;
+      window.wardrobeBootstrapDone(d.items, d.purchased);
+      try { setDefaultCategory(); } catch (_) {}
+    }
+    (function setupWardrobeClickDelegation() {
+      var panel = document.getElementById('wardrobe');
+      if (!panel) return;
+      panel.addEventListener('click', function(e) {
+        var container = e.target.closest('.wardrobe-item-container');
+        if (!container || container.classList.contains('wardrobe-set-card')) return;
+        var img = container.querySelector('img.item');
+        if (!img) return;
+        if (e.target !== img && e.target !== container) return;
+        e.preventDefault();
+        if (typeof handleItemClick === 'function') handleItemClick(e);
+        e.stopPropagation();
+      }, true);
+    })();
+    try { setupFullSetClickDelegation(); } catch (_) {}
+    try { setupSaveOutfit(); } catch (_) {}
+    try { setupEquippedItemsDrag(); } catch (_) {}
+    try { setupIconMenu(); } catch (_) {}
+    try { setupMoveUp(); } catch (_) {}
+    try { setupMoveDown(); } catch (_) {}
+    try { setupToggleBackground(); } catch (_) {}
+    try { setupRemoveItem(); } catch (_) {}
+    try { setupResetOutfit(); } catch (_) {}
+    try { if (typeof initWardrobeSearch === 'function') initWardrobeSearch(); } catch (_) {}
+
+    (async function init() {
+      try { await loadEquippedItems(); } catch (_) {}
+      try { setDefaultCategory(); } catch (_) {}
+      try { await fetchWardrobeItems(); } catch (_) {}
+      try { await loadSavedOutfits(); } catch (_) {}
+      var loadOutfitName = typeof URLSearchParams !== 'undefined' ? (new URLSearchParams(window.location.search)).get('load') : null;
+      if (loadOutfitName && loadOutfitName.trim() && lastLoadedSavedOutfits.length > 0) {
+        var toLoad = lastLoadedSavedOutfits.find(function (o) { return o && o.name && String(o.name).trim() === String(loadOutfitName).trim(); });
+        if (toLoad && typeof toLoad.items === 'object') {
+          try {
+            applySavedOutfitToCharacter(toLoad);
+            await saveEquippedItems();
+            updateEquippedItems();
+            updateHeartedItemsDebounced();
+            updateWardrobeHeartsDebounced();
+            if (typeof showToast === 'function') showToast('Outfit "' + (toLoad.name || '') + '" equipped.');
+            if (window.history && window.history.replaceState) window.history.replaceState({}, '', window.location.pathname);
+          } catch (_) {}
+        }
+      }
+      var hasAnyEquipped = Object.keys(equippedItems).some(function (k) { return Array.isArray(equippedItems[k]) && equippedItems[k].length > 0; });
+      if (!hasAnyEquipped && !loadOutfitName && lastLoadedSavedOutfits.length > 0) {
+        var lastOutfit = lastLoadedSavedOutfits[lastLoadedSavedOutfits.length - 1];
+        if (lastOutfit && typeof lastOutfit.items === 'object') {
+          try {
+            applySavedOutfitToCharacter(lastOutfit);
+            updateEquippedItems();
+            await saveEquippedItems();
+          } catch (_) {}
+        }
+      }
+      try { if (typeof updateEquippedItems === 'function') updateEquippedItems(); } catch (_) {}
+    })();
+    // Refetch items when page becomes visible so edits from Adjust/Item Debug appear
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        fetchWardrobeItems();
+      }
+    });
+    // Persist current outfit when leaving the page so it loads next time
+    window.addEventListener('pagehide', function () {
+      const eq = window.equippedItems;
+      if (!eq || typeof eq !== 'object') return;
+      const slotSet = window.VALID_SLOT_IDS || new Set(['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','makeup-slot','jewelry-slot','other-slot','hair-slot','socks-slot']);
+      const toSave = {};
+      slotSet.forEach(function (slotId) { toSave[slotId] = Array.isArray(eq[slotId]) ? eq[slotId].slice() : []; });
+      try {
+        fetch('/api/equipped-items', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(toSave), keepalive: true });
+      } catch (_) {}
+    });
+  </script>
+  <script src="/js/toast.js" defer></script>
+  <script src="/js/api.js" defer></script>
+  <script src="/js/header.js" defer></script>
+</body>
+</html>

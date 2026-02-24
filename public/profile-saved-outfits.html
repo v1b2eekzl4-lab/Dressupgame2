@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saved Outfits - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: linear-gradient(135deg, #e8eef4 0%, #dde4eb 50%, #e2e8f0 100%); margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 720px; margin: 0 auto; padding: 24px; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); background: rgba(255,255,255,0.45); border: 1px solid rgba(255,255,255,0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .container.profile-custom { border-top: 4px solid var(--profile-accent, #ec4899); }
+    h1 { margin: 0 0 8px 0; font-size: 1.5rem; }
+    .profile-edit-back { display: inline-block; margin-bottom: 16px; font-size: 14px; color: #ec4899; text-decoration: none; font-weight: 500; }
+    .profile-edit-back:hover { text-decoration: underline; }
+    .saved-outfits-desc { color: #6b7280; font-size: 14px; margin: 0 0 20px 0; }
+    .saved-outfits-actions { margin-bottom: 24px; }
+    .saved-outfits-actions a { display: inline-block; padding: 10px 20px; background: var(--btn-pink-gradient); color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; border: var(--btn-pink-border); box-shadow: var(--btn-pink-shadow); }
+    .saved-outfits-actions a:hover { filter: brightness(1.1); }
+    .saved-outfits-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px; }
+    .saved-outfit-card { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; background: #f9fafb; }
+    .saved-outfit-card img { width: 100%; aspect-ratio: 250/350; object-fit: contain; object-position: top center; background: #fff; display: block; }
+    .saved-outfit-card .saved-outfit-name { padding: 8px 10px; font-size: 13px; font-weight: 500; color: #374151; text-align: center; }
+    .saved-outfit-card-actions { padding: 0 10px 10px; display: flex; justify-content: center; }
+    .saved-outfit-delete { padding: 6px 12px; font-size: 12px; border: none; border-radius: 6px; cursor: pointer; background: #fef2f2; color: #b91c1c; font-weight: 500; }
+    .saved-outfit-delete:hover { background: #fee2e2; }
+    .saved-outfit-equip { padding: 6px 12px; font-size: 12px; border: var(--btn-pink-border); border-radius: 6px; cursor: pointer; background: var(--btn-pink-gradient); color: #fff; font-weight: 500; text-decoration: none; display: inline-block; box-shadow: var(--btn-pink-shadow); }
+    .saved-outfit-equip:hover { filter: brightness(1.1); color: #fff; }
+    .saved-outfits-empty { text-align: center; padding: 48px 24px; color: #6b7280; }
+    .saved-outfits-empty p { margin: 0 0 16px 0; }
+    .saved-outfits-loading { text-align: center; padding: 32px; color: #6b7280; }
+    .saved-outfits-error { padding: 16px; background: #fef2f2; color: #b91c1c; border-radius: 6px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container" id="saved-outfits-container">
+    <a href="/profile" class="profile-edit-back">← Profile</a>
+    <h1>Saved outfits</h1>
+    <p class="saved-outfits-desc">Outfits you save in Wardrobe appear here. Equip items in Wardrobe, then click &quot;Save Outfit&quot; to add one. You can load any outfit from the Saved outfits category in Wardrobe.</p>
+    <div class="saved-outfits-actions">
+      <a href="./wardrobe.html">Save an outfit in Wardrobe</a>
+    </div>
+    <div id="saved-outfits-list">
+      <p class="saved-outfits-loading">Loading…</p>
+    </div>
+  </div>
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+  <script>
+    (function () {
+      const listEl = document.getElementById('saved-outfits-list');
+      function toOutfitList(data) {
+        if (Array.isArray(data)) return data;
+        if (data && typeof data === 'object' && Array.isArray(data.outfits)) return data.outfits;
+        if (data && typeof data === 'object' && Array.isArray(data.list)) return data.list;
+        return [];
+      }
+      fetch('/api/outfits', { credentials: 'same-origin', cache: 'no-store' })
+        .then(function (r) {
+          if (r.status === 401) {
+            listEl.innerHTML = '<p class="saved-outfits-error">Please log in to view your saved outfits.</p>';
+            return null;
+          }
+          if (!r.ok) throw new Error('Failed to load outfits');
+          return r.json();
+        })
+        .then(function (outfits) {
+          if (outfits === null) return;
+          var list = toOutfitList(outfits);
+          if (list.length === 0) {
+            listEl.innerHTML = '<div class="saved-outfits-empty"><p>You have no saved outfits yet.</p><p>Go to Wardrobe, put on the items you want, then click &quot;Save Outfit&quot; to add one here.</p><a href="./wardrobe.html" style="display:inline-block;margin-top:12px;padding:10px 20px;background:var(--btn-pink-gradient);color:white;border:var(--btn-pink-border);box-shadow:var(--btn-pink-shadow);text-decoration:none;border-radius:6px;font-weight:600;">Open Wardrobe</a></div>';
+            return;
+          }
+          var grid = document.createElement('div');
+          grid.className = 'saved-outfits-grid';
+          list.forEach(function (outfit) {
+            if (!outfit || !outfit.name) return;
+            var card = document.createElement('div');
+            card.className = 'saved-outfit-card';
+            var img = document.createElement('img');
+            img.src = outfit.mergedImageUrl || 'https://via.placeholder.com/250x350?text=Outfit';
+            img.alt = outfit.name;
+            img.loading = 'lazy';
+            img.onerror = function () { img.src = 'https://via.placeholder.com/250x350?text=Outfit'; };
+            var nameEl = document.createElement('div');
+            nameEl.className = 'saved-outfit-name';
+            nameEl.textContent = outfit.name;
+            var actions = document.createElement('div');
+            actions.className = 'saved-outfit-card-actions';
+            var equipLink = document.createElement('a');
+            equipLink.href = './wardrobe.html?load=' + encodeURIComponent(outfit.name);
+            equipLink.className = 'saved-outfit-equip';
+            equipLink.textContent = 'Equip in Wardrobe';
+            equipLink.setAttribute('aria-label', 'Equip outfit ' + outfit.name + ' in Wardrobe');
+            var deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'saved-outfit-delete';
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.setAttribute('aria-label', 'Delete outfit ' + outfit.name);
+            deleteBtn.addEventListener('click', function () {
+              if (!confirm('Delete outfit "' + outfit.name + '"?')) return;
+              deleteBtn.disabled = true;
+              fetch('/api/outfits?name=' + encodeURIComponent(outfit.name), { method: 'DELETE', credentials: 'same-origin' })
+                .then(function (r) {
+                  if (r.ok) {
+                    card.remove();
+                    if (grid.children.length === 0) {
+                      listEl.innerHTML = '<div class="saved-outfits-empty"><p>You have no saved outfits yet.</p><p>Go to Wardrobe, put on the items you want, then click &quot;Save Outfit&quot; to add one here.</p><a href="./wardrobe.html" style="display:inline-block;margin-top:12px;padding:10px 20px;background:var(--btn-pink-gradient);color:white;border:var(--btn-pink-border);box-shadow:var(--btn-pink-shadow);text-decoration:none;border-radius:6px;font-weight:600;">Open Wardrobe</a></div>';
+                    }
+                    if (typeof window.showToast === 'function') window.showToast('Outfit deleted');
+                    return;
+                  }
+                  return r.json().then(function (d) { throw new Error(d.error || 'Failed to delete'); });
+                })
+                .catch(function (err) {
+                  deleteBtn.disabled = false;
+                  if (typeof window.showToast === 'function') window.showToast(err.message || 'Failed to delete outfit');
+                  else alert(err.message || 'Failed to delete outfit');
+                });
+            });
+            actions.appendChild(equipLink);
+            actions.appendChild(deleteBtn);
+            card.appendChild(img);
+            card.appendChild(nameEl);
+            card.appendChild(actions);
+            grid.appendChild(card);
+          });
+          listEl.innerHTML = '';
+          listEl.appendChild(grid);
+        })
+        .catch(function (err) {
+          listEl.innerHTML = '<p class="saved-outfits-error">' + (err && err.message ? String(err.message).replace(/</g, '&lt;') : 'Failed to load outfits') + '</p>';
+        });
+    })();
+  </script>
+</body>
+</html>

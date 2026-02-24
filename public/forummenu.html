@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulletin Board - Dress-Up Game</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <link href="/css/tailwind.css" rel="stylesheet">
+    <style>
+        .forum-info-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: none; border-radius: 4px; background: #e5e7eb; color: #374151; font-size: 14px; font-weight: 600; cursor: default; }
+        .forum-info-btn:hover { background: #d1d5db; }
+        .forum-info-tooltip { display: none; position: fixed; z-index: 9999; max-width: 260px; padding: 10px 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 12px; line-height: 1.5; pointer-events: none; }
+        .forum-info-tooltip.visible { display: block; }
+        .forum-info-tooltip .forum-info-line { margin-bottom: 4px; }
+        .forum-info-tooltip .forum-info-line:last-child { margin-bottom: 0; }
+        .forum-info-tooltip .forum-info-label { color: #6b7280; margin-right: 6px; }
+        .forum-emote-picker { display: flex; flex-wrap: wrap; gap: 4px; max-height: 120px; overflow-y: auto; padding: 6px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; }
+        .forum-emote-picker span, .forum-emote-picker img.forum-picker-emote { cursor: pointer; padding: 2px; border-radius: 4px; }
+        .forum-emote-picker span:hover, .forum-emote-picker img.forum-picker-emote:hover { background: #e5e7eb; }
+        .forum-picker-emote { height: 22px; width: auto; vertical-align: middle; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
+    <div id="forum-info-tooltip" class="forum-info-tooltip" aria-hidden="true"></div>
+    <div id="header-placeholder"></div>
+    <div class="w-full max-w-2xl bg-white rounded-lg shadow-md mt-16">
+        <h1 class="text-2xl font-bold text-center py-4">Bulletin Board</h1>
+        <div class="px-2 pb-2 flex flex-wrap items-center gap-2">
+            <label for="category-filter" class="text-sm font-medium text-gray-700">Filter by category:</label>
+            <select id="category-filter" class="p-2 border rounded bg-white text-gray-800 cursor-pointer">
+                <option value="">All</option>
+                <option value="General">General</option>
+                <option value="Help">Help</option>
+                <option value="Feedback">Feedback</option>
+                <option value="Ideas">Ideas</option>
+                <option value="Off-topic">Off-topic</option>
+            </select>
+        </div>
+        <div class="overflow-x-auto p-2">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-pink-500 text-white">
+                        <th class="p-2">Topic</th>
+                        <th class="p-2">Category</th>
+                        <th class="p-2">Posts</th>
+                        <th class="p-2">Author</th>
+                        <th class="p-2">Latest Post</th>
+                        <th class="p-2 w-8"> </th>
+                        <th class="p-2" id="th-actions" style="display: none;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="topics-list"></tbody>
+            </table>
+        </div>
+        <div class="p-2 text-center">
+            <button onclick="openCreateThread()" class="btn-primary px-6 py-2 rounded w-64">Create Thread</button>
+        </div>
+    </div>
+
+    <!-- Create Thread modal -->
+    <div id="create-thread-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" style="display: none;">
+        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+            <h2 class="text-xl font-bold mb-4">Create Thread</h2>
+            <form id="create-thread-form" onsubmit="submitThread(event)">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <input type="text" id="thread-title" required placeholder="Thread title" class="w-full p-2 mb-3 border rounded">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select id="thread-category" required class="w-full p-2 mb-3 border rounded">
+                    <option value="">Pick a category</option>
+                    <option value="General">General</option>
+                    <option value="Help">Help</option>
+                    <option value="Feedback">Feedback</option>
+                    <option value="Ideas">Ideas</option>
+                    <option value="Off-topic">Off-topic</option>
+                </select>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Post</label>
+                <textarea id="thread-post" required placeholder="Write your post. Use :smile: for emoticons." rows="6" class="w-full p-2 mb-2 border rounded"></textarea>
+                <div class="flex flex-wrap gap-2 mb-2">
+                    <button type="button" id="thread-add-image" class="text-sm px-2 py-1 border rounded hover:bg-gray-100">Add image</button>
+                    <button type="button" id="thread-add-video" class="text-sm px-2 py-1 border rounded hover:bg-gray-100">Add video</button>
+                    <button type="button" id="thread-emotes-btn" class="text-sm px-2 py-1 border rounded hover:bg-gray-100">Emoticons</button>
+                    <input type="file" id="thread-media-input" accept="image/*,video/*" class="hidden">
+                </div>
+                <div id="thread-emote-picker-wrap" class="hidden mb-2"></div>
+                <div id="thread-attachment-previews" class="flex flex-wrap gap-2 mb-4"></div>
+                <div class="flex gap-2 justify-end">
+                    <button type="button" onclick="closeCreateThread()" class="px-4 py-2 border rounded hover:bg-gray-100">Cancel</button>
+                    <button type="submit" class="px-4 py-2 btn-primary rounded">Create Thread</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            loadTopics();
+            var tooltip = document.getElementById('forum-info-tooltip');
+            function showTooltip(btn, e) {
+                if (!tooltip || !btn) return;
+                var createdBy = btn.getAttribute('data-created-by') || '—';
+                var createdAt = btn.getAttribute('data-created-at') || '—';
+                var lastCommenter = btn.getAttribute('data-last-commenter') || '—';
+                var count = btn.getAttribute('data-comment-count') || '—';
+                var category = btn.getAttribute('data-category') || '—';
+                tooltip.innerHTML = '<div class="forum-info-line"><span class="forum-info-label">Category:</span>' + category + '</div>' +
+                    '<div class="forum-info-line"><span class="forum-info-label">Created by:</span>' + createdBy + '</div>' +
+                    '<div class="forum-info-line"><span class="forum-info-label">Created:</span>' + createdAt + '</div>' +
+                    '<div class="forum-info-line"><span class="forum-info-label">Last comment by:</span>' + lastCommenter + '</div>' +
+                    '<div class="forum-info-line"><span class="forum-info-label">Comments:</span>' + count + '</div>';
+                tooltip.classList.add('visible');
+                tooltip.setAttribute('aria-hidden', 'false');
+                var rect = btn.getBoundingClientRect();
+                var x = rect.right + 8;
+                var y = rect.top;
+                if (x + tooltip.offsetWidth > window.innerWidth) x = rect.left - tooltip.offsetWidth - 8;
+                if (x < 8) x = 8;
+                if (y + tooltip.offsetHeight > window.innerHeight - 8) y = window.innerHeight - tooltip.offsetHeight - 8;
+                if (y < 8) y = 8;
+                tooltip.style.left = x + 'px';
+                tooltip.style.top = y + 'px';
+            }
+            function hideTooltip() {
+                if (tooltip) {
+                    tooltip.classList.remove('visible');
+                    tooltip.setAttribute('aria-hidden', 'true');
+                }
+            }
+            document.body.addEventListener('mouseover', function (e) {
+                var btn = e.target && e.target.closest && e.target.closest('.forum-info-btn');
+                if (btn) showTooltip(btn, e); else hideTooltip();
+            });
+            document.body.addEventListener('mouseout', function (e) {
+                var fromBtn = e.target && e.target.closest && e.target.closest('.forum-info-btn');
+                var toBtn = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.forum-info-btn');
+                if (fromBtn && !toBtn) hideTooltip();
+            });
+        });
+
+        window._threadAttachments = [];
+        window._threadEmotes = { builtin: {}, custom: [] };
+
+        function openCreateThread() {
+            document.getElementById('create-thread-modal').style.display = 'flex';
+            window._threadAttachments = [];
+            renderThreadAttachmentPreviews();
+        }
+
+        function closeCreateThread() {
+            document.getElementById('create-thread-modal').style.display = 'none';
+            document.getElementById('thread-emote-picker-wrap').classList.add('hidden');
+            document.getElementById('thread-emote-picker-wrap').innerHTML = '';
+        }
+
+        function renderThreadAttachmentPreviews() {
+            var wrap = document.getElementById('thread-attachment-previews');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+            (window._threadAttachments || []).forEach(function(a, i) {
+                var div = document.createElement('div');
+                div.className = 'relative inline-block';
+                if (a.type === 'video') {
+                    var v = document.createElement('video');
+                    v.src = a.url;
+                    v.controls = false;
+                    v.style.maxWidth = '120px';
+                    v.style.maxHeight = '80px';
+                    div.appendChild(v);
+                } else {
+                    var img = document.createElement('img');
+                    img.src = a.url;
+                    img.alt = 'Preview';
+                    img.style.maxWidth = '120px';
+                    img.style.maxHeight = '80px';
+                    img.style.objectFit = 'cover';
+                    div.appendChild(img);
+                }
+                var rm = document.createElement('button');
+                rm.type = 'button';
+                rm.className = 'absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5';
+                rm.textContent = '×';
+                rm.onclick = function() {
+                    window._threadAttachments.splice(i, 1);
+                    renderThreadAttachmentPreviews();
+                };
+                div.appendChild(rm);
+                wrap.appendChild(div);
+            });
+        }
+
+        function insertThreadEmote(shortcode) {
+            var el = document.getElementById('thread-post');
+            if (!el) return;
+            var start = el.selectionStart, end = el.selectionEnd, val = el.value;
+            el.value = val.slice(0, start) + shortcode + val.slice(end);
+            el.selectionStart = el.selectionEnd = start + shortcode.length;
+            el.focus();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var mediaInput = document.getElementById('thread-media-input');
+            var addImage = document.getElementById('thread-add-image');
+            var addVideo = document.getElementById('thread-add-video');
+            if (addImage && mediaInput) addImage.addEventListener('click', function() { mediaInput.accept = 'image/*'; mediaInput.click(); });
+            if (addVideo && mediaInput) addVideo.addEventListener('click', function() { mediaInput.accept = 'video/*'; mediaInput.click(); });
+            if (mediaInput) mediaInput.addEventListener('change', function() {
+                var file = mediaInput.files && mediaInput.files[0];
+                if (!file) return;
+                var fd = new FormData();
+                fd.append('file', file);
+                fetch('/api/forum/upload', { method: 'POST', credentials: 'same-origin', body: fd })
+                    .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error || 'Upload failed'); return d; }); })
+                    .then(function(d) {
+                        window._threadAttachments.push({ type: d.type || 'image', url: d.url });
+                        renderThreadAttachmentPreviews();
+                    })
+                    .catch(function(e) { alert(e.message || 'Upload failed'); });
+                mediaInput.value = '';
+            });
+            var emotesBtn = document.getElementById('thread-emotes-btn');
+            var pickerWrap = document.getElementById('thread-emote-picker-wrap');
+            if (emotesBtn && pickerWrap) emotesBtn.addEventListener('click', function() {
+                if (pickerWrap.classList.contains('hidden')) {
+                    pickerWrap.classList.remove('hidden');
+                    if (window._threadEmotes.custom.length === 0 && Object.keys(window._threadEmotes.builtin).length === 0) {
+                        fetch('/api/forum/emotes', { credentials: 'same-origin' }).then(function(r) { return r.ok ? r.json() : {}; }).then(function(data) {
+                            window._threadEmotes.builtin = data.builtin || {};
+                            window._threadEmotes.custom = data.custom || [];
+                            buildThreadEmotePicker();
+                        }).catch(function() { buildThreadEmotePicker(); });
+                    } else buildThreadEmotePicker();
+                } else {
+                    pickerWrap.classList.add('hidden');
+                    pickerWrap.innerHTML = '';
+                }
+            });
+        });
+
+        function buildThreadEmotePicker() {
+            var pickerWrap = document.getElementById('thread-emote-picker-wrap');
+            if (!pickerWrap) return;
+            pickerWrap.innerHTML = '';
+            var panel = document.createElement('div');
+            panel.className = 'forum-emote-picker';
+            var builtin = window._threadEmotes.builtin || {};
+            Object.keys(builtin).forEach(function(sc) {
+                var s = document.createElement('span');
+                s.textContent = builtin[sc];
+                s.title = sc;
+                s.onclick = function() { insertThreadEmote(sc); };
+                panel.appendChild(s);
+            });
+            (window._threadEmotes.custom || []).forEach(function(c) {
+                var img = document.createElement('img');
+                img.className = 'forum-picker-emote';
+                img.src = c.url;
+                img.alt = c.shortcode;
+                img.title = c.shortcode;
+                img.onclick = function() { insertThreadEmote(c.shortcode); };
+                panel.appendChild(img);
+            });
+            pickerWrap.appendChild(panel);
+        }
+
+        function submitThread(e) {
+            e.preventDefault();
+            const title = document.getElementById('thread-title').value.trim();
+            const category = document.getElementById('thread-category').value;
+            const postContent = document.getElementById('thread-post').value.trim();
+            const attachments = (window._threadAttachments && window._threadAttachments.length) ? window._threadAttachments.slice() : [];
+            if (!title || !category || !postContent) return;
+
+            fetch('/api/outfits', { credentials: 'same-origin' })
+                .then(r => r.ok ? r.json() : null)
+                .catch(() => null)
+                .then(outfits => {
+                    let outfitItems = null;
+                    if (Array.isArray(outfits) && outfits.length > 0) {
+                        const last = outfits[outfits.length - 1];
+                        if (last && last.items && typeof last.items === 'object') {
+                            const slots = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
+                            const all = [];
+                            slots.forEach(slotId => {
+                                const arr = last.items[slotId];
+                                if (Array.isArray(arr)) arr.forEach(item => all.push({ ...item, slotId }));
+                            });
+                            all.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+                            outfitItems = all;
+                        }
+                    }
+                    return fetch('/api/forum/topics', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title, category, postContent, outfitItems, attachments })
+                    });
+                })
+                .then(r => {
+                    if (!r.ok) throw new Error(r.statusText || 'Failed to create topic');
+                    return r.json();
+                })
+                .then(data => {
+                    const topicId = data && data.topicId;
+                    if (topicId) {
+                        try { localStorage.setItem('forumTopicsUpdated', String(Date.now())); } catch (e) {}
+                        closeCreateThread();
+                        document.getElementById('create-thread-form').reset();
+                        window._threadAttachments = [];
+                        loadTopics();
+                        window.location.href = './forum.html?topicId=' + encodeURIComponent(topicId);
+                    } else throw new Error('No topicId');
+                })
+                .catch(() => {
+                    alert('Could not create thread. Please try again.');
+                });
+        }
+
+        let canDeleteForums = false;
+        let lastFetchedTopics = [];
+        let currentCategoryFilter = '';
+
+        function getFilteredTopics() {
+            if (!currentCategoryFilter) return lastFetchedTopics;
+            return lastFetchedTopics.filter(t => (t.category || '') === currentCategoryFilter);
+        }
+
+        function renderTopicsList(list) {
+            const topicsList = document.getElementById('topics-list');
+            topicsList.innerHTML = '';
+            const colspan = canDeleteForums ? 7 : 6;
+
+            if (list.length === 0) {
+                const msg = currentCategoryFilter ? 'No topics in this category' : 'No topics yet';
+                for (let i = 0; i < 17; i++) {
+                    const row = document.createElement('tr');
+                    row.className = `${i % 2 === 0 ? 'bg-white' : 'bg-gray-200'}`;
+                    row.innerHTML = `<td colspan="${colspan}" class="p-2 text-center text-gray-500">${msg}</td>`;
+                    topicsList.appendChild(row);
+                }
+            } else {
+                list.forEach((topic, index) => {
+                    const row = document.createElement('tr');
+                    row.className = `${index % 2 === 0 ? 'bg-white' : 'bg-gray-200'}`;
+                    const authorRoles = (topic.authorRoles && Array.isArray(topic.authorRoles)) ? topic.authorRoles : [];
+                    const roleIcons = (authorRoles.indexOf('admin') !== -1 ? '<span class="inline-block ml-1 px-1 rounded text-[10px] font-semibold bg-red-600 text-white" title="Admin">A</span>' : '') +
+                        (authorRoles.indexOf('moderator') !== -1 ? '<span class="inline-block ml-1 px-1 rounded text-[10px] font-semibold bg-blue-600 text-white" title="Moderator">M</span>' : '') +
+                        (authorRoles.indexOf('designer') !== -1 ? '<span class="inline-block ml-1 px-1 rounded text-[10px] font-semibold bg-pink-600 text-white" title="Designer">D</span>' : '') +
+                        (authorRoles.indexOf('membership') !== -1 ? '<span class="inline-block ml-1 px-1 rounded text-[10px] font-semibold bg-amber-500 text-white" title="Member">★</span>' : '');
+                    const lockedBadge = topic.locked ? ' <span class="text-amber-600 text-xs font-medium">Locked</span>' : '';
+                    const actionsCell = canDeleteForums
+                        ? `<td class="p-2"><button type="button" onclick="deleteTopic('${String(topic.id).replace(/'/g, "\\'")}')" class="text-red-600 hover:underline text-sm">Delete</button></td>`
+                        : '';
+                    const createdBy = (topic.author || '—').replace(/</g, '&lt;');
+                    const createdAt = (topic.createdAt || topic.latestPost || '—').replace(/</g, '&lt;');
+                    const lastCommenter = (topic.lastCommenter || '—').replace(/</g, '&lt;');
+                    const commentCount = topic.posts != null ? topic.posts : '—';
+                    const category = (topic.category || '—').replace(/</g, '&lt;');
+                    row.innerHTML = `
+                        <td class="p-2"><a href="./forum.html?topicId=${encodeURIComponent(topic.id)}" class="text-blue-500 hover:underline">${(topic.topic || '').replace(/</g, '&lt;')}</a>${lockedBadge}</td>
+                        <td class="p-2">${category}</td>
+                        <td class="p-2">${topic.posts}</td>
+                        <td class="p-2">${(topic.author || '').replace(/</g, '&lt;')}${roleIcons}</td>
+                        <td class="p-2">${topic.latestPost}</td>
+                        <td class="p-2 w-8"><span class="forum-info-btn" role="button" tabindex="0" aria-label="Thread info" data-created-by="${createdBy}" data-created-at="${createdAt}" data-last-commenter="${lastCommenter}" data-comment-count="${commentCount}" data-category="${category}">=</span></td>
+                        ${actionsCell}
+                    `;
+                    topicsList.appendChild(row);
+                });
+                if (list.length < 17) {
+                    for (let i = list.length; i < 17; i++) {
+                        const row = document.createElement('tr');
+                        row.className = `${i % 2 === 0 ? 'bg-white' : 'bg-gray-200'}`;
+                        row.innerHTML = `<td colspan="${colspan}" class="p-2 text-center text-gray-500">No topics yet</td>`;
+                        topicsList.appendChild(row);
+                    }
+                }
+            }
+        }
+
+        function loadTopics() {
+            fetch('/api/me', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : {}).catch(() => ({})).then(me => {
+                const roles = (me && me.roles) || [];
+                canDeleteForums = roles.includes('admin') || roles.includes('moderator');
+                const thActions = document.getElementById('th-actions');
+                if (thActions) thActions.style.display = canDeleteForums ? '' : 'none';
+                return fetch('/api/forum/topics', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : []).catch(() => []);
+            }).then(topics => {
+                lastFetchedTopics = Array.isArray(topics) ? topics : [];
+                renderTopicsList(getFilteredTopics());
+            });
+        }
+
+        document.getElementById('category-filter').addEventListener('change', function () {
+            currentCategoryFilter = (this.value || '').trim();
+            renderTopicsList(getFilteredTopics());
+        });
+
+        function deleteTopic(topicId) {
+            if (!topicId) return;
+            if (!confirm('Delete this forum? All posts in this topic will be removed.')) return;
+            fetch('/api/forum/topics/' + encodeURIComponent(topicId), {
+                method: 'DELETE',
+                credentials: 'same-origin'
+            }).then(r => {
+                if (!r.ok) return r.json().then(d => { throw new Error(d.error || r.statusText); });
+                return r.json();
+            }).then(() => {
+                loadTopics();
+            }).catch(err => {
+                alert(err.message || 'Could not delete forum.');
+            });
+        }
+    </script>
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+</body>
+</html>

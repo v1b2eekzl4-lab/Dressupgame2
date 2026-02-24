@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload Items - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 800px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h1 { margin: 0 0 16px 0; font-size: 1.5rem; }
+    h2 { margin: 16px 0 8px 0; font-size: 1.1rem; color: #374151; }
+    .back-link { display: inline-block; margin-bottom: 12px; font-size: 14px; color: #ec4899; text-decoration: none; }
+    .back-link:hover { text-decoration: underline; }
+    .btn { padding: 10px 20px; background: var(--btn-pink-gradient); color: #fff; border: var(--btn-pink-border); border-radius: 6px; cursor: pointer; font-size: 14px; box-shadow: var(--btn-pink-shadow); }
+    .btn:hover { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); box-shadow: 0 3px 8px rgba(244,143,177,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
+    .btn-release { background: var(--btn-pink-gradient); color: #fff; border: var(--btn-pink-border); box-shadow: var(--btn-pink-shadow); }
+    .btn-release:hover:not(:disabled) { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); box-shadow: 0 3px 8px rgba(244,143,177,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
+    .btn-release:disabled { background: #9ca3af; cursor: not-allowed; border: 1px solid #d1d5db; box-shadow: none; }
+    .project-carousel { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+    .project-carousel .nav-arrow { width: 44px; height: 44px; flex-shrink: 0; border: var(--btn-pink-border); border-radius: 8px; background: var(--btn-pink-gradient); cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; color: #fff; box-shadow: var(--btn-pink-shadow); }
+    .project-carousel .nav-arrow:hover:not(:disabled) { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); box-shadow: 0 3px 8px rgba(244,143,177,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
+    .project-carousel .nav-arrow:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+    .project-carousel .carousel-inner { flex: 1; display: flex; justify-content: center; min-width: 0; }
+    .project-carousel .carousel-counter { font-size: 12px; color: #6b7280; margin-top: 6px; text-align: center; }
+    .project-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+    .project-card { width: 280px; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; background: #f9fafb; }
+    .project-card.released { border-color: #a7f3d0; background: #ecfdf5; }
+    .project-preview { width: 250px; height: 350px; margin: 0 auto 10px; border: 1px solid #e5e7eb; border-radius: 6px; background: transparent; position: relative; overflow: hidden; transform: translateZ(0); backface-visibility: hidden; }
+    .project-preview img.preview-base { position: absolute; width: 250px; height: 350px; top: 0; left: 0; object-fit: none; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; image-rendering: pixelated; image-rendering: -webkit-optimize-contrast; z-index: 0; pointer-events: none; }
+    .project-preview img.preview-item { position: absolute; top: 50%; left: 50%; object-fit: none; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; image-rendering: pixelated; image-rendering: -webkit-optimize-contrast; z-index: 1; pointer-events: none; transform-origin: center center; max-width: 250px; max-height: 350px; }
+    .project-preview img.preview-bg { position: absolute; top: 50%; left: 50%; object-fit: none; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; image-rendering: pixelated; image-rendering: -webkit-optimize-contrast; z-index: 0; pointer-events: none; transform-origin: center center; max-width: 250px; max-height: 350px; }
+    .project-card .name { font-weight: 600; margin-bottom: 4px; cursor: pointer; padding: 2px 4px; border-radius: 4px; }
+    .project-card .name:hover { background: #e5e7eb; }
+    .project-card .name-edit { width: 100%; font-size: inherit; font-weight: 600; padding: 4px 6px; border: 1px solid rgba(244,143,177,0.6); border-radius: 4px; box-sizing: border-box; }
+    .project-card .meta { font-size: 12px; color: #6b7280; margin-bottom: 8px; }
+    .project-card .badge { display: inline-block; font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #fce4ec; color: #be185d; margin-left: 4px; }
+    .project-card .badge.released { background: #a7f3d0; color: #065f46; }
+    .project-card .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .project-card .actions a, .project-card .actions button { font-size: 12px; padding: 6px 10px; }
+    .project-card .btn-trash { background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .project-card .btn-trash:hover { background: #dc2626; }
+    .scrapped-section { margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+    .scrapped-section h2 { color: #6b7280; font-size: 1rem; }
+    .scrapped-section .scrapped-desc { font-size: 14px; color: #6b7280; margin-bottom: 8px; }
+    .scrapped-card { width: 280px; padding: 12px; border: 1px dashed #d1d5db; border-radius: 8px; background: #f9fafb; margin-bottom: 8px; }
+    .scrapped-card .scrapped-meta { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    .scrapped-card .btn-restore { padding: 6px 10px; background: var(--btn-pink-gradient); color: #fff; border: var(--btn-pink-border); border-radius: 6px; cursor: pointer; font-size: 12px; margin-top: 8px; box-shadow: var(--btn-pink-shadow); }
+    .scrapped-card .btn-restore:hover { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); box-shadow: 0 3px 8px rgba(244,143,177,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
+    .upload-direct { display: inline-block; margin-top: 16px; padding: 8px 16px; background: var(--btn-pink-gradient); color: #fff; text-decoration: none; border-radius: 6px; font-size: 14px; border: var(--btn-pink-border); box-shadow: var(--btn-pink-shadow); font-weight: 600; }
+    .upload-direct:hover { background: var(--btn-pink-gradient-hover); color: #fff; filter: brightness(1.02); box-shadow: 0 3px 8px rgba(244,143,177,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
+    .empty-state { color: #6b7280; font-size: 14px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <a href="/create" class="back-link">← Back to Create</a>
+    <h1>Upload Items</h1>
+    <p>Create a project to upload items and release them into the game, or upload directly without a project. Open a project to edit items and coordinates.</p>
+
+    <button type="button" id="create-new-project" class="btn">Start New Project</button>
+
+    <h2>Your Projects</h2>
+    <div id="project-carousel-wrap" style="display: none;">
+      <div class="project-carousel">
+        <button type="button" id="project-prev" class="nav-arrow" aria-label="Previous project">←</button>
+        <div class="carousel-inner" id="project-box"></div>
+        <button type="button" id="project-next" class="nav-arrow" aria-label="Next project">→</button>
+      </div>
+      <div id="carousel-counter" class="carousel-counter"></div>
+    </div>
+    <div id="project-loading-wrap">
+      <span id="project-loading" class="empty-state">Loading…</span>
+    </div>
+
+    <div id="scrapped-section" class="scrapped-section" style="display: none;">
+      <h2>Scrapped projects</h2>
+      <p class="scrapped-desc">Deleted projects are listed here and will be permanently removed after 24 hours.</p>
+      <div id="scrapped-list"></div>
+    </div>
+
+    <a href="/adjust" class="upload-direct">Upload directly to game (no project)</a>
+  </div>
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/slots.js"></script>
+  <script>
+    (function () {
+      const box = document.getElementById('project-box');
+      const loadingEl = document.getElementById('project-loading');
+      const SLOT_ORDER = ['body-slot', 'pants-slot', 'skirt-slot', 'dress-slot', 'shirt-slot', 'jacket-slot', 'socks-slot', 'shoes-slot', 'hat-slot', 'jewelry-slot', 'hair-slot', 'other-slot'];
+
+      function buildOrderedItems(p) {
+        const items = Array.isArray(p.items) ? p.items : [];
+        const bySlot = {};
+        items.forEach(function (it) {
+          const slot = it.slotId || 'other-slot';
+          if (!bySlot[slot]) bySlot[slot] = [];
+          bySlot[slot].push(it);
+        });
+        const flat = [];
+        SLOT_ORDER.forEach(function (slotId) {
+          (bySlot[slotId] || []).forEach(function (it, idx) { flat.push({ ...it, slotId, index: idx }); });
+        });
+        return flat.sort(function (a, b) {
+          const la = SLOT_ORDER.indexOf(a.slotId);
+          const lb = SLOT_ORDER.indexOf(b.slotId);
+          if (la !== lb) return la - lb;
+          return (a.index || 0) - (b.index || 0);
+        });
+      }
+
+      function addPreviewToCard(card, p) {
+        const items = buildOrderedItems(p);
+        const preview = document.createElement('div');
+        preview.className = 'project-preview';
+        const backgrounds = [];
+        items.forEach(function (item) {
+          if (item.background && item.background.filename) {
+            backgrounds.push({
+              filename: item.background.filename,
+              defaultX: item.background.defaultX != null ? item.background.defaultX : 0,
+              defaultY: item.background.defaultY != null ? item.background.defaultY : 0,
+              defaultZ: item.background.defaultZ != null ? item.background.defaultZ : 0
+            });
+          }
+        });
+        backgrounds.sort(function (a, b) { return (a.defaultZ || 0) - (b.defaultZ || 0); });
+        backgrounds.forEach(function (bg) {
+          const img = document.createElement('img');
+          img.className = 'preview-bg';
+          img.src = '/Uploads/' + bg.filename;
+          img.style.transform = 'translate(-50%, -50%) translate(' + (bg.defaultX || 0) + 'px, ' + (bg.defaultY || 0) + 'px)';
+          img.onerror = function () { img.style.display = 'none'; };
+          preview.appendChild(img);
+        });
+        const baseImg = document.createElement('img');
+        baseImg.className = 'preview-base';
+        baseImg.src = '/Uploads/character.png';
+        baseImg.alt = '';
+        preview.appendChild(baseImg);
+        items.forEach(function (item) {
+          const img = document.createElement('img');
+          img.className = 'preview-item';
+          img.src = '/Uploads/' + (item.filename || '');
+          const x = item.defaultX != null ? item.defaultX : 0;
+          const y = item.defaultY != null ? item.defaultY : 0;
+          img.style.transform = 'translate(-50%, -50%) translate(' + x + 'px, ' + y + 'px)';
+          img.onerror = function () { img.style.display = 'none'; };
+          preview.appendChild(img);
+        });
+        card.insertBefore(preview, card.firstChild);
+      }
+
+      let projectList = [];
+      let currentProjectIndex = 0;
+      const carouselWrap = document.getElementById('project-carousel-wrap');
+      const loadingWrap = document.getElementById('project-loading-wrap');
+      const prevBtn = document.getElementById('project-prev');
+      const nextBtn = document.getElementById('project-next');
+      const counterEl = document.getElementById('carousel-counter');
+
+      function buildOneCard(p) {
+        const card = document.createElement('div');
+        card.className = 'project-card' + (p.released ? ' released' : '');
+        addPreviewToCard(card, p);
+        const nameWrap = document.createElement('div');
+        nameWrap.className = 'name';
+        const nameText = document.createElement('span');
+        nameText.textContent = p.name || 'Unnamed';
+        nameText.dataset.projectId = p.id;
+        nameText.title = 'Click to rename';
+        nameWrap._clickHandler = function () {
+          if (nameWrap.querySelector('.name-edit')) return;
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'name-edit';
+          input.value = p.name || 'Unnamed';
+          nameWrap.innerHTML = '';
+          nameWrap.appendChild(input);
+          input.focus();
+          input.select();
+          function saveName() {
+            const newName = (input.value || '').trim() || 'Unnamed';
+            nameWrap.innerHTML = '';
+            const span = document.createElement('span');
+            span.textContent = p.name || 'Unnamed';
+            span.dataset.projectId = p.id;
+            span.title = 'Click to rename';
+            const badge = document.createElement('span');
+            badge.className = 'badge' + (p.released ? ' released' : '');
+            badge.textContent = p.released ? 'Released' : 'Draft';
+            nameWrap.appendChild(span);
+            nameWrap.appendChild(badge);
+            span.addEventListener('click', nameWrap._clickHandler);
+            fetch('/api/projects/' + encodeURIComponent(p.id), {
+              method: 'PUT',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: newName })
+            })
+              .then(function (r) {
+                if (!r.ok) return r.json().then(function (b) { throw new Error(b && b.error ? b.error : 'Could not rename project'); });
+                return r.json();
+              })
+              .then(function (updated) {
+                p.name = updated.name || newName;
+                span.textContent = p.name;
+              })
+              .catch(function (err) {
+                var msg = err && err.message ? err.message : 'Could not rename project';
+                if (typeof showToast === 'function') showToast(msg, true);
+                else alert(msg);
+                span.textContent = p.name || 'Unnamed';
+              });
+          }
+          input.addEventListener('blur', saveName);
+          input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              nameWrap.innerHTML = '';
+              const span = document.createElement('span');
+              span.textContent = p.name || 'Unnamed';
+              span.dataset.projectId = p.id;
+              span.title = 'Click to rename';
+              const badge = document.createElement('span');
+              badge.className = 'badge' + (p.released ? ' released' : '');
+              badge.textContent = p.released ? 'Released' : 'Draft';
+              nameWrap.appendChild(span);
+              nameWrap.appendChild(badge);
+              span.addEventListener('click', nameWrap._clickHandler);
+            }
+          });
+        };
+        nameWrap.appendChild(nameText);
+        const badge = document.createElement('span');
+        badge.className = 'badge' + (p.released ? ' released' : '');
+        badge.textContent = p.released ? 'Released' : 'Draft';
+        nameWrap.appendChild(badge);
+        nameText.addEventListener('click', function (e) { e.preventDefault(); nameWrap._clickHandler(); });
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.textContent = (p.itemCount || 0) + ' item(s)';
+        if (p.createdAt) {
+          try {
+            const d = new Date(p.createdAt);
+            meta.textContent += ' · ' + d.toLocaleDateString();
+          } catch (e) {}
+        }
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+        const reviewLink = document.createElement('a');
+        reviewLink.href = './project-review.html?projectId=' + encodeURIComponent(p.id);
+        reviewLink.className = 'btn';
+        reviewLink.textContent = 'Review';
+        reviewLink.style.textDecoration = 'none';
+        actions.appendChild(reviewLink);
+        const openBtn = document.createElement('a');
+        openBtn.href = './adjust.html?projectId=' + encodeURIComponent(p.id);
+        openBtn.className = 'btn';
+        openBtn.textContent = 'Open';
+        openBtn.style.textDecoration = 'none';
+        actions.appendChild(openBtn);
+        if (!p.released) {
+          const releaseBtn = document.createElement('button');
+          releaseBtn.type = 'button';
+          releaseBtn.className = 'btn btn-release';
+          releaseBtn.textContent = 'Release into game';
+          releaseBtn.addEventListener('click', function () {
+            if (!confirm('Release this project into the game? All items will be added to the main catalog.')) return;
+            releaseBtn.disabled = true;
+            fetch('/api/projects/' + encodeURIComponent(p.id) + '/release', { method: 'POST', credentials: 'same-origin' })
+              .then(function (r) {
+                if (!r.ok) throw new Error(r.statusText || 'Release failed');
+                return r.json();
+              })
+              .then(function () { loadProjects(); })
+              .catch(function (err) {
+                if (typeof showToast === 'function') showToast('Release failed: ' + (err.message || 'error'), true);
+                else alert('Release failed: ' + (err.message || 'error'));
+                releaseBtn.disabled = false;
+              });
+          });
+          actions.appendChild(releaseBtn);
+        }
+        const trashBtn = document.createElement('button');
+        trashBtn.type = 'button';
+        trashBtn.className = 'btn-trash';
+        trashBtn.title = 'Move to scrapped (deleted after 24 hours)';
+        trashBtn.textContent = '\uD83D\uDDD1\uFE0F Trash';
+        trashBtn.addEventListener('click', function () {
+          if (!confirm('Move this project to scrapped? It will be permanently deleted after 24 hours.')) return;
+          trashBtn.disabled = true;
+          fetch('/api/projects/' + encodeURIComponent(String(p.id)) + '/scrap', { method: 'POST', credentials: 'same-origin' })
+            .then(function (r) {
+              return r.json().catch(function () { return {}; }).then(function (body) {
+                if (!r.ok) throw new Error((body && body.error) || r.statusText || 'Failed');
+                return body;
+              });
+            })
+            .then(function () { loadProjects(); })
+            .catch(function (err) {
+              if (typeof showToast === 'function') showToast('Could not scrap project: ' + (err.message || 'error'), true);
+              else alert('Could not scrap project: ' + (err.message || 'error'));
+              trashBtn.disabled = false;
+            });
+        });
+        actions.appendChild(trashBtn);
+        card.appendChild(nameWrap);
+        card.appendChild(meta);
+        card.appendChild(actions);
+        return card;
+      }
+
+      function renderCurrentCard() {
+        box.innerHTML = '';
+        if (projectList.length === 0) return;
+        const p = projectList[currentProjectIndex];
+        if (!p) return;
+        box.appendChild(buildOneCard(p));
+        prevBtn.disabled = currentProjectIndex === 0;
+        nextBtn.disabled = currentProjectIndex === projectList.length - 1;
+        counterEl.textContent = (currentProjectIndex + 1) + ' / ' + projectList.length;
+      }
+
+      function timeLeft(scrappedAt) {
+        if (!scrappedAt) return '';
+        try {
+          const end = new Date(scrappedAt).getTime() + 24 * 60 * 60 * 1000;
+          const left = Math.max(0, end - Date.now());
+          const h = Math.floor(left / (60 * 60 * 1000));
+          const m = Math.floor((left % (60 * 60 * 1000)) / (60 * 1000));
+          if (h > 0) return h + 'h ' + m + 'm left';
+          if (m > 0) return m + 'm left';
+          return 'Deleting soon';
+        } catch (e) { return ''; }
+      }
+
+      function renderScrapped(scrappedList) {
+        const section = document.getElementById('scrapped-section');
+        const listEl = document.getElementById('scrapped-list');
+        if (!scrappedList || scrappedList.length === 0) {
+          section.style.display = 'none';
+          return;
+        }
+        section.style.display = 'block';
+        listEl.innerHTML = '';
+        scrappedList.forEach(function (p) {
+          const card = document.createElement('div');
+          card.className = 'scrapped-card';
+          const name = document.createElement('div');
+          name.className = 'name';
+          name.textContent = p.name || 'Unnamed';
+          const meta = document.createElement('div');
+          meta.className = 'scrapped-meta';
+          meta.textContent = 'Deleted. Will be removed after 24 hours. ' + timeLeft(p.scrappedAt);
+          const restoreBtn = document.createElement('button');
+          restoreBtn.type = 'button';
+          restoreBtn.className = 'btn-restore';
+          restoreBtn.textContent = 'Restore';
+          restoreBtn.addEventListener('click', function () {
+            restoreBtn.disabled = true;
+            fetch('/api/projects/' + encodeURIComponent(p.id) + '/restore', { method: 'POST', credentials: 'same-origin' })
+              .then(function (r) {
+                if (!r.ok) throw new Error(r.statusText || 'Restore failed');
+                return r.json();
+              })
+              .then(function () { loadProjects(); })
+              .catch(function (err) {
+                if (typeof showToast === 'function') showToast('Could not restore project', true);
+                else alert('Could not restore project');
+                restoreBtn.disabled = false;
+              });
+          });
+          card.appendChild(name);
+          card.appendChild(meta);
+          card.appendChild(restoreBtn);
+          listEl.appendChild(card);
+        });
+      }
+
+      function renderProjects(list, scrappedList) {
+        if (!list || list.length === 0) {
+          carouselWrap.style.display = 'none';
+          loadingWrap.style.display = 'block';
+          loadingEl.textContent = 'No projects yet. Click "Start New Project" to create one.';
+          loadingEl.style.display = 'inline';
+        } else {
+          loadingWrap.style.display = 'none';
+          carouselWrap.style.display = 'block';
+          projectList = list;
+          currentProjectIndex = Math.min(currentProjectIndex, Math.max(0, projectList.length - 1));
+          renderCurrentCard();
+        }
+        renderScrapped(scrappedList || []);
+      }
+
+      prevBtn.addEventListener('click', function () {
+        if (currentProjectIndex > 0) {
+          currentProjectIndex--;
+          renderCurrentCard();
+        }
+      });
+      nextBtn.addEventListener('click', function () {
+        if (currentProjectIndex < projectList.length - 1) {
+          currentProjectIndex++;
+          renderCurrentCard();
+        }
+      });
+
+      function loadProjects() {
+        fetch('/api/projects', { credentials: 'same-origin' })
+          .then(function (r) { return r.ok ? r.json() : {}; })
+          .catch(function () { return {}; })
+          .then(function (data) {
+            const list = data && data.active ? data.active : (Array.isArray(data) ? data : []);
+            const scrapped = data && data.scrapped ? data.scrapped : [];
+            renderProjects(list, scrapped);
+          });
+      }
+
+      document.getElementById('create-new-project').addEventListener('click', function () {
+        const name = prompt('Project name:', 'My Project') || 'My Project';
+        fetch('/api/projects', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name.trim() })
+        })
+          .then(function (r) {
+            if (!r.ok) return r.json().then(function (b) { throw new Error(b && b.error ? b.error : 'Could not create project'); });
+            return r.json();
+          })
+          .then(function (project) {
+            window.location.href = './adjust.html?projectId=' + encodeURIComponent(project.id);
+          })
+          .catch(function (err) {
+            var msg = err && err.message ? err.message : 'Could not create project';
+            if (typeof showToast === 'function') showToast(msg, true);
+            else alert(msg);
+          });
+      });
+
+      loadProjects();
+    })();
+  </script>
+</body>
+</html>

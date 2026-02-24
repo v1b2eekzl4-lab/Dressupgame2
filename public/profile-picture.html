@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forum icon - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', 'Nunito', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 600px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h1 { margin: 0 0 8px 0; font-size: 1.5rem; }
+    .sub { color: #6b7280; font-size: 14px; margin-bottom: 20px; }
+    .editor-wrap { position: relative; width: 250px; height: 350px; margin: 0 auto 20px; border: 2px solid #e5e7eb; border-radius: 8px; overflow: hidden; background: #fff; }
+    #avatar-canvas { display: block; width: 250px; height: 350px; }
+    .crop-square {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      left: 75px;
+      top: 125px;
+      border: 3px solid #ec4899;
+      border-radius: 4px;
+      cursor: move;
+      box-sizing: border-box;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.35);
+      pointer-events: none;
+    }
+    .crop-square-handle { pointer-events: auto; }
+    .preview-wrap { margin-bottom: 16px; }
+    .preview-wrap img { width: 100px; height: 100px; border-radius: 8px; border: 2px solid #e5e7eb; object-fit: none; }
+    .btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; font-size: 14px; }
+.btn-primary { background: var(--btn-pink-gradient); color: white; border: var(--btn-pink-border); box-shadow: var(--btn-pink-shadow); }
+.btn-primary:hover { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); }
+    .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+    .back { display: inline-block; margin-bottom: 16px; color: #ec4899; text-decoration: none; font-size: 14px; }
+    .back:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <a href="/create" class="back">← Back to Create</a>
+    <h1>Forum icon</h1>
+    <p class="sub">Move the square to pick the part of your avatar that will show as your forum icon. Then save.</p>
+
+    <div class="editor-wrap" id="editor-wrap">
+      <canvas id="avatar-canvas" width="250" height="350"></canvas>
+      <div class="crop-square crop-square-handle" id="crop-square" title="Drag to move"></div>
+    </div>
+
+    <div class="preview-wrap">
+      <span style="font-size: 12px; color: #6b7280;">Preview: </span>
+      <img id="preview-img" src="" alt="Preview" style="display: none;">
+      <span id="preview-none" style="font-size: 12px; color: #9ca3af;">Save to see preview</span>
+    </div>
+
+    <button type="button" id="save-btn" class="btn btn-primary">Save as forum icon</button>
+    <p id="save-status" style="margin-top: 12px; font-size: 14px; color: #059669;"></p>
+  </div>
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+  <script>
+(function () {
+  const AVATAR_W = 250;
+  const AVATAR_H = 350;
+  const ICON_SIZE = 100;
+  /* Crop and save at same size so output is 1:1 pixel copy, no scaling (preserves natural pixels) */
+  const CROP_SIZE = ICON_SIZE;
+
+  const canvas = document.getElementById('avatar-canvas');
+  const ctx = canvas.getContext('2d');
+  const editorWrap = document.getElementById('editor-wrap');
+  const cropSquare = document.getElementById('crop-square');
+  const previewImg = document.getElementById('preview-img');
+  const previewNone = document.getElementById('preview-none');
+  const saveBtn = document.getElementById('save-btn');
+  const saveStatus = document.getElementById('save-status');
+
+  let outfitItems = [];
+  let canvasReady = false; /* true when canvas has been drawn (merged image or layers) - allows save */
+  let cropX = Math.floor((AVATAR_W - ICON_SIZE) / 2);
+  let cropY = Math.floor((AVATAR_H - ICON_SIZE) / 2);
+  let loadedImages = 0;
+
+  cropSquare.style.left = cropX + 'px';
+  cropSquare.style.top = cropY + 'px';
+
+  function loadOutfit() {
+    fetch('/api/outfits', { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (list) {
+        if (!Array.isArray(list) || list.length === 0) {
+          saveStatus.textContent = 'Save an outfit in your Room or Wardrobe first, then come back here.';
+          saveBtn.disabled = true;
+          return;
+        }
+        const last = list[list.length - 1];
+        if (!last) {
+          saveStatus.textContent = 'Save an outfit in your Room or Wardrobe first, then come back here.';
+          saveBtn.disabled = true;
+          return;
+        }
+        /* Prefer saved merged image when it exists - same asset as home, so forum icon crops from it */
+        if (last.mergedImageUrl) {
+          outfitItems = [];
+          canvasReady = false;
+          var img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = function () {
+            ctx.clearRect(0, 0, AVATAR_W, AVATAR_H);
+            var nw = img.naturalWidth, nh = img.naturalHeight;
+            var framesW = last.mergedFramesW || 1;
+            var srcW = framesW > 1 ? (nw / framesW) : nw;
+            ctx.drawImage(img, 0, 0, srcW, nh, 0, 0, AVATAR_W, AVATAR_H);
+            canvasReady = true;
+            updatePreview();
+          };
+          img.onerror = function () {
+            saveStatus.textContent = 'Could not load merged outfit image.';
+            saveBtn.disabled = true;
+          };
+          img.src = last.mergedImageUrl;
+          return;
+        }
+        /* No merged image: composite from layers (same as wardrobe) */
+        if (last.items && typeof last.items === 'object') {
+          canvasReady = false;
+          const slotOrder = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
+          outfitItems = [];
+          slotOrder.forEach(function (slotId) {
+            const arr = last.items[slotId];
+            if (Array.isArray(arr)) arr.forEach(function (item) { outfitItems.push({ ...item, slotId }); });
+          });
+          outfitItems.sort(function (a, b) { return (a.zIndex || 0) - (b.zIndex || 0); });
+          drawAvatar();
+          return;
+        }
+        saveStatus.textContent = 'Save an outfit in your Room or Wardrobe first, then come back here.';
+        saveBtn.disabled = true;
+      })
+      .catch(function () {
+        saveStatus.textContent = 'Could not load your outfit.';
+        saveBtn.disabled = true;
+      });
+  }
+
+  function drawAvatar() {
+    const total = outfitItems.length;
+    if (total === 0) return;
+    const loadedImages = new Array(total);
+    let loadedCount = 0;
+    function tryDrawAll() {
+      if (loadedCount !== total) return;
+      ctx.clearRect(0, 0, AVATAR_W, AVATAR_H);
+      for (let i = 0; i < total; i++) {
+        const img = loadedImages[i];
+        const item = outfitItems[i];
+        if (!img || !item || !img.complete) continue;
+        const nw = img.naturalWidth || AVATAR_W;
+        const nh = img.naturalHeight || AVATAR_H;
+        const scale = Math.min(AVATAR_W / nw, AVATAR_H / nh);
+        const drawW = nw * scale;
+        const drawH = nh * scale;
+        const cx = 125 + (item.x || 0);
+        const cy = 175 + (item.y || 0);
+        ctx.drawImage(img, 0, 0, nw, nh, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
+      }
+      canvasReady = true;
+      updatePreview();
+    }
+    outfitItems.forEach(function (item, i) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = function () {
+        loadedImages[i] = img;
+        loadedCount++;
+        tryDrawAll();
+      };
+      img.onerror = function () {
+        loadedCount++;
+        tryDrawAll();
+      };
+      img.src = item.src || '';
+    });
+  }
+
+  function updatePreview() {
+    try {
+      const previewCanvas = document.createElement('canvas');
+      previewCanvas.width = ICON_SIZE;
+      previewCanvas.height = ICON_SIZE;
+      const pctx = previewCanvas.getContext('2d');
+      /* 1:1 copy, no scaling - same as saved file */
+      pctx.drawImage(canvas, cropX, cropY, CROP_SIZE, CROP_SIZE, 0, 0, CROP_SIZE, CROP_SIZE);
+      previewImg.src = previewCanvas.toDataURL('image/png');
+      previewImg.style.display = 'block';
+      previewNone.style.display = 'none';
+    } catch (e) {}
+  }
+
+  function setCropPosition(x, y) {
+    cropX = Math.max(0, Math.min(AVATAR_W - CROP_SIZE, x));
+    cropY = Math.max(0, Math.min(AVATAR_H - CROP_SIZE, y));
+    cropSquare.style.left = cropX + 'px';
+    cropSquare.style.top = cropY + 'px';
+    updatePreview();
+  }
+
+  cropSquare.addEventListener('mousedown', function (e) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const startX = e.clientX - cropX;
+    const startY = e.clientY - cropY;
+    function move(ev) {
+      const x = ev.clientX - startX;
+      const y = ev.clientY - startY;
+      setCropPosition(x, y);
+    }
+    function up() {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+    }
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  });
+
+  saveBtn.addEventListener('click', function () {
+    if (!canvasReady) return;
+    saveBtn.disabled = true;
+    saveStatus.textContent = 'Saving…';
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = ICON_SIZE;
+    cropCanvas.height = ICON_SIZE;
+    const cctx = cropCanvas.getContext('2d');
+    /* 1:1 pixel copy from canvas - no scaling, preserves natural pixels */
+    cctx.drawImage(canvas, cropX, cropY, CROP_SIZE, CROP_SIZE, 0, 0, CROP_SIZE, CROP_SIZE);
+    cropCanvas.toBlob(function (blob) {
+      if (!blob) {
+        saveStatus.textContent = 'Failed to create image.';
+        saveBtn.disabled = false;
+        return;
+      }
+      const form = new FormData();
+      form.append('picture', blob, 'forum-icon.png');
+      fetch('/api/profile-picture', {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: form
+      })
+        .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data }; }); })
+        .then(function (result) {
+          if (result.ok && result.data.success) {
+            saveStatus.textContent = 'Forum icon saved! It will appear on your forum posts.';
+            if (result.data.profilePictureUrl) {
+              previewImg.src = result.data.profilePictureUrl + '?t=' + Date.now();
+              previewImg.style.display = 'block';
+              previewNone.style.display = 'none';
+            }
+          } else {
+            saveStatus.textContent = result.data && result.data.error ? result.data.error : 'Failed to save.';
+          }
+          saveBtn.disabled = false;
+        })
+        .catch(function () {
+          saveStatus.textContent = 'Network error. Try again.';
+          saveBtn.disabled = false;
+        });
+    }, 'image/png');
+  });
+
+  loadOutfit();
+
+  fetch('/api/profile', { credentials: 'same-origin' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (data) {
+      if (data && data.profilePictureUrl) {
+        previewImg.src = data.profilePictureUrl + '?t=' + Date.now();
+        previewImg.style.display = 'block';
+        previewNone.style.display = 'none';
+      }
+    })
+    .catch(function () {});
+})();
+  </script>
+</body>
+</html>

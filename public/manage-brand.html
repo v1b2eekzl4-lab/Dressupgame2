@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Brand - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 520px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h1 { margin: 0 0 8px 0; font-size: 1.5rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .title-pencil { padding: 4px 8px; border: none; background: transparent; color: #6b7280; font-size: 1rem; cursor: pointer; border-radius: 4px; }
+    .title-pencil:hover { background: #e5e7eb; color: #374151; }
+    .name-edit-bar { display: flex; gap: 8px; align-items: center; margin-top: 10px; padding: 10px 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; }
+    .name-edit-bar input { flex: 1; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+    .back-link { display: inline-block; margin-bottom: 16px; color: #ec4899; text-decoration: none; font-size: 14px; }
+    .back-link:hover { text-decoration: underline; }
+    .section { margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+    .section:first-of-type { margin-top: 16px; padding-top: 0; border-top: none; }
+    .section h2 { margin: 0 0 10px 0; font-size: 1rem; color: #374151; font-weight: 600; }
+    .section p { margin: 0 0 10px 0; font-size: 14px; color: #6b7280; }
+    .owner-block { margin-bottom: 4px; }
+    .owner-block .owner-label { display: block; font-size: 12px; color: #6b7280; margin-bottom: 2px; }
+    .owner-block .owner-username { font-size: 14px; color: #111; font-weight: 500; }
+    .owner-sep { height: 0; border: none; border-top: 1px solid #d1d5db; margin: 12px 0; }
+    .change-owner-wrap { margin-top: 10px; }
+    .change-owner-wrap select { padding: 6px 10px; font-size: 14px; border: 1px solid #d1d5db; border-radius: 6px; min-width: 160px; }
+    .bar-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 10px 12px; font-size: 14px; border-bottom: 1px solid #d1d5db; min-height: 20px; }
+    .bar-row.bar-1 { background-color: #f3f4f6; }
+    .bar-row.bar-2 { background-color: #e5e7eb; }
+    .bar-row.bar-3 { background-color: #fef3c7; }
+    .bar-row.bar-4 { background-color: #fce4ec; }
+    .bar-row.bar-5 { background-color: #d1fae5; }
+    .bar-row.bar-empty { color: #9ca3af; font-style: italic; }
+    .designers-bars { border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden; }
+    .bar-row .member-name { font-weight: 500; }
+    .bar-row .member-role { font-size: 12px; color: #6b7280; margin-left: 6px; }
+    .bar-row .member-actions { display: flex; align-items: center; gap: 6px; }
+    .bar-row select.role-select { padding: 4px 8px; font-size: 12px; border: 1px solid #d1d5db; border-radius: 4px; }
+    .bar-row .rm-btn { padding: 4px 10px; font-size: 12px; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 4px; cursor: pointer; }
+    .bar-row .rm-btn:hover { background: #fee2e2; }
+    .btn { display: inline-block; padding: 8px 16px; background: #059669; color: white; font-size: 14px; font-weight: 600; border: none; border-radius: 6px; text-decoration: none; cursor: pointer; }
+    .btn:hover { background: #047857; color: white; }
+    .btn-secondary { background: #e5e7eb; color: #374151; }
+    .btn-secondary:hover { background: #d1d5db; color: #111; }
+    .invite-row { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+    .invite-row input { flex: 1; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+    .not-found { color: #6b7280; padding: 24px 0; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <a href="./brands.html" class="back-link">← My brands</a>
+    <div id="manage-content"></div>
+  </div>
+  <script src="/js/header.js"></script>
+  <script>
+    (function () {
+      var BRANDS_KEY = 'userBrands';
+      function getBrands() {
+        try { var raw = localStorage.getItem(BRANDS_KEY); return raw ? JSON.parse(raw) : []; } catch (e) { return []; }
+      }
+      function setBrands(list) {
+        try { localStorage.setItem(BRANDS_KEY, JSON.stringify(list)); } catch (e) {}
+      }
+      function getBrandId() {
+        var p = new URLSearchParams(window.location.search);
+        return p.get('id') || p.get('brand') || '';
+      }
+      var brandId = getBrandId();
+      var list = getBrands();
+      var brand = list.filter(function (b) { return b.id === brandId; })[0];
+      var content = document.getElementById('manage-content');
+      if (!brand) {
+        content.innerHTML = '<p class="not-found">Brand not found. <a href="./brands.html">Back to My brands</a>.</p>';
+        if (document.title) document.title = 'Manage brand - Dress-Up Game';
+        return;
+      }
+      var currentUsername = '';
+      var name = (brand.name || 'Untitled').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      var labelProjectId = brand.labelProjectId;
+      var owner = brand.owner || '';
+      var members = Array.isArray(brand.members) ? brand.members.slice() : [];
+      function saveBrand(updates) {
+        var list = getBrands();
+        var idx = list.findIndex(function (b) { return b.id === brand.id; });
+        if (idx === -1) return;
+        Object.keys(updates).forEach(function (k) {
+          if (updates[k] === undefined) { delete list[idx][k]; delete brand[k]; }
+          else { list[idx][k] = updates[k]; brand[k] = updates[k]; }
+        });
+        setBrands(list);
+      }
+      function ownerDisplay() {
+        if (owner) return owner;
+        return currentUsername || 'You';
+      }
+      function allMemberNames() {
+        var out = owner ? [owner] : [];
+        members.forEach(function (m) {
+          if (m.name && out.indexOf(m.name) === -1) out.push(m.name);
+        });
+        return out;
+      }
+      var nameEditVisible = false;
+      function render() {
+        name = (brand.name || 'Untitled').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        document.title = 'Manage ' + (brand.name || 'Untitled') + ' - Dress-Up Game';
+        var ownerVal = (ownerDisplay()).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var namesForOwner = allMemberNames();
+        var safeName = (brand.name || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var html = '<h1>Manage <span id="brand-title-text">' + name + '</span> <button type="button" class="title-pencil" id="title-pencil" aria-label="Edit name">✎</button></h1>';
+        html += '<div id="name-edit-bar" class="name-edit-bar" style="display:' + (nameEditVisible ? 'flex' : 'none') + '"><input type="text" id="brand-name-input" value="' + safeName + '" placeholder="Brand name" maxlength="120"><button type="button" class="btn" id="save-name-btn">Save name</button></div>';
+        html += '<div class="section"><h2>Owner</h2><div class="owner-block"><span class="owner-label">Owner:</span><div class="owner-username">' + ownerVal + '</div></div><hr class="owner-sep">';
+        html += '<div class="change-owner-wrap"><label for="change-owner-select">Change owner (existing members only): </label><select id="change-owner-select"><option value="">—</option>';
+        namesForOwner.forEach(function (n) {
+          var sel = n === owner ? ' selected' : '';
+          html += '<option value="' + (n.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')) + '"' + sel + '>' + (n.replace(/</g, '&lt;').replace(/>/g, '&gt;')) + '</option>';
+        });
+        html += '</select> <button type="button" class="btn btn-secondary" id="apply-owner-btn">Apply</button></div></div>';
+        html += '<div class="section"><h2>Designers</h2><div class="designers-bars" id="designers-bars"></div>';
+        html += '<p style="margin-top:12px;font-size:13px;color:#6b7280;">Invite a designer (they join as Designer; you can assign Manager).</p>';
+        html += '<div class="invite-row"><input type="text" id="invite-input" placeholder="Username or email"><button type="button" class="btn" id="invite-btn">Invite</button></div></div>';
+        html += '<div class="section"><h2>Edit brand label</h2>';
+        if (labelProjectId) {
+          html += '<p>Edit the 200×70 brand label for this brand.</p><a href="./brand-label.html?project=' + encodeURIComponent(labelProjectId) + '" class="btn">Edit brand label</a>';
+        } else {
+          html += '<p>Create a brand label in Brand label projects, then export it to this brand to link it here.</p><a href="./brand-label-projects.html" class="btn">Open brand label projects</a>';
+        }
+        html += '</div>';
+        content.innerHTML = html;
+        document.getElementById('title-pencil').addEventListener('click', function () {
+          nameEditVisible = !nameEditVisible;
+          document.getElementById('name-edit-bar').style.display = nameEditVisible ? 'flex' : 'none';
+          if (nameEditVisible) document.getElementById('brand-name-input').focus();
+        });
+        document.getElementById('save-name-btn').addEventListener('click', function () {
+          var newName = (document.getElementById('brand-name-input').value || '').trim() || 'Untitled';
+          saveBrand({ name: newName });
+          nameEditVisible = false;
+          render();
+        });
+        document.getElementById('apply-owner-btn').addEventListener('click', function () {
+          var sel = document.getElementById('change-owner-select');
+          var v = (sel.value || '').trim();
+          if (!v) return;
+          var newOwner = v;
+          var newMembers = members.filter(function (m) { return m.name !== newOwner; });
+          saveBrand({ owner: newOwner, members: newMembers });
+          owner = newOwner;
+          members = newMembers;
+          render();
+        });
+        var barsEl = document.getElementById('designers-bars');
+        var barColors = ['bar-1', 'bar-2', 'bar-3', 'bar-4', 'bar-5'];
+        members.forEach(function (m, i) {
+          var row = document.createElement('div');
+          row.className = 'bar-row ' + barColors[i % barColors.length];
+          var role = (m.role === 'manager') ? 'manager' : 'designer';
+          row.innerHTML = '<span><span class="member-name">' + (m.name.replace(/</g, '&lt;').replace(/>/g, '&gt;')) + '</span> <span class="member-role">(change role)</span></span>';
+          var actions = document.createElement('div');
+          actions.className = 'member-actions';
+          var roleSelect = document.createElement('select');
+          roleSelect.className = 'role-select';
+          roleSelect.innerHTML = '<option value="designer"' + (role === 'designer' ? ' selected' : '') + '>Designer</option><option value="manager"' + (role === 'manager' ? ' selected' : '') + '>Manager</option>';
+          roleSelect.addEventListener('change', function () {
+            var r = roleSelect.value === 'manager' ? 'manager' : 'designer';
+            members[i].role = r;
+            saveBrand({ members: members });
+            render();
+          });
+          var rm = document.createElement('button');
+          rm.type = 'button';
+          rm.className = 'rm-btn';
+          rm.textContent = 'Remove';
+          rm.addEventListener('click', function () {
+            members.splice(i, 1);
+            saveBrand({ members: members });
+            render();
+          });
+          actions.appendChild(roleSelect);
+          actions.appendChild(rm);
+          row.appendChild(actions);
+          barsEl.appendChild(row);
+        });
+        [0, 1, 2].forEach(function (j) {
+          var emptyRow = document.createElement('div');
+          emptyRow.className = 'bar-row bar-empty ' + barColors[(members.length + j) % barColors.length];
+          emptyRow.textContent = 'bar: empty';
+          barsEl.appendChild(emptyRow);
+        });
+        document.getElementById('invite-btn').addEventListener('click', function () {
+          var input = document.getElementById('invite-input');
+          var val = (input.value || '').trim();
+          if (!val) return;
+          if (owner === val) return;
+          if (members.some(function (m) { return m.name === val; })) return;
+          members.push({ name: val, role: 'designer' });
+          saveBrand({ members: members });
+          input.value = '';
+          render();
+        });
+      }
+      if (!members.length && Array.isArray(brand.invitedDesigners) && brand.invitedDesigners.length) {
+        members = brand.invitedDesigners.map(function (n) { return { name: n, role: 'designer' }; });
+        saveBrand({ members: members, invitedDesigners: undefined });
+      }
+      fetch('/api/me', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }).then(function (me) {
+        currentUsername = (me && (me.username || me.name || me.id)) ? (me.username || me.name || me.id) : '';
+        if (!owner && currentUsername) {
+          owner = currentUsername;
+          saveBrand({ owner: owner });
+        }
+        render();
+      });
+    })();
+  </script>
+</body>
+</html>

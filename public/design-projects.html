@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Design projects - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 700px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .container h1 { margin: 0 0 8px 0; font-size: 1.5rem; }
+    .container p.sub { margin: 0 0 24px 0; color: #6b7280; font-size: 14px; }
+    .new-link { display: inline-block; margin-bottom: 20px; padding: 10px 16px; background: #3182ce; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; }
+    .new-link:hover { background: #2b6cb0; color: #fff; }
+    .project-list { list-style: none; margin: 0; padding: 0; }
+    .project-list li { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 12px 16px; margin-bottom: 8px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; }
+    .project-list li .project-top { display: flex; align-items: center; gap: 12px; }
+    .project-list li .project-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e5e7eb; }
+    .project-list li .preview-wrap { flex-shrink: 0; border-radius: 6px; background: transparent; max-width: 100px; max-height: 100px; }
+    .project-list li .preview-wrap img { display: block; max-width: 100px; max-height: 100px; width: auto; height: auto; object-fit: contain; image-rendering: pixelated; image-rendering: crisp-edges; }
+    .project-list li .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .project-list li { position: relative; }
+    .project-list li .project-top { position: relative; }
+    .project-list li .name { font-weight: 600; color: #111; overflow: hidden; text-overflow: ellipsis; cursor: pointer; padding: 2px 4px; margin: -2px -4px; border-radius: 4px; }
+    .project-list li .name:hover { background: #e5e7eb; }
+    .project-list li .name-edit { font: inherit; font-weight: 600; width: 100%; max-width: 240px; padding: 2px 6px; margin: -2px -4px; border: 1px solid #3182ce; border-radius: 4px; outline: none; }
+    .project-list li .meta { font-size: 12px; color: #6b7280; }
+    .project-list li a.open-link { flex-shrink: 0; padding: 6px 12px; background: #4a5568; color: #fff; text-decoration: none; border-radius: 6px; font-size: 13px; }
+    .project-list li a.open-link:hover { background: #5a6578; color: #fff; }
+    .project-list li .export-upload-btn { flex-shrink: 0; padding: 6px 12px; background: #3182ce; color: #fff; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; text-decoration: none; display: inline-block; }
+    .project-list li .export-upload-btn:hover { background: #2b6cb0; color: #fff; }
+    .project-list li .export-upload-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .project-list li .export-brand-btn { flex-shrink: 0; padding: 6px 12px; background: #dc2626; color: #fff; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; }
+    .project-list li .export-brand-btn:hover { background: #b91c1c; color: #fff; }
+    .project-list li .download-gif-btn { flex-shrink: 0; padding: 6px 12px; background: #059669; color: #fff; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; text-decoration: none; display: inline-block; }
+    .project-list li .download-gif-btn:hover { background: #047857; color: #fff; }
+    .project-list li .delete-btn { flex-shrink: 0; padding: 6px 12px; background: #dc2626; color: #fff; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; }
+    .project-list li .delete-btn:hover { background: #b91c1c; color: #fff; }
+    .layer-card { display: none; position: absolute; left: 100%; top: 0; margin-left: 12px; min-width: 220px; max-width: 280px; padding: 10px 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); z-index: 10; font-size: 13px; }
+    .project-list li:hover .layer-card { display: block; }
+    .layer-card .layer-card-title { font-weight: 600; color: #374151; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #e5e7eb; }
+    .layer-card ul { list-style: none; margin: 0; padding: 0; }
+    .layer-card li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border: none; margin: 0; background: none; border-bottom: 1px solid #f3f4f6; }
+    .layer-card li:last-child { border-bottom: none; }
+    .layer-card li .layer-thumb { flex-shrink: 0; width: 48px; height: 48px; object-fit: contain; object-position: center; background: #e5e7eb; border-radius: 4px; border: 1px solid #e5e7eb; image-rendering: pixelated; image-rendering: crisp-edges; }
+    .layer-card li .vis { flex-shrink: 0; font-size: 12px; }
+    .layer-card li .layer-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .empty-state { color: #6b7280; font-size: 14px; padding: 24px 0; }
+    .deleted-section { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+    .deleted-section h2 { font-size: 1.1rem; color: #6b7280; margin: 0 0 4px 0; }
+    .deleted-section p.desc { font-size: 12px; color: #9ca3af; margin: 0 0 12px 0; }
+    .deleted-section .project-list li { background: #fef2f2; border-color: #fecaca; }
+    .deleted-section .project-list li .restore-btn { flex-shrink: 0; padding: 6px 12px; background: var(--btn-pink-gradient); color: #fff; border: var(--btn-pink-border); border-radius: 6px; font-size: 13px; cursor: pointer; text-decoration: none; display: inline-block; box-shadow: var(--btn-pink-shadow); }
+    .deleted-section .project-list li .restore-btn:hover { background: #15803d; color: #fff; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <h1>Design projects</h1>
+    <p class="sub">Pixel art designs in progress. Open a project to continue editing, or start a new one.</p>
+    <a href="./pixel-drawing.html" class="new-link">+ New design</a>
+    <ul id="project-list" class="project-list">
+      <li class="empty-state">Loading…</li>
+    </ul>
+
+    <div id="deleted-section" class="deleted-section" style="display: none;">
+      <h2>Deleted (removed after 24 hours)</h2>
+      <p class="desc">These projects will be permanently removed after 24 hours. You can restore them until then.</p>
+      <ul id="deleted-project-list" class="project-list"></ul>
+    </div>
+  </div>
+  <script src="/js/header.js"></script>
+  <script>
+    (function () {
+      var PIXEL_PROJECTS_KEY = 'pixelProjects';
+      var PIXEL_PROJECTS_DELETED_KEY = 'pixelProjectsDeleted';
+      var DELETED_TTL_MS = 24 * 60 * 60 * 1000;
+
+      function getPixelProjectsList() {
+        try {
+          var raw = localStorage.getItem(PIXEL_PROJECTS_KEY);
+          return raw ? JSON.parse(raw) : [];
+        } catch (e) { return []; }
+      }
+      function setPixelProjectsList(list) {
+        try {
+          localStorage.setItem(PIXEL_PROJECTS_KEY, JSON.stringify(list));
+        } catch (e) {}
+      }
+      function getDeletedPixelProjectsList() {
+        try {
+          var raw = localStorage.getItem(PIXEL_PROJECTS_DELETED_KEY);
+          return raw ? JSON.parse(raw) : [];
+        } catch (e) { return []; }
+      }
+      function setDeletedPixelProjectsList(list) {
+        try {
+          localStorage.setItem(PIXEL_PROJECTS_DELETED_KEY, JSON.stringify(list));
+        } catch (e) {}
+      }
+      function purgeOldDeletedProjects() {
+        var deleted = getDeletedPixelProjectsList();
+        var now = Date.now();
+        var kept = deleted.filter(function (p) {
+          var t = p.deletedAt ? new Date(p.deletedAt).getTime() : 0;
+          return now - t < DELETED_TTL_MS;
+        });
+        deleted.forEach(function (p) {
+          var t = p.deletedAt ? new Date(p.deletedAt).getTime() : 0;
+          if (now - t >= DELETED_TTL_MS) {
+            try { localStorage.removeItem('pixelProject-' + p.id); } catch (e) {}
+            openPixelDB().then(function (db) {
+              var tx = db.transaction('projects', 'readwrite');
+              tx.objectStore('projects').delete(p.id);
+              tx.oncomplete = function () { db.close(); };
+            }).catch(function () {});
+          }
+        });
+        if (kept.length !== deleted.length) setDeletedPixelProjectsList(kept);
+      }
+      function deleteProject(id) {
+        var list = getPixelProjectsList();
+        var idx = list.findIndex(function (p) { return p.id === id; });
+        if (idx === -1) return;
+        var entry = list[idx];
+        list.splice(idx, 1);
+        setPixelProjectsList(list);
+        var deleted = getDeletedPixelProjectsList();
+        deleted.push({ id: entry.id, name: entry.name, savedAt: entry.savedAt, deletedAt: new Date().toISOString() });
+        setDeletedPixelProjectsList(deleted);
+      }
+      function restoreProject(id) {
+        var deleted = getDeletedPixelProjectsList();
+        var idx = deleted.findIndex(function (p) { return p.id === id; });
+        if (idx === -1) return;
+        var entry = deleted[idx];
+        deleted.splice(idx, 1);
+        setDeletedPixelProjectsList(deleted);
+        var list = getPixelProjectsList();
+        list.push({ id: entry.id, name: entry.name, savedAt: entry.savedAt });
+        setPixelProjectsList(list);
+      }
+      function isNameInUse(name, excludeDesignProjectId) {
+        var norm = (name || '').trim().toLowerCase();
+        if (!norm) return Promise.resolve(true);
+        return fetch('/api/names-in-use', { credentials: 'same-origin' })
+          .then(function (r) { return r.ok ? r.json() : { names: [] }; })
+          .then(function (data) {
+            var serverNames = (data.names || []).slice();
+            var list = getPixelProjectsList();
+            var designNames = list.filter(function (p) { return p.id !== excludeDesignProjectId; }).map(function (p) { return (p.name || '').trim().toLowerCase(); });
+            return serverNames.indexOf(norm) !== -1 || designNames.indexOf(norm) !== -1;
+          })
+          .catch(function () { return false; });
+      }
+      var PIXEL_DB_NAME = 'PixelDrawingDB';
+      function openPixelDB() {
+        return new Promise(function (resolve, reject) {
+          var r = typeof indexedDB !== 'undefined' ? indexedDB.open(PIXEL_DB_NAME, 1) : null;
+          if (!r) { reject(new Error('IndexedDB not available')); return; }
+          r.onupgradeneeded = function (e) { e.target.result.createObjectStore('projects', { keyPath: 'id' }); };
+          r.onsuccess = function (e) { resolve(e.target.result); };
+          r.onerror = function () { reject(r.error); };
+        });
+      }
+      function getProjectDataAsync(id) {
+        return openPixelDB().then(function (db) {
+          return new Promise(function (resolve) {
+            var req = db.transaction('projects', 'readonly').objectStore('projects').get(id);
+            req.onsuccess = function () {
+              db.close();
+              if (req.result && req.result.data) {
+                resolve(req.result.data);
+                return;
+              }
+              try {
+                var raw = localStorage.getItem('pixelProject-' + id);
+                resolve(raw ? JSON.parse(raw) : null);
+              } catch (e) { resolve(null); }
+            };
+            req.onerror = function () { db.close(); resolve(null); };
+          });
+        }).catch(function () {
+          try {
+            var raw = localStorage.getItem('pixelProject-' + id);
+            return raw ? JSON.parse(raw) : null;
+          } catch (e) { return null; }
+        });
+      }
+      function getProjectData(id) {
+        try {
+          var raw = localStorage.getItem('pixelProject-' + id);
+          return raw ? JSON.parse(raw) : null;
+        } catch (e) { return null; }
+      }
+      function formatDate(iso) {
+        if (!iso) return '—';
+        try {
+          var d = new Date(iso);
+          return isNaN(d.getTime()) ? iso : d.toLocaleDateString(undefined, { dateStyle: 'short' }) + ' ' + d.toLocaleTimeString(undefined, { timeStyle: 'short' });
+        } catch (e) { return iso; }
+      }
+      function renderProjectPreview(data) {
+        if (!data) return null;
+        var frameW = Math.max(1, parseInt(data.spriteSheetFrameWidth, 10) || 0);
+        var frameH = Math.max(1, parseInt(data.spriteSheetFrameHeight, 10) || 0);
+        if (data.savedSpriteSheetDataURL && frameW && frameH) {
+          return {
+            useSpriteSheet: true,
+            spriteSheetDataURL: data.savedSpriteSheetDataURL,
+            frameW: frameW,
+            frameH: frameH,
+            gridW: frameW,
+            gridH: frameH
+          };
+        }
+        if (!data.layers || !data.layers.length) return null;
+        var gridW = Math.max(1, parseInt(data.gridW, 10) || 250);
+        var gridH = Math.max(1, parseInt(data.gridH, 10) || 350);
+        var tmp = document.createElement('canvas');
+        tmp.width = gridW;
+        tmp.height = gridH;
+        var ctx = tmp.getContext('2d');
+        for (var i = data.layers.length - 1; i >= 0; i--) {
+          var layer = data.layers[i];
+          if (layer.visible === false) continue;
+          var grid = layer.grid;
+          if (!grid || !Array.isArray(grid)) {
+            var frames = layer.frames;
+            if (frames && Array.isArray(frames) && frames.length) {
+              var idx = Math.max(0, Math.min((layer.currentFrameIndex != null ? layer.currentFrameIndex : 0), frames.length - 1));
+              grid = frames[idx];
+            }
+          }
+          if (!grid || !Array.isArray(grid)) continue;
+          for (var y = 0; y < gridH && y < grid.length; y++) {
+            for (var x = 0; x < gridW && x < (grid[y] ? grid[y].length : 0); x++) {
+              var color = grid[y][x];
+              if (color) {
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, 1, 1);
+              }
+            }
+          }
+        }
+        return { dataUrl: tmp.toDataURL('image/png'), gridW: gridW, gridH: gridH };
+      }
+      function setPreviewFromSpriteSheet(img, result) {
+        if (!result || !result.useSpriteSheet || !result.spriteSheetDataURL) return;
+        img.width = result.frameW;
+        img.height = result.frameH;
+        var previewImg = new Image();
+        previewImg.onload = function () {
+          var c = document.createElement('canvas');
+          c.width = result.frameW;
+          c.height = result.frameH;
+          var ctx = c.getContext('2d');
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(previewImg, 0, 0, result.frameW, result.frameH, 0, 0, result.frameW, result.frameH);
+          img.src = c.toDataURL('image/png');
+        };
+        previewImg.onerror = function () {};
+        previewImg.src = result.spriteSheetDataURL;
+      }
+      function renderLayerPreview(grid, gridW, gridH) {
+        if (!grid || !Array.isArray(grid)) return null;
+        var tmp = document.createElement('canvas');
+        tmp.width = gridW;
+        tmp.height = gridH;
+        var ctx = tmp.getContext('2d');
+        ctx.fillStyle = 'rgba(0,0,0,0)';
+        ctx.fillRect(0, 0, gridW, gridH);
+        for (var y = 0; y < gridH && y < grid.length; y++) {
+          for (var x = 0; x < gridW && x < (grid[y] ? grid[y].length : 0); x++) {
+            var color = grid[y][x];
+            if (color) {
+              ctx.fillStyle = color;
+              ctx.fillRect(x, y, 1, 1);
+            }
+          }
+        }
+        return tmp.toDataURL('image/png');
+      }
+      function getLayerGrid(layer) {
+        if (layer.grid && Array.isArray(layer.grid)) return layer.grid;
+        var frames = layer.frames;
+        if (frames && Array.isArray(frames) && frames.length) {
+          var idx = Math.max(0, Math.min((layer.currentFrameIndex != null ? layer.currentFrameIndex : 0), frames.length - 1));
+          return frames[idx];
+        }
+        return null;
+      }
+      function renderLayerToCanvas(grid, gridW, gridH) {
+        if (!grid || !Array.isArray(grid)) return null;
+        var tmp = document.createElement('canvas');
+        tmp.width = gridW;
+        tmp.height = gridH;
+        var ctx = tmp.getContext('2d');
+        ctx.fillStyle = 'rgba(0,0,0,0)';
+        ctx.fillRect(0, 0, gridW, gridH);
+        for (var y = 0; y < gridH && y < grid.length; y++) {
+          for (var x = 0; x < gridW && x < (grid[y] ? grid[y].length : 0); x++) {
+            var color = grid[y][x];
+            if (color) {
+              ctx.fillStyle = color;
+              ctx.fillRect(x, y, 1, 1);
+            }
+          }
+        }
+        return tmp;
+      }
+      /** Returns { dataURL, offsetX, offsetY, cropW, cropH }. Wardrobe/adjust place by image *center* at (125+defaultX, 175+defaultY). */
+      function trimCanvasToContent(canvas) {
+        var w = canvas.width;
+        var h = canvas.height;
+        var ctx = canvas.getContext('2d');
+        var idata = ctx.getImageData(0, 0, w, h);
+        var d = idata.data;
+        var minX = w, minY = h, maxX = -1, maxY = -1;
+        for (var y = 0; y < h; y++) {
+          for (var x = 0; x < w; x++) {
+            var i = (y * w + x) * 4;
+            if (d[i + 3] > 0) {
+              if (x < minX) minX = x;
+              if (y < minY) minY = y;
+              if (x > maxX) maxX = x;
+              if (y > maxY) maxY = y;
+            }
+          }
+        }
+        if (maxX < minX || maxY < minY) {
+          var empty = document.createElement('canvas');
+          empty.width = 1;
+          empty.height = 1;
+          return { dataURL: empty.toDataURL('image/png'), offsetX: 0, offsetY: 0, cropW: 1, cropH: 1 };
+        }
+        var cropW = maxX - minX + 1;
+        var cropH = maxY - minY + 1;
+        var out = document.createElement('canvas');
+        out.width = cropW;
+        out.height = cropH;
+        var outCtx = out.getContext('2d');
+        outCtx.imageSmoothingEnabled = false;
+        outCtx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+        return { dataURL: out.toDataURL('image/png'), offsetX: minX, offsetY: minY, cropW: cropW, cropH: cropH };
+      }
+      var GAME_VIEW_CENTER_X = 125, GAME_VIEW_CENTER_Y = 175;
+      function defaultXYForCroppedLayer(trimmed) {
+        var centerX = trimmed.offsetX + (trimmed.cropW || 0) / 2;
+        var centerY = trimmed.offsetY + (trimmed.cropH || 0) / 2;
+        return { defaultX: centerX - GAME_VIEW_CENTER_X, defaultY: centerY - GAME_VIEW_CENTER_Y };
+      }
+      function dataURLToBlob(dataURL) {
+        var arr = dataURL.split(',');
+        var mime = (arr[0].match(/:(.*?);/) || [])[1] || 'image/png';
+        var bstr = atob(arr[1]);
+        var n = bstr.length;
+        var u8 = new Uint8Array(n);
+        while (n--) u8[n] = bstr.charCodeAt(n);
+        return new Blob([u8], { type: mime });
+      }
+      function safeFileName(name) {
+        return (name || 'layer').replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_+/g, '_').slice(0, 80) || 'layer';
+      }
+      function sliceSpriteSheetToFrameDataURLs(dataURL, frameCount, frameW, frameH) {
+        return new Promise(function (resolve, reject) {
+          var img = new Image();
+          img.onload = function () {
+            var out = [];
+            var canvas = document.createElement('canvas');
+            canvas.width = frameW;
+            canvas.height = frameH;
+            var ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = false;
+            for (var t = 0; t < frameCount; t++) {
+              ctx.clearRect(0, 0, frameW, frameH);
+              ctx.drawImage(img, t * frameW, 0, frameW, frameH, 0, 0, frameW, frameH);
+              out.push(canvas.toDataURL('image/png'));
+            }
+            resolve(out);
+          };
+          img.onerror = function () { reject(new Error('Failed to load sprite sheet')); };
+          img.src = dataURL;
+        });
+      }
+      var BRAND_LABEL_W = 200, BRAND_LABEL_H = 70;
+      function hexToRgba(hex) {
+        if (!hex || typeof hex !== 'string') return [0, 0, 0, 0];
+        hex = hex.replace(/^#/, '');
+        if (hex.length === 6) {
+          return [
+            parseInt(hex.slice(0, 2), 16) || 0,
+            parseInt(hex.slice(2, 4), 16) || 0,
+            parseInt(hex.slice(4, 6), 16) || 0,
+            255
+          ];
+        }
+        if (hex.length === 8) {
+          return [
+            parseInt(hex.slice(0, 2), 16) || 0,
+            parseInt(hex.slice(2, 4), 16) || 0,
+            parseInt(hex.slice(4, 6), 16) || 0,
+            parseInt(hex.slice(6, 8), 16) || 255
+          ];
+        }
+        return [0, 0, 0, 0];
+      }
+      function exportDesignToBrandLabel(designProjectId, designProjectName, data, exportBrandBtn) {
+        if (!data) {
+          if (typeof showToast === 'function') showToast('No design data to export', true);
+          else alert('No design data to export.');
+          return;
+        }
+        var projectName = (designProjectName || 'Untitled').trim() || 'Untitled';
+        var id = 'bl-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+        var w = BRAND_LABEL_W, h = BRAND_LABEL_H;
+
+        if (data.savedSpriteSheetDataURL && data.spriteSheetFrameCount) {
+          var frameCount = Math.max(1, parseInt(data.spriteSheetFrameCount, 10));
+          var frameW = Math.max(1, parseInt(data.spriteSheetFrameWidth, 10) || 250);
+          var frameH = Math.max(1, parseInt(data.spriteSheetFrameHeight, 10) || 350);
+          if (exportBrandBtn) { exportBrandBtn.disabled = true; exportBrandBtn.textContent = 'Preparing…'; }
+          sliceSpriteSheetToFrameDataURLs(data.savedSpriteSheetDataURL, frameCount, frameW, frameH)
+            .then(function (frameDataURLs) {
+              var scaleCanvas = document.createElement('canvas');
+              scaleCanvas.width = w;
+              scaleCanvas.height = h;
+              var scaleCtx = scaleCanvas.getContext('2d');
+              scaleCtx.imageSmoothingEnabled = false;
+              var frames = [];
+              var img = new Image();
+              var idx = 0;
+              function next() {
+                if (idx >= frameDataURLs.length) {
+                  var brandData = { frames: frames, currentFrameIndex: 0, activeLayerIndex: 0 };
+                  try {
+                    localStorage.setItem('brandLabelProject-' + id, JSON.stringify(brandData));
+                    var list = [];
+                    try {
+                      var raw = localStorage.getItem('brandLabelProjects');
+                      list = raw ? JSON.parse(raw) : [];
+                    } catch (e) {}
+                    list.push({ id: id, name: projectName, savedAt: new Date().toISOString() });
+                    localStorage.setItem('brandLabelProjects', JSON.stringify(list));
+                    if (exportBrandBtn) { exportBrandBtn.textContent = 'Opening…'; }
+                    window.location.href = './brand-label.html?project=' + encodeURIComponent(id);
+                  } catch (e) {
+                    if (typeof showToast === 'function') showToast('Could not create brand label project', true);
+                    else alert('Could not create brand label project.');
+                    if (exportBrandBtn) { exportBrandBtn.disabled = false; exportBrandBtn.textContent = 'Export to Brand Label'; }
+                  }
+                  return;
+                }
+                img.onload = function () {
+                  scaleCtx.clearRect(0, 0, w, h);
+                  scaleCtx.drawImage(img, 0, 0, w, h);
+                  var imageData = scaleCtx.getImageData(0, 0, w, h);
+                  var layerData = {
+                    symbols: [],
+                    text: [],
+                    glitter: [],
+                    pixel: { w: w, h: h, data: Array.from(imageData.data) },
+                    bgColor: '#ffffff',
+                    borderColor: '#000000',
+                    borderWidth: 0,
+                    visible: true,
+                    type: 'graphic'
+                  };
+                  frames.push({ layers: [layerData] });
+                  idx++;
+                  next();
+                };
+                img.onerror = function () {
+                  if (exportBrandBtn) { exportBrandBtn.disabled = false; exportBrandBtn.textContent = 'Export to Brand Label'; }
+                  if (typeof showToast === 'function') showToast('Failed to load frame', true);
+                };
+                img.src = frameDataURLs[idx];
+              }
+              next();
+            })
+            .catch(function (err) {
+              if (exportBrandBtn) { exportBrandBtn.disabled = false; exportBrandBtn.textContent = 'Export to Brand Label'; }
+              if (typeof showToast === 'function') showToast(err.message || 'Export failed', true);
+              else alert(err.message || 'Export failed');
+            });
+          return;
+        }
+
+        if (!data.layers || !data.layers.length) {
+          if (typeof showToast === 'function') showToast('No layers to export. Save a sprite sheet in the design tool first, or add layers.', true);
+          else alert('No layers to export. Save a sprite sheet in the design tool first, or add layers.');
+          return;
+        }
+        var gridW = Math.max(1, parseInt(data.gridW, 10) || 250);
+        var gridH = Math.max(1, parseInt(data.gridH, 10) || 350);
+        var merged = [];
+        for (var y = 0; y < gridH; y++) {
+          var row = [];
+          for (var x = 0; x < gridW; x++) row.push(null);
+          merged.push(row);
+        }
+        for (var i = data.layers.length - 1; i >= 0; i--) {
+          var ly = data.layers[i];
+          if (ly.visible === false) continue;
+          var grid = getLayerGrid(ly);
+          if (!grid || !Array.isArray(grid)) continue;
+          for (var y = 0; y < gridH && y < grid.length; y++) {
+            for (var x = 0; x < gridW && x < (grid[y] ? grid[y].length : 0); x++) {
+              var c = grid[y][x];
+              if (c) merged[y][x] = c;
+            }
+          }
+        }
+        var dataArr = new Uint8ClampedArray(w * h * 4);
+        for (var y = 0; y < h; y++) {
+          for (var x = 0; x < w; x++) {
+            var i = (y * w + x) * 4;
+            var color = (merged[y] && merged[y][x]) || null;
+            var rgba = color ? hexToRgba(color) : [0, 0, 0, 0];
+            dataArr[i] = rgba[0];
+            dataArr[i + 1] = rgba[1];
+            dataArr[i + 2] = rgba[2];
+            dataArr[i + 3] = rgba[3];
+          }
+        }
+        var layerData = {
+          symbols: [],
+          text: [],
+          glitter: [],
+          pixel: { w: w, h: h, data: Array.from(dataArr) },
+          bgColor: '#ffffff',
+          borderColor: '#000000',
+          borderWidth: 0,
+          visible: true,
+          type: 'graphic'
+        };
+        var brandData = { frames: [{ layers: [layerData] }], currentFrameIndex: 0, activeLayerIndex: 0 };
+        try {
+          localStorage.setItem('brandLabelProject-' + id, JSON.stringify(brandData));
+          var list = [];
+          try {
+            var raw = localStorage.getItem('brandLabelProjects');
+            list = raw ? JSON.parse(raw) : [];
+          } catch (e) {}
+          list.push({ id: id, name: projectName, savedAt: new Date().toISOString() });
+          localStorage.setItem('brandLabelProjects', JSON.stringify(list));
+          if (exportBrandBtn) { exportBrandBtn.disabled = true; exportBrandBtn.textContent = 'Opening…'; }
+          window.location.href = './brand-label.html?project=' + encodeURIComponent(id);
+        } catch (e) {
+          if (typeof showToast === 'function') showToast('Could not create brand label project', true);
+          else alert('Could not create brand label project.');
+          if (exportBrandBtn) { exportBrandBtn.disabled = false; exportBrandBtn.textContent = 'Export to Brand Label'; }
+        }
+      }
+      function createProjectWithUniqueName(baseName) {
+        var name = (baseName || 'Untitled').trim() || 'Untitled';
+        function tryCreate(projectName) {
+          return fetch('/api/projects', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: projectName })
+          }).then(function (r) {
+            return r.json().then(function (b) { return { ok: r.ok, status: r.status, body: b }; });
+          });
+        }
+        return tryCreate(name).then(function (res) {
+          if (res.ok) return res.body;
+          var isDuplicate = res.body && res.body.error && (res.body.error.indexOf('already exists') !== -1 || res.body.error.indexOf('Please choose a different name') !== -1);
+          if (isDuplicate) {
+            var uniqueName = name + ' (' + Date.now() + ')';
+            return tryCreate(uniqueName).then(function (res2) {
+              if (res2.ok) return res2.body;
+              throw new Error(res2.body && res2.body.error ? res2.body.error : 'Could not create project');
+            });
+          }
+          throw new Error(res.body && res.body.error ? res.body.error : 'Could not create project');
+        });
+      }
+      function exportDesignToUploadItems(designProjectId, designProjectName, data, exportBtn) {
+        if (!data) {
+          if (typeof showToast === 'function') showToast('No design data to export', true);
+          else alert('No design data to export.');
+          return;
+        }
+        var projectName = (designProjectName || 'Untitled').trim() || 'Untitled';
+        if (exportBtn) { exportBtn.disabled = true; exportBtn.textContent = 'Exporting…'; }
+
+        if (data.savedSpriteSheetDataURL && data.spriteSheetFrameCount) {
+          var frameCount = Math.max(1, parseInt(data.spriteSheetFrameCount, 10));
+          var frameW = Math.max(1, parseInt(data.spriteSheetFrameWidth, 10) || 250);
+          var frameH = Math.max(1, parseInt(data.spriteSheetFrameHeight, 10) || 350);
+          createProjectWithUniqueName(projectName).then(function (project) {
+            var blob = dataURLToBlob(data.savedSpriteSheetDataURL);
+            var baseName = (projectName || 'item').replace(/[/\\:*?"<>|]/g, '-').trim().slice(0, 80) || 'item';
+            var fileName = baseName + '-spritesheet.png';
+            var file = new File([blob], fileName, { type: 'image/png' });
+            var formData = new FormData();
+            formData.append('item', file);
+            formData.append('name', projectName);
+            formData.append('slotId', 'other-slot');
+            formData.append('defaultX', '0');
+            formData.append('defaultY', '0');
+            formData.append('defaultZ', '0');
+            formData.append('frameCount', String(frameCount));
+            formData.append('spriteSheetFrameW', String(frameW));
+            formData.append('spriteSheetFrameH', String(frameH));
+            return fetch('/api/projects/' + encodeURIComponent(project.id) + '/upload', { method: 'POST', credentials: 'same-origin', body: formData }).then(function (res) {
+              if (!res.ok) throw new Error('Upload failed');
+              return res.json();
+            }).then(function () {
+              window.location.href = './adjust.html?projectId=' + encodeURIComponent(project.id);
+            });
+          }).catch(function (err) {
+            if (exportBtn) { exportBtn.disabled = false; exportBtn.textContent = 'Export to Upload Items'; }
+            if (typeof showToast === 'function') showToast('Export failed: ' + (err.message || 'unknown'), true);
+            else alert('Export failed: ' + (err.message || 'unknown'));
+          });
+          return;
+        }
+
+        if (!data.layers || !data.layers.length) {
+          if (exportBtn) { exportBtn.disabled = false; exportBtn.textContent = 'Export to Upload Items'; }
+          if (typeof showToast === 'function') showToast('No layers to export. Save a sprite sheet in the design tool first, or add layers.', true);
+          else alert('No layers to export. Save a sprite sheet in the design tool first, or add layers.');
+          return;
+        }
+        var gridW = Math.max(1, parseInt(data.gridW, 10) || 250);
+        var gridH = Math.max(1, parseInt(data.gridH, 10) || 350);
+        createProjectWithUniqueName(projectName)
+          .then(function (project) {
+            var uploadUrl = '/api/projects/' + encodeURIComponent(project.id) + '/upload';
+            var chain = Promise.resolve();
+            data.layers.forEach(function (ly, index) {
+              chain = chain.then(function () {
+                var layerCanvas = renderLayerToCanvas(getLayerGrid(ly), gridW, gridH);
+                if (!layerCanvas) return Promise.resolve();
+                var trimmed = trimCanvasToContent(layerCanvas);
+                var pos = defaultXYForCroppedLayer(trimmed);
+                var blob = dataURLToBlob(trimmed.dataURL);
+                var baseName = safeFileName(ly.name || 'Layer ' + (index + 1));
+                var fileName = baseName + (baseName.toLowerCase().endsWith('.png') ? '' : '.png');
+                var file = new File([blob], fileName, { type: 'image/png' });
+                var formData = new FormData();
+                formData.append('item', file);
+                formData.append('name', (ly.name || 'Layer ' + (index + 1)).trim() || fileName);
+                formData.append('slotId', 'other-slot');
+                formData.append('defaultX', String(pos.defaultX));
+                formData.append('defaultY', String(pos.defaultY));
+                formData.append('defaultZ', String(index));
+                return fetch(uploadUrl, { method: 'POST', credentials: 'same-origin', body: formData }).then(function (res) {
+                  if (!res.ok) throw new Error('Upload failed for layer');
+                  return res.json();
+                });
+              });
+            });
+            return chain.then(function () {
+              window.location.href = './adjust.html?projectId=' + encodeURIComponent(project.id);
+            });
+          })
+          .catch(function (err) {
+            if (exportBtn) { exportBtn.disabled = false; exportBtn.textContent = 'Export to Upload Items'; }
+            if (typeof showToast === 'function') showToast('Export failed: ' + (err.message || 'unknown'), true);
+            else alert('Export failed: ' + (err.message || 'unknown'));
+          });
+      }
+      purgeOldDeletedProjects();
+      var list = getPixelProjectsList();
+      var ul = document.getElementById('project-list');
+      ul.innerHTML = '';
+      if (list.length === 0) {
+        ul.innerHTML = '<li class="empty-state">No design projects yet. <a href="./pixel-drawing.html">Start a new design</a>.</li>';
+      } else {
+        list.sort(function (a, b) {
+          var ta = (a.savedAt || '').toString();
+          var tb = (b.savedAt || '').toString();
+          return tb.localeCompare(ta);
+        });
+        Promise.all(list.map(function (p) {
+          return getProjectDataAsync(p.id).then(function (data) { return { p: p, data: data }; });
+        })).then(function (items) {
+          items.forEach(function (item) {
+          var p = item.p;
+          var data = item.data;
+          var li = document.createElement('li');
+          var projectTop = document.createElement('div');
+          projectTop.className = 'project-top';
+          var previewWrap = document.createElement('div');
+          previewWrap.className = 'preview-wrap';
+          var img = document.createElement('img');
+          img.alt = (p.name || 'Untitled') + ' preview';
+          previewWrap.appendChild(img);
+          var info = document.createElement('div');
+          info.className = 'info';
+          var name = document.createElement('span');
+          name.className = 'name';
+          name.textContent = p.name || 'Untitled';
+          name.title = 'Click to rename';
+          var meta = document.createElement('span');
+          meta.className = 'meta';
+          meta.textContent = formatDate(p.savedAt);
+          info.appendChild(name);
+          info.appendChild(meta);
+          var layerCard = document.createElement('div');
+          layerCard.className = 'layer-card';
+          layerCard.innerHTML = '<span class="layer-card-title">Layers</span><ul></ul>';
+          var layerCardList = layerCard.querySelector('ul');
+          projectTop.appendChild(previewWrap);
+          projectTop.appendChild(info);
+          projectTop.appendChild(layerCard);
+          var projectActions = document.createElement('div');
+          projectActions.className = 'project-actions';
+          var link = document.createElement('a');
+          link.href = './pixel-drawing.html?project=' + encodeURIComponent(p.id);
+          link.className = 'open-link';
+          link.textContent = 'Open';
+          var exportBtn = document.createElement('button');
+          exportBtn.type = 'button';
+          exportBtn.className = 'export-upload-btn';
+          exportBtn.textContent = 'Export to Upload Items';
+          exportBtn.title = 'Create an Upload Items project with layers as items (aligned to base)';
+          var exportBrandBtn = document.createElement('button');
+          exportBrandBtn.type = 'button';
+          exportBrandBtn.className = 'export-brand-btn';
+          exportBrandBtn.textContent = 'Export to Brand Label';
+          exportBrandBtn.title = 'Create a 200×70 brand label project from the top-left area of this design';
+          var deleteBtn = document.createElement('button');
+          deleteBtn.type = 'button';
+          deleteBtn.className = 'delete-btn';
+          deleteBtn.textContent = 'Delete';
+          deleteBtn.title = 'Move to deleted (permanently removed after 24 hours)';
+          projectActions.appendChild(link);
+          projectActions.appendChild(exportBtn);
+          projectActions.appendChild(exportBrandBtn);
+          if (data && data.savedSpriteSheetDataURL) {
+            var downloadSheetBtn = document.createElement('a');
+            downloadSheetBtn.href = data.savedSpriteSheetDataURL;
+            downloadSheetBtn.download = ((p.name || 'Untitled').replace(/[/\\:*?"<>|]/g, '-').trim() || 'Untitled') + '-spritesheet.png';
+            downloadSheetBtn.className = 'download-gif-btn';
+            downloadSheetBtn.textContent = 'Download sprite sheet';
+            downloadSheetBtn.title = 'Download saved sprite sheet (PNG strip)';
+            projectActions.appendChild(downloadSheetBtn);
+          }
+          projectActions.appendChild(deleteBtn);
+          li.appendChild(projectTop);
+          li.appendChild(projectActions);
+          ul.appendChild(li);
+          deleteBtn.addEventListener('click', function () {
+            if (!confirm('Delete this design project? It will be moved to "Deleted" and permanently removed after 24 hours.')) return;
+            deleteProject(p.id);
+            window.location.reload();
+          });
+          if (data && data.layers && data.layers.length) {
+            var gridW = Math.max(1, parseInt(data.gridW, 10) || 250);
+            var gridH = Math.max(1, parseInt(data.gridH, 10) || 350);
+            data.layers.forEach(function (ly) {
+              var layerLi = document.createElement('li');
+              var thumb = document.createElement('img');
+              thumb.className = 'layer-thumb';
+              thumb.alt = (ly.name || 'Layer') + ' preview';
+              var layerGrid = ly.grid;
+              if (!layerGrid && ly.frames && Array.isArray(ly.frames) && ly.frames.length) {
+                var idx = Math.max(0, Math.min((ly.currentFrameIndex != null ? ly.currentFrameIndex : 0), ly.frames.length - 1));
+                layerGrid = ly.frames[idx];
+              }
+              var layerPreview = renderLayerPreview(layerGrid, gridW, gridH);
+              if (layerPreview) thumb.src = layerPreview;
+              layerLi.appendChild(thumb);
+              var vis = document.createElement('span');
+              vis.className = 'vis';
+              vis.textContent = ly.visible === false ? '⊘' : '👁';
+              vis.title = ly.visible === false ? 'Hidden' : 'Visible';
+              layerLi.appendChild(vis);
+              var layerName = document.createElement('span');
+              layerName.className = 'layer-name';
+              layerName.textContent = ly.name || 'Layer';
+              layerLi.appendChild(layerName);
+              layerCardList.appendChild(layerLi);
+            });
+          } else {
+            var emptyLi = document.createElement('li');
+            emptyLi.className = 'layer-name';
+            emptyLi.textContent = 'No layers';
+            layerCardList.appendChild(emptyLi);
+          }
+          (function (projectId, nameEl, displayName) {
+            nameEl.addEventListener('click', function (e) {
+              e.preventDefault();
+              e.stopPropagation();
+              var current = (displayName || 'Untitled').trim() || 'Untitled';
+              var input = document.createElement('input');
+              input.type = 'text';
+              input.className = 'name-edit';
+              input.value = current;
+              input.setSelectionRange(0, input.value.length);
+              nameEl.parentNode.replaceChild(input, nameEl);
+              input.focus();
+              var duplicateNameMessage = 'An outfit, item upload project, or pixel drawing project with this name already exists. Please choose a different name.';
+              function save() {
+                var next = (input.value || '').trim() || 'Untitled';
+                isNameInUse(next, projectId).then(function (inUse) {
+                  if (inUse && next.toLowerCase() !== (current || '').trim().toLowerCase()) {
+                    alert(duplicateNameMessage);
+                    input.parentNode.replaceChild(nameEl, input);
+                    nameEl.textContent = current;
+                    nameEl.title = 'Click to rename';
+                    return;
+                  }
+                  input.parentNode.replaceChild(nameEl, input);
+                  nameEl.textContent = next;
+                  nameEl.title = 'Click to rename';
+                  var list = getPixelProjectsList();
+                  var entry = list.find(function (x) { return x.id === projectId; });
+                  if (entry) {
+                    entry.name = next;
+                    try { localStorage.setItem(PIXEL_PROJECTS_KEY, JSON.stringify(list)); } catch (err) {}
+                  }
+                });
+              }
+              input.addEventListener('blur', save);
+              input.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Enter') { input.blur(); }
+                if (ev.key === 'Escape') {
+                  input.parentNode.replaceChild(nameEl, input);
+                  nameEl.textContent = current;
+                  nameEl.title = 'Click to rename';
+                }
+              });
+            });
+          })(p.id, name, p.name);
+          exportBtn.addEventListener('click', function () {
+            getProjectDataAsync(p.id).then(function (data) {
+              exportDesignToUploadItems(p.id, p.name, data, exportBtn);
+            });
+          });
+          exportBrandBtn.addEventListener('click', function () {
+            getProjectDataAsync(p.id).then(function (data) {
+              exportDesignToBrandLabel(p.id, p.name, data, exportBrandBtn);
+            });
+          });
+          var result = renderProjectPreview(data);
+          if (result) {
+            if (result.useSpriteSheet) {
+              setPreviewFromSpriteSheet(img, result);
+            } else {
+              img.src = result.dataUrl;
+              img.width = result.gridW;
+              img.height = result.gridH;
+            }
+          }
+          });
+        });
+      }
+
+      var deletedList = getDeletedPixelProjectsList();
+      var deletedSection = document.getElementById('deleted-section');
+      var deletedUl = document.getElementById('deleted-project-list');
+      if (deletedList.length > 0 && deletedSection && deletedUl) {
+        deletedSection.style.display = '';
+        deletedUl.innerHTML = '';
+        deletedList.forEach(function (p) {
+          var li = document.createElement('li');
+          var projectTop = document.createElement('div');
+          projectTop.className = 'project-top';
+          var previewWrap = document.createElement('div');
+          previewWrap.className = 'preview-wrap';
+          var img = document.createElement('img');
+          img.alt = (p.name || 'Untitled') + ' preview';
+          previewWrap.appendChild(img);
+          var info = document.createElement('div');
+          info.className = 'info';
+          var nameSpan = document.createElement('span');
+          nameSpan.className = 'name';
+          nameSpan.textContent = p.name || 'Untitled';
+          var meta = document.createElement('span');
+          meta.className = 'meta';
+          meta.textContent = 'Deleted ' + formatDate(p.deletedAt) + ' — removed in 24h';
+          info.appendChild(nameSpan);
+          info.appendChild(meta);
+          projectTop.appendChild(previewWrap);
+          projectTop.appendChild(info);
+          var projectActions = document.createElement('div');
+          projectActions.className = 'project-actions';
+          var restoreBtn = document.createElement('button');
+          restoreBtn.type = 'button';
+          restoreBtn.className = 'restore-btn';
+          restoreBtn.textContent = 'Restore';
+          restoreBtn.title = 'Move back to active projects';
+          projectActions.appendChild(restoreBtn);
+          li.appendChild(projectTop);
+          li.appendChild(projectActions);
+          deletedUl.appendChild(li);
+          restoreBtn.addEventListener('click', function () {
+            restoreProject(p.id);
+            window.location.reload();
+          });
+          getProjectDataAsync(p.id).then(function (data) {
+            var result = renderProjectPreview(data);
+            if (result) {
+              if (result.useSpriteSheet) {
+                setPreviewFromSpriteSheet(img, result);
+              } else {
+                img.src = result.dataUrl;
+                img.width = result.gridW;
+                img.height = result.gridH;
+              }
+            }
+          });
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

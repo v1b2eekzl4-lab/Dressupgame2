@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dress-Up Game - Home</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <link href="/css/tailwind.css" rel="stylesheet">
+  <style>
+    /* Slide on home: wider than side panels; content fills the entire box (640×400, design 500×256 scaled to fill) */
+    .dashboard-slideshow {
+      position: relative;
+      overflow: hidden;
+      width: 640px;
+      min-width: 640px;
+      height: 400px;
+      flex-shrink: 0;
+      background: #1f2937;
+    }
+    .dashboard-slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+      overflow: hidden;
+    }
+    .dashboard-slide.active {
+      opacity: 1;
+    }
+    .dashboard-slide-inner {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 500px;
+      height: 256px;
+      transform: scale(1.28, 1.5625); /* 640/500, 400/256 – fills entire slideshow box */
+      transform-origin: 0 0;
+      overflow: hidden;
+      background: #1f2937;
+    }
+    .dashboard-slide-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      min-width: 100%;
+      min-height: 100%;
+      object-fit: cover;
+      object-position: center;
+      pointer-events: none;
+      z-index: 0;
+      display: block;
+    }
+    .dashboard-slide-title {
+      position: absolute;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+      z-index: 1;
+    }
+    .dashboard-slide-text {
+      position: absolute;
+      font-size: 0.875rem;
+      color: #e5e7eb;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+      white-space: pre-wrap;
+      z-index: 1;
+    }
+    .dashboard-slide-img {
+      position: absolute;
+      object-fit: contain;
+      z-index: 1;
+    }
+    .dashboard-slide-video,
+    .dashboard-slide-video-embed {
+      position: absolute;
+      object-fit: contain;
+      z-index: 1;
+      pointer-events: auto;
+    }
+    .dashboard-slide-video-embed {
+      border: none;
+    }
+    .dashboard-slide-dots {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .dashboard-slide-dots .dashboard-slide-dot {
+      pointer-events: auto;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.5);
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.2s ease;
+    }
+    .dashboard-slide-dots .dashboard-slide-dot:hover {
+      background: rgba(255,255,255,0.8);
+    }
+    .dashboard-slide-dots .dashboard-slide-dot.active {
+      background: #fff;
+    }
+    .forum-like-box tr {
+      height: 18px;
+      border-bottom: 1px solid #d1d5db;
+    }
+    .forum-like-box tr:nth-child(even) {
+      background-color: #f3f4f6;
+    }
+    .forum-like-box tr:nth-child(odd) {
+      background-color: #e5e7eb;
+    }
+    .forum-like-box tr:last-child {
+      border-bottom: none;
+    }
+    .forum-like-box tr.forum-row-member {
+      background: linear-gradient(90deg, #fef3c7 0%, #fef9c3 50%, #f3f4f6 100%) !important;
+    }
+    .forum-like-box tr.forum-row-member:nth-child(odd) {
+      background: linear-gradient(90deg, #fde68a 0%, #fef08a 50%, #e5e7eb 100%) !important;
+    }
+    .forum-like-box-wrap {
+      overflow-y: auto;
+      overflow-x: hidden;
+      max-height: 100%;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      scrollbar-width: thin;
+      scrollbar-color: transparent transparent;
+      transition: scrollbar-color 0.2s ease;
+    }
+    .forum-like-box-wrap:hover {
+      scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
+    }
+    .forum-like-box-wrap::-webkit-scrollbar {
+      width: 6px;
+    }
+    .forum-like-box-wrap::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .forum-like-box-wrap::-webkit-scrollbar-thumb {
+      background: transparent;
+      border-radius: 3px;
+      transition: background 0.2s ease;
+    }
+    .forum-like-box-wrap:hover::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.25);
+    }
+    .forum-like-box-wrap:hover::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.35);
+    }
+    .forum-like-box-wrap .forum-like-box {
+      margin: 0;
+      width: 100%;
+    }
+    .forum-like-box-wrap tr td {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 230px;
+    }
+    .forum-like-box-wrap tr td.forum-info-cell { max-width: 28px; width: 28px; text-align: right; vertical-align: middle; }
+    .forum-info-btn { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: none; border-radius: 4px; background: #e5e7eb; color: #374151; font-size: 12px; font-weight: 600; cursor: default; }
+    .forum-info-btn:hover { background: #d1d5db; }
+    .forum-info-tooltip { display: none; position: fixed; z-index: 9999; max-width: 260px; padding: 10px 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 12px; line-height: 1.5; pointer-events: none; }
+    .forum-info-tooltip.visible { display: block; }
+    .forum-info-tooltip .forum-info-line { margin-bottom: 4px; }
+    .forum-info-tooltip .forum-info-line:last-child { margin-bottom: 0; }
+    .forum-info-tooltip .forum-info-label { color: #6b7280; margin-right: 6px; }
+    .avatar-box img, .forum-like-box img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 50%;
+    }
+    .home-outfit-box {
+      width: 250px;
+      height: 350px;
+      position: relative;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+      transform: translateZ(0);
+      backface-visibility: hidden;
+    }
+    .home-outfit-box #home-outfit-items {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .home-outfit-box .home-base {
+      position: absolute;
+      width: 250px;
+      height: 350px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: -webkit-optimize-contrast;
+      object-fit: none;
+      z-index: 0;
+      pointer-events: none;
+      user-drag: none;
+      -webkit-user-drag: none;
+    }
+    .home-outfit-box .home-outfit-item {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: -webkit-optimize-contrast;
+      object-fit: none;
+      max-width: 250px;
+      max-height: 350px;
+      pointer-events: none;
+    }
+    .home-avatar-link {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+    }
+    .home-avatar-link:hover .home-outfit-box { opacity: 0.9; }
+    /* Glass effect for avatar panel */
+    .home-avatar-panel {
+      position: relative;
+      width: 250px;
+      min-width: 250px;
+      height: 400px;
+      flex-shrink: 0;
+      padding: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    }
+    .home-foil-strip {
+      position: absolute;
+      left: 0;
+      right: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .home-foil-top {
+      top: 0;
+      height: 28px;
+      border-radius: 12px 12px 0 0;
+    }
+    .home-foil-bottom {
+      bottom: 0;
+      min-height: 44px;
+      border-radius: 0 0 12px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+    }
+    .home-foil-bottom .home-welcome-text {
+      position: relative;
+      z-index: 2;
+      margin: 0;
+      padding: 8px 12px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #374151;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.8);
+    }
+    .home-avatar-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 36px;
+      padding-bottom: 52px;
+      height: 100%;
+      box-sizing: border-box;
+    }
+    /* Holo foil layers (same as forum hover card) */
+    .home-foil-strip .holo-mask-wrap { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; }
+    .home-foil-strip .holo-mask-wrap.mask-none { -webkit-mask-image: none; mask-image: none; }
+    .home-foil-strip .holo-mask-wrap.mask-radial { -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, black 40%, transparent 70%); mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, black 40%, transparent 70%); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+    .home-foil-strip .holo-mask-wrap.mask-linear-v { -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 80%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 80%, transparent 100%); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+    .home-foil-strip .holo-mask-wrap.mask-linear-h { -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 25%, black 75%, transparent 100%); mask-image: linear-gradient(90deg, transparent 0%, black 25%, black 75%, transparent 100%); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+    .home-foil-strip .holo-layer { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
+    .home-foil-strip .holo-grad-1 { background: conic-gradient(from 0deg at 50% 50%, #ff0080, #ff8c00, #40e0d0, #9d4edd, #ff0080); mix-blend-mode: overlay; }
+    .home-foil-strip .holo-grad-2 { background: linear-gradient(135deg, #fbbf24 0%, #a78bfa 50%, #06b6d4 100%); mix-blend-mode: overlay; }
+    .home-foil-strip .holo-grad-3 { background: radial-gradient(ellipse 80% 80% at 50% 50%, #f472b6, transparent 60%); mix-blend-mode: overlay; }
+    .home-foil-strip .holo-pattern-1 { background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.12) 8px, rgba(255,255,255,0.12) 16px); mix-blend-mode: overlay; }
+    .home-foil-strip .holo-pattern-2 { background: radial-gradient(circle at center, rgba(255,255,255,0.2) 1px, transparent 1px); background-size: 12px 12px; mix-blend-mode: overlay; }
+    .home-foil-strip .holo-pattern-3 { background: repeating-linear-gradient(0deg, transparent 0, transparent 6px, rgba(255,255,255,0.08) 6px, rgba(255,255,255,0.08) 12px), repeating-linear-gradient(90deg, transparent 0, transparent 6px, rgba(255,255,255,0.08) 6px, rgba(255,255,255,0.08) 12px); mix-blend-mode: overlay; }
+    .home-foil-strip .holo-reflect { position: absolute; inset: 0; border-radius: inherit; mix-blend-mode: overlay; pointer-events: none; -webkit-mask-size: 32px 32px; mask-size: 32px 32px; -webkit-mask-repeat: repeat; mask-repeat: repeat; }
+    .home-foil-strip .holo-reflect-hearts { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E"); }
+    .home-foil-strip .holo-reflect-stars { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E"); }
+    .home-foil-strip .holo-reflect-prisms { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2L2 12l10 10 10-10L12 2z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2L2 12l10 10 10-10L12 2z'/%3E%3C/svg%3E"); }
+    .home-foil-strip .holo-foil-shimmer { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.2) 30%, rgba(255,255,255,0.45) 45%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.45) 55%, rgba(255,255,255,0.2) 70%, transparent 100%); background-size: 200% 200%; animation: home-holo-shimmer 4s ease-in-out infinite; pointer-events: none; }
+    @keyframes home-holo-spin { to { transform: rotate(360deg); } }
+    @keyframes home-holo-shimmer { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+    /* Shared glass panel for dashboard and forum (foil strips use .home-foil-strip) */
+    .home-panel-glass {
+      position: relative;
+      flex-shrink: 0;
+      padding: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    }
+    .home-panel-content { position: relative; z-index: 1; padding: 8px; box-sizing: border-box; }
+    .home-panel-content.home-dashboard-content { padding-top: 36px; padding-bottom: 36px; }
+    .home-panel-content.home-forum-content { padding-top: 36px; padding-bottom: 36px; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    .home-panel-content.home-forum-content .forum-like-box-wrap { flex: 1; min-height: 0; }
+    /* Top carousel (aligned with header and 3 boxes) */
+    .home-top-carousel {
+      position: relative;
+      width: 100%;
+      max-width: 1188px;
+      margin-left: auto;
+      margin-right: auto;
+      height: 200px;
+      overflow: hidden;
+      background: #1f2937;
+      flex-shrink: 0;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    }
+    .home-top-carousel-track {
+      display: flex;
+      height: 100%;
+      transition: transform 0.6s ease-in-out;
+      will-change: transform;
+    }
+    .home-top-carousel-slide {
+      flex: 0 0 100%;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-size: cover;
+      background-position: center;
+      background-color: #374151;
+    }
+    .home-top-carousel-slide a {
+      display: block;
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+    .home-top-carousel-slide-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 16px;
+      max-width: 90%;
+    }
+    .home-top-carousel-slide-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+      margin: 0 0 4px 0;
+    }
+    .home-top-carousel-slide-text {
+      font-size: 0.95rem;
+      color: #e5e7eb;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+      margin: 0;
+    }
+    .home-top-carousel-dots {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .home-top-carousel-dots .home-top-carousel-dot {
+      pointer-events: auto;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.5);
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.2s ease;
+    }
+    .home-top-carousel-dots .home-top-carousel-dot:hover {
+      background: rgba(255,255,255,0.8);
+    }
+    .home-top-carousel-dots .home-top-carousel-dot.active {
+      background: #fff;
+    }
+    /* Side ad panels (left/right of main content) */
+    .home-layout { display: flex; width: 100%; max-width: 100%; justify-content: center; gap: 16px; margin-top: 0; padding: 0 16px; box-sizing: border-box; }
+    .home-ad-side { flex: 1; min-width: 120px; max-width: 200px; min-height: 616px; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: linear-gradient(180deg, #fef5f8 0%, #fce4ec 40%, #f8bbd9 100%); border: 1px solid rgba(244, 143, 177, 0.5); box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08); display: flex; align-items: center; justify-content: center; color: #6b4a5a; font-size: 14px; }
+    .home-ad-side span { opacity: 0.6; }
+    @media (max-width: 1399px) { .home-ad-side { display: none; } }
+    @media (max-width: 1199px) {
+      .home-panels-row { overflow-x: auto; -webkit-overflow-scrolling: touch; justify-content: flex-start; padding-bottom: 8px; }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
+  <div id="header-placeholder"></div>
+  <div class="home-layout">
+    <aside class="home-ad-side" aria-label="Ad space"><span>Ad</span></aside>
+    <div class="home-center" style="max-width: 1188px; display: flex; flex-direction: column; align-items: center; gap: 16px;">
+  <div id="home-top-carousel" class="home-top-carousel" aria-roledescription="carousel" aria-label="Featured">
+    <div class="home-top-carousel-track" id="home-top-carousel-track">
+      <div class="home-top-carousel-slide" data-slide-index="0" style="background-image: linear-gradient(135deg, #ec4899 0%, #db2777 100%);">
+        <div class="home-top-carousel-slide-content">
+          <h2 class="home-top-carousel-slide-title">Welcome to the Dress-Up Game</h2>
+          <p class="home-top-carousel-slide-text">Create looks, explore the wardrobe, and join the community.</p>
+        </div>
+      </div>
+      <div class="home-top-carousel-slide" data-slide-index="1" style="background-image: linear-gradient(135deg, #059669 0%, #0d9488 100%);">
+        <div class="home-top-carousel-slide-content">
+          <h2 class="home-top-carousel-slide-title">New items in the store</h2>
+          <p class="home-top-carousel-slide-text">Check out the latest outfits and accessories.</p>
+        </div>
+      </div>
+      <div class="home-top-carousel-slide" data-slide-index="2" style="background-image: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);">
+        <div class="home-top-carousel-slide-content">
+          <h2 class="home-top-carousel-slide-title">Join the Social feed</h2>
+          <p class="home-top-carousel-slide-text">Share and discover with other players.</p>
+        </div>
+      </div>
+    </div>
+    <div class="home-top-carousel-dots" id="home-top-carousel-dots" aria-label="Slide navigation"></div>
+  </div>
+  <div class="w-full" style="margin-top: 0; padding-top: 0; width: 100%; max-width: 1188px; box-sizing: border-box;">
+    <div class="flex gap-4 justify-center home-panels-row">
+      <!-- Left Avatar Box: glass panel + foil top/bottom -->
+      <div id="home-avatar-panel" class="home-avatar-panel">
+        <div id="home-foil-top" class="home-foil-strip home-foil-top"></div>
+        <div class="home-avatar-content">
+          <a href="/profile" id="home-avatar-link" class="home-avatar-link" title="View your profile" aria-label="View your profile">
+            <div id="home-outfit-preview" class="home-outfit-box">
+              <img src="/Uploads/character.png" class="home-base" alt="Character Base" id="home-outfit-base" width="250" height="350" draggable="false" fetchpriority="high">
+              <div id="home-outfit-items"></div>
+            </div>
+          </a>
+        </div>
+        <div id="home-foil-bottom" class="home-foil-strip home-foil-bottom">
+          <p id="home-welcome" class="home-welcome-text">Welcome!</p>
+        </div>
+      </div>
+      <!-- Center: dashboard slide + foil top/bottom -->
+      <div id="home-dashboard-panel" class="home-panel-glass flex flex-col" style="width: 656px; min-width: 656px; height: 400px; box-sizing: border-box;">
+        <div id="home-dashboard-foil-top" class="home-foil-strip home-foil-top" style="height: 28px;"></div>
+        <div class="home-panel-content home-dashboard-content flex flex-col flex-1 min-h-0">
+          <div class="dashboard-slideshow flex-1 min-h-0" id="dashboard-slideshow">
+            <div class="dashboard-slide active" data-slide-index="0">
+              <div class="dashboard-slide-inner">
+                <p class="dashboard-slide-text" style="left:20px;top:20px">Loading…</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="home-dashboard-foil-bottom" class="home-foil-strip" style="bottom: 0; height: 28px; border-radius: 0 0 12px 12px;"></div>
+      </div>
+      <!-- Right: forum box + foil top/bottom -->
+      <div id="home-forum-panel" class="home-panel-glass flex flex-col" style="width: 250px; min-width: 250px; height: 400px;">
+        <div id="home-forum-foil-top" class="home-foil-strip home-foil-top" style="height: 28px;"></div>
+        <div class="home-panel-content home-forum-content">
+          <div id="forum-info-tooltip" class="forum-info-tooltip" aria-hidden="true"></div>
+          <div class="forum-like-box-wrap flex-1 min-h-0 flex flex-col" style="height: 0;">
+            <h2 class="text-sm font-semibold text-gray-700 mb-0.5 text-center">Bulletin Board</h2>
+            <table class="forum-like-box w-full text-left border-collapse flex-1 min-h-0">
+              <tbody id="forum-box-body"></tbody>
+            </table>
+            <p id="forum-box-updated" class="text-xs text-gray-400 mt-1 text-center" style="display:none;"></p>
+          </div>
+        </div>
+        <div id="home-forum-foil-bottom" class="home-foil-strip" style="bottom: 0; height: 28px; border-radius: 0 0 12px 12px;"></div>
+      </div>
+    </div>
+  </div>
+    </div>
+    <aside class="home-ad-side" aria-label="Ad space"><span>Ad</span></aside>
+  </div>
+
+  <script>
+    function applyPixelPerfectSize(img, maxW, maxH) {
+      maxW = maxW || 250; maxH = maxH || 350;
+      var nw = img.naturalWidth, nh = img.naturalHeight;
+      if (!nw || !nh) return;
+      var scale = Math.min(1, maxW / nw, maxH / nh);
+      if (scale < 1) scale = 1 / Math.ceil(1 / scale);
+      var w = Math.round(nw * scale), h = Math.round(nh * scale);
+      if (w % 2 !== 0) w++; if (h % 2 !== 0) h++;
+      img.style.width = w + 'px';
+      img.style.height = h + 'px';
+    }
+    function hookPixelPerfect(img, maxW, maxH) {
+      img.addEventListener('load', function () { applyPixelPerfectSize(img, maxW, maxH); });
+      if (img.complete) applyPixelPerfectSize(img, maxW, maxH);
+    }
+    (function () {
+      var base = document.getElementById('home-outfit-base');
+      if (base) hookPixelPerfect(base);
+    })();
+    // Top carousel: auto-advance and dot navigation
+    (function () {
+      var carousel = document.getElementById('home-top-carousel');
+      var track = document.getElementById('home-top-carousel-track');
+      var dotsWrap = document.getElementById('home-top-carousel-dots');
+      if (!carousel || !track || !dotsWrap) return;
+      var slides = track.querySelectorAll('.home-top-carousel-slide');
+      var count = slides.length;
+      if (count === 0) return;
+      var index = 0;
+      var autoTimer = null;
+      var intervalMs = 5000;
+      function goTo(i) {
+        index = ((i % count) + count) % count;
+        track.style.transform = 'translateX(-' + (index * 100) + '%)';
+        dotsWrap.querySelectorAll('.home-top-carousel-dot').forEach(function (dot, d) {
+          dot.classList.toggle('active', d === index);
+          dot.setAttribute('aria-current', d === index ? 'true' : 'false');
+        });
+        slides.forEach(function (slide, s) {
+          slide.setAttribute('aria-hidden', s !== index ? 'true' : 'false');
+        });
+      }
+      function next() {
+        goTo(index + 1);
+      }
+      for (var d = 0; d < count; d++) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'home-top-carousel-dot' + (d === 0 ? ' active' : '');
+        btn.setAttribute('aria-label', 'Go to slide ' + (d + 1));
+        btn.setAttribute('aria-current', d === 0 ? 'true' : 'false');
+        (function (i) {
+          btn.addEventListener('click', function () {
+            goTo(i);
+            resetAuto();
+          });
+        })(d);
+        dotsWrap.appendChild(btn);
+      }
+      slides[0].setAttribute('aria-hidden', 'false');
+      for (var s = 1; s < slides.length; s++) slides[s].setAttribute('aria-hidden', 'true');
+      function resetAuto() {
+        if (autoTimer) clearInterval(autoTimer);
+        autoTimer = setInterval(next, intervalMs);
+      }
+      resetAuto();
+    })();
+    // Load welcome message with username
+    (function () {
+      const welcomeEl = document.getElementById('home-welcome');
+      if (!welcomeEl) return;
+      fetch('/api/me', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(data => {
+        const user = data && data.user;
+        welcomeEl.textContent = user ? 'Welcome, ' + user + '!' : 'Welcome!';
+      }).catch(function () {
+        welcomeEl.textContent = 'Welcome!';
+      });
+    })();
+    // Holo foil on top and bottom strips for all three panels (avatar, dashboard, forum)
+    (function () {
+      var stripIds = ['home-foil-top', 'home-foil-bottom', 'home-dashboard-foil-top', 'home-dashboard-foil-bottom', 'home-forum-foil-top', 'home-forum-foil-bottom'];
+      var strips = stripIds.map(function (id) { return document.getElementById(id); }).filter(Boolean);
+      if (strips.length === 0) return;
+      fetch('/api/hover-card-customization', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; })
+        .then(function (data) {
+          var foilData = data && data.hoverCardFoil;
+          var enabled = !!(foilData && typeof foilData === 'object' && !Array.isArray(foilData) && (foilData.enabled === true || foilData.enabled === 'true'));
+          if (!enabled) return;
+          var f = foilData;
+          var conicColors = '#ff0080, #ff8c00, #40e0d0, #9d4edd, #ff0080';
+          function op(pct) { var n = (pct != null && pct !== '') ? (typeof pct === 'number' ? pct : parseInt(pct, 10)) : 90; return String(Math.max(0.1, Math.min(1, (Number(n) || 90) / 100))); }
+          var maskVal = (f.mask && ['none','radial','linear-v','linear-h'].indexOf(String(f.mask)) !== -1) ? f.mask : 'none';
+          function buildFoilWrap() {
+            var wrap = document.createElement('div');
+            wrap.className = 'home-foil-inner';
+            wrap.style.cssText = 'position:absolute;inset:0;border-radius:inherit;';
+            var mask = document.createElement('div');
+            mask.className = 'holo-mask-wrap mask-' + maskVal;
+            mask.style.opacity = op(f.masterOp != null ? f.masterOp : 90);
+            var g1 = document.createElement('div'); g1.className = 'holo-layer holo-grad-1'; g1.style.display = f.g1On !== false ? '' : 'none'; g1.style.opacity = op(f.g1Op); if (f.spin) g1.style.animation = 'home-holo-spin 8s linear infinite';
+            var g2 = document.createElement('div'); g2.className = 'holo-layer holo-grad-2'; g2.style.display = f.g2On !== false ? '' : 'none'; g2.style.opacity = op(f.g2Op);
+            var g3 = document.createElement('div'); g3.className = 'holo-layer holo-grad-3'; g3.style.display = f.g3On !== false ? '' : 'none'; g3.style.opacity = op(f.g3Op);
+            var p1 = document.createElement('div'); p1.className = 'holo-layer holo-pattern-1'; p1.style.display = f.p1On !== false ? '' : 'none'; p1.style.opacity = op(f.p1Op);
+            var p2 = document.createElement('div'); p2.className = 'holo-layer holo-pattern-2'; p2.style.display = f.p2On ? '' : 'none'; p2.style.opacity = op(f.p2Op);
+            var p3 = document.createElement('div'); p3.className = 'holo-layer holo-pattern-3'; p3.style.display = f.p3On ? '' : 'none'; p3.style.opacity = op(f.p3Op);
+            var rh = document.createElement('div'); rh.className = 'holo-layer holo-reflect holo-reflect-hearts'; rh.style.display = f.rhOn !== false ? '' : 'none'; rh.style.opacity = op(f.rhOp); rh.style.background = 'conic-gradient(from ' + (Number(f.rhAngle) || 0) + 'deg at 50% 50%, ' + conicColors + ')';
+            var rs = document.createElement('div'); rs.className = 'holo-layer holo-reflect holo-reflect-stars'; rs.style.display = f.rsOn !== false ? '' : 'none'; rs.style.opacity = op(f.rsOp); rs.style.background = 'conic-gradient(from ' + (Number(f.rsAngle) || 120) + 'deg at 50% 50%, ' + conicColors + ')';
+            var rp = document.createElement('div'); rp.className = 'holo-layer holo-reflect holo-reflect-prisms'; rp.style.display = f.rpOn !== false ? '' : 'none'; rp.style.opacity = op(f.rpOp); rp.style.background = 'conic-gradient(from ' + (Number(f.rpAngle) || 240) + 'deg at 50% 50%, ' + conicColors + ')';
+            mask.appendChild(g1); mask.appendChild(g2); mask.appendChild(g3); mask.appendChild(p1); mask.appendChild(p2); mask.appendChild(p3); mask.appendChild(rh); mask.appendChild(rs); mask.appendChild(rp);
+            wrap.appendChild(mask);
+            var shimmer = document.createElement('div'); shimmer.className = 'holo-foil-shimmer'; shimmer.style.animation = f.shimmer !== false ? 'home-holo-shimmer 4s ease-in-out infinite' : 'none';
+            wrap.appendChild(shimmer);
+            return wrap;
+          }
+          strips.forEach(function (strip) {
+            var foil = buildFoilWrap();
+            strip.insertBefore(foil, strip.firstChild);
+          });
+        });
+    })();
+    // Load last saved outfit into avatar box (same approach as forum: use layered items so outfit always shows)
+    (function () {
+      const container = document.getElementById('home-outfit-items');
+      if (!container) return;
+      fetch('/api/outfits', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(outfits => {
+        if (!Array.isArray(outfits) || outfits.length === 0) return;
+        const lastOutfit = outfits[outfits.length - 1];
+        if (!lastOutfit || !lastOutfit.items || typeof lastOutfit.items !== 'object') return;
+        const slotOrder = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
+        const all = [];
+        slotOrder.forEach(slotId => {
+          const arr = lastOutfit.items[slotId];
+          if (Array.isArray(arr)) arr.forEach(item => all.push({ ...item, slotId }));
+        });
+        all.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+        all.forEach(item => {
+          const el = document.createElement('img');
+          el.className = 'home-outfit-item';
+          var src = (item.src || '').trim();
+          if (src && src.indexOf('/') === 0) src = window.location.origin + src;
+          el.src = src || '';
+          el.alt = item.alt || '';
+          el.loading = 'lazy';
+          el.style.zIndex = item.zIndex != null ? item.zIndex : 2;
+          el.style.transform = 'translate(-50%, -50%) translate(' + (item.x || 0) + 'px, ' + (item.y || 0) + 'px)';
+          el.onerror = () => { el.style.display = 'none'; };
+          hookPixelPerfect(el);
+          container.appendChild(el);
+        });
+      }).catch(function () {});
+    })();
+    // Dashboard slides: load from API and run slideshow
+    (function () {
+      const container = document.getElementById('dashboard-slideshow');
+      if (!container) return;
+      Promise.all([
+        fetch('/api/dashboard/slides', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch('/api/me', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : {}).catch(() => ({}))
+      ]).then(function ([slides, me]) {
+        const list = Array.isArray(slides) && slides.length > 0 ? slides : [
+          { id: '1', title: 'Home Dashboard', text: 'Welcome back! Explore your options.', imageUrl: '' }
+        ];
+        container.innerHTML = list.map(function (s, i) {
+          function esc(str) { return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+          var bgUrl = (s.backgroundUrl && typeof s.backgroundUrl === 'string') ? s.backgroundUrl.trim() : '';
+          var slideLoading = i === 0 ? 'eager' : 'lazy';
+          var isVideoBg = /\.(mp4|webm|og[gv])(\?|$)/i.test(bgUrl || '');
+          var bg = '';
+          if (bgUrl) {
+            if (isVideoBg) {
+              bg = '<video class="dashboard-slide-bg" src="' + esc(bgUrl) + '" muted loop playsinline autoplay preload="metadata" onerror="this.style.display=\'none\'"></video>';
+            } else {
+              bg = '<img src="' + esc(bgUrl) + '" alt="" class="dashboard-slide-bg" loading="' + slideLoading + '" onerror="this.style.display=\'none\'">';
+            }
+          }
+          var textX = s.textX != null ? s.textX : 20;
+          var textY = s.textY != null ? s.textY : 60;
+          var fontStyle = (s.fontFamily && String(s.fontFamily).trim()) ? 'font-family:' + esc(s.fontFamily.trim()) + ';' : '';
+          var titleHtml = '';
+          var textHtml = '';
+          if (Array.isArray(s.texts) && s.texts.length > 0) {
+            s.texts.forEach(function (t) {
+              if (!t) return;
+              var tx = t.x != null ? t.x : 20;
+              var ty = t.y != null ? t.y : 60;
+              var tStyle = (s.fontFamily && String(s.fontFamily).trim()) ? 'font-family:' + esc(s.fontFamily.trim()) + ';' : '';
+              var fs = t.fontSize != null ? t.fontSize : 16;
+              if (t.fontWeight === 'bold') tStyle += 'font-weight:bold;';
+              if (t.fontStyle === 'italic') tStyle += 'font-style:italic;';
+              tStyle += 'font-size:' + Math.max(10, Math.min(72, fs)) + 'px;';
+              if (t.color && String(t.color).trim()) tStyle += 'color:' + String(t.color).trim() + ';';
+              var content = (t.content || '').trim();
+              if (!content) content = '\u00a0';
+              textHtml += '<p class="dashboard-slide-text" style="left:' + tx + 'px;top:' + ty + 'px;' + tStyle + '">' + esc(content.replace(/\n/g, '<br>')) + '</p>';
+            });
+          } else if ((s.text || '').trim()) {
+            textHtml = '<p class="dashboard-slide-text" style="left:' + textX + 'px;top:' + textY + 'px' + (fontStyle ? ';' + fontStyle : '') + '">' + esc((s.text || '').trim().replace(/\n/g, '<br>')) + '</p>';
+          }
+          var imgs = Array.isArray(s.images) && s.images.length ? s.images : (s.imageUrl ? [{ url: s.imageUrl, x: 20, y: 80, w: 120, h: 120 }] : []);
+          var imgsHtml = imgs.map(function (img) {
+            if (!img || !img.url) return '';
+            var x = img.x != null ? img.x : 20;
+            var y = img.y != null ? img.y : 80;
+            var iw = img.w != null ? img.w : 120;
+            var ih = img.h != null ? img.h : 120;
+            return '<img src="' + esc(img.url) + '" alt="" class="dashboard-slide-img" style="left:' + x + 'px;top:' + y + 'px;width:' + iw + 'px;height:' + ih + 'px;max-width:none;max-height:none;object-fit:contain" loading="' + slideLoading + '">';
+          }).join('');
+          var vids = Array.isArray(s.videos) && s.videos.length ? s.videos : [];
+          var videosHtml = vids.map(function (v) {
+            if (!v || !v.url) return '';
+            var x = v.x != null ? v.x : 20;
+            var y = v.y != null ? v.y : 80;
+            var vw = v.w != null ? v.w : 200;
+            var vh = v.h != null ? v.h : 112;
+            if (v.visible === false) return '';
+            var src = esc(v.url);
+            var isYoutube = /youtube\.com\/embed|youtu\.be\//.test(v.url);
+            if (isYoutube) {
+              return '<iframe class="dashboard-slide-video-embed" style="left:' + x + 'px;top:' + y + 'px;width:' + vw + 'px;height:' + vh + 'px" src="' + src + '" frameborder="0" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>';
+            }
+            return '<video class="dashboard-slide-video" style="left:' + x + 'px;top:' + y + 'px;width:' + vw + 'px;height:' + vh + 'px" src="' + src + '" muted loop playsinline autoplay preload="metadata" onerror="this.style.display=\'none\'"></video>';
+          }).join('');
+          var linkUrl = (s.linkUrl && typeof s.linkUrl === 'string') ? s.linkUrl.trim() : '';
+          var linkAttr = linkUrl ? ' data-link-url="' + (linkUrl || '').replace(/"/g, '&quot;') + '"' : '';
+          return '<div class="dashboard-slide' + (i === 0 ? ' active' : '') + '" data-slide-index="' + i + '"' + linkAttr + '><div class="dashboard-slide-inner">' + bg + textHtml + imgsHtml + videosHtml + '</div></div>';
+        }).join('');
+        let slideIndex = 0;
+        const slideEls = container.querySelectorAll('.dashboard-slide');
+        container.addEventListener('click', function (e) {
+          if (e.target.closest && e.target.closest('.dashboard-slide-dots')) return;
+          var activeSlide = container.querySelector('.dashboard-slide.active');
+          if (!activeSlide) return;
+          var url = activeSlide.getAttribute('data-link-url');
+          if (url) {
+            e.preventDefault();
+            var isExternal = /^https?:\/\//i.test(url) && !url.startsWith(window.location.origin);
+            if (isExternal) {
+              window.open(url, '_blank', 'noopener,noreferrer');
+            } else {
+              window.location.href = url;
+            }
+          }
+        });
+        container.style.cursor = 'default';
+        function updateSlideCursor() {
+          var active = container.querySelector('.dashboard-slide.active');
+          container.style.cursor = (active && active.getAttribute('data-link-url')) ? 'pointer' : 'default';
+        }
+        updateSlideCursor();
+        var dotsWrap = document.createElement('div');
+        dotsWrap.className = 'dashboard-slide-dots';
+        list.forEach(function (_, i) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'dashboard-slide-dot' + (i === 0 ? ' active' : '');
+          btn.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+          btn.dataset.slideIndex = String(i);
+          dotsWrap.appendChild(btn);
+        });
+        container.appendChild(dotsWrap);
+        var dotEls = dotsWrap.querySelectorAll('.dashboard-slide-dot');
+        function goToSlide(index) {
+          slideIndex = index;
+          slideEls.forEach(function (el) { el.classList.remove('active'); });
+          dotEls.forEach(function (el) { el.classList.remove('active'); });
+          if (slideEls[slideIndex]) slideEls[slideIndex].classList.add('active');
+          if (dotEls[slideIndex]) dotEls[slideIndex].classList.add('active');
+          updateSlideCursor();
+        }
+        dotEls.forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var idx = parseInt(btn.dataset.slideIndex, 10);
+            if (!isNaN(idx)) goToSlide(idx);
+          });
+        });
+        var autoTimer = null;
+        function getDurationMs(idx) {
+          var s = list[idx];
+          if (s && typeof s.durationMs === 'number' && s.durationMs > 0) return Math.min(60000, Math.max(1000, s.durationMs));
+          return 3000;
+        }
+        function showSlides() {
+          slideEls.forEach(function (el) { el.classList.remove('active'); });
+          slideIndex = (slideIndex + 1) % slideEls.length;
+          if (slideEls[slideIndex]) slideEls[slideIndex].classList.add('active');
+          dotEls.forEach(function (el) { el.classList.remove('active'); });
+          if (dotEls[slideIndex]) dotEls[slideIndex].classList.add('active');
+          updateSlideCursor();
+          autoTimer = setTimeout(showSlides, getDurationMs(slideIndex));
+        }
+        if (slideEls.length > 1) autoTimer = setTimeout(showSlides, getDurationMs(0));
+      });
+    })();
+
+    // Populate forum box from server (GET /api/forum/topics); refetch on storage (other tab) and focus
+    (function () {
+      const tbody = document.getElementById('forum-box-body');
+      const updatedEl = document.getElementById('forum-box-updated');
+      if (!tbody) return;
+      function renderForumBox() {
+        fetch('/api/forum/topics', { credentials: 'same-origin' })
+          .then(function (r) { return r.ok ? r.json() : []; })
+          .catch(function () { return []; })
+          .then(function (topics) {
+            const list = Array.isArray(topics) ? topics : [];
+            const rows = [];
+            if (list.length === 0) {
+              rows.push('<tr><td colspan="2" class="p-1 text-xs text-gray-500">No posts yet. Create one in Social.</td></tr>');
+            } else {
+              list.forEach(function (t) {
+                var createdBy = (t.author || '—').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                var createdAt = (t.createdAt || t.latestPost || '—').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                var lastCommenter = (t.lastCommenter || '—').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                var count = t.posts != null ? t.posts : '—';
+                var category = (t.category || '—').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                var authorRoles = (t.authorRoles && Array.isArray(t.authorRoles)) ? t.authorRoles : [];
+                var trClass = authorRoles.indexOf('membership') !== -1 ? ' class="forum-row-member"' : '';
+                rows.push('<tr' + trClass + '><td class="p-1 text-xs"><a href="./forum.html?topicId=' + encodeURIComponent(t.id) + '" class="text-pink-600 hover:underline">' + (t.topic || 'Untitled').replace(/</g, '&lt;') + '</a></td><td class="p-1 forum-info-cell"><span class="forum-info-btn" role="button" tabindex="0" aria-label="Thread info" data-created-by="' + createdBy + '" data-created-at="' + createdAt + '" data-last-commenter="' + lastCommenter + '" data-comment-count="' + count + '" data-category="' + category + '">=</span></td></tr>');
+              });
+            }
+            var minRows = 22;
+            for (var i = rows.length; i < minRows; i++) {
+              rows.push('<tr><td colspan="2" class="p-1 text-xs">&nbsp;</td></tr>');
+            }
+            tbody.innerHTML = rows.join('');
+            var tooltip = document.getElementById('forum-info-tooltip');
+            if (tooltip && tooltip.parentNode !== document.body) {
+              document.body.appendChild(tooltip);
+            }
+            function showForumTooltip(btn) {
+              if (!tooltip || !btn) return;
+              var createdBy = btn.getAttribute('data-created-by') || '—';
+              var createdAt = btn.getAttribute('data-created-at') || '—';
+              var lastCommenter = btn.getAttribute('data-last-commenter') || '—';
+              var count = btn.getAttribute('data-comment-count') || '—';
+              var category = btn.getAttribute('data-category') || '—';
+              tooltip.innerHTML = '<div class="forum-info-line"><span class="forum-info-label">Category:</span>' + category + '</div>' +
+                '<div class="forum-info-line"><span class="forum-info-label">Created by:</span>' + createdBy + '</div>' +
+                '<div class="forum-info-line"><span class="forum-info-label">Created:</span>' + createdAt + '</div>' +
+                '<div class="forum-info-line"><span class="forum-info-label">Last comment by:</span>' + lastCommenter + '</div>' +
+                '<div class="forum-info-line"><span class="forum-info-label">Comments:</span>' + count + '</div>';
+              tooltip.classList.add('visible');
+              tooltip.setAttribute('aria-hidden', 'false');
+              var rect = btn.getBoundingClientRect();
+              var x = rect.right + 8;
+              var y = rect.top;
+              if (x + tooltip.offsetWidth > window.innerWidth) x = rect.left - tooltip.offsetWidth - 8;
+              if (x < 8) x = 8;
+              if (y + tooltip.offsetHeight > window.innerHeight - 8) y = window.innerHeight - tooltip.offsetHeight - 8;
+              if (y < 8) y = 8;
+              tooltip.style.left = x + 'px';
+              tooltip.style.top = y + 'px';
+            }
+            function hideForumTooltip() {
+              if (tooltip) { tooltip.classList.remove('visible'); tooltip.setAttribute('aria-hidden', 'true'); }
+            }
+            tbody.querySelectorAll('.forum-info-btn').forEach(function (btn) {
+              btn.addEventListener('mouseenter', function () { showForumTooltip(btn); });
+              btn.addEventListener('mouseleave', function (e) {
+                if (!e.relatedTarget || !e.relatedTarget.closest || !e.relatedTarget.closest('.forum-info-btn')) hideForumTooltip();
+              });
+            });
+            if (updatedEl) {
+              var d = new Date();
+              updatedEl.textContent = 'Updated ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+              updatedEl.style.display = 'block';
+            }
+          });
+      }
+      renderForumBox();
+      window.addEventListener('focus', renderForumBox);
+      window.addEventListener('storage', function (e) {
+        if (e.key === 'forumTopicsUpdated') renderForumBox();
+      });
+    })();
+  </script>
+  <script src="/js/toast.js" defer></script>
+  <script src="/js/api.js" defer></script>
+  <script src="/js/header.js" defer></script>
+</body>
+</html>

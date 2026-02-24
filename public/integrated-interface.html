@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Integrated Interface</title>
+  <style>
+    /* Background styling */
+    body {
+      margin: 0;
+      padding: 0;
+      background-image: url('https://p4vl0v.neocities.org/ytytyyyyyyyyyy.gif');
+      background-repeat: repeat;
+      overflow: hidden;
+      position: relative; /* Establish a base stacking context */
+      cursor: url("https://p4vl0v.neocities.org/tytytyty.png"), auto;
+    }
+
+    /* Fish styling */
+    .fish {
+      width: 50px;
+      height: 50px;
+      position: fixed;
+      left: 110%;
+      z-index: 1; /* Below other elements */
+      user-select: none;
+      cursor: default;
+      background-size: contain;
+      background-repeat: no-repeat;
+      -webkit-animation: fishes-swim linear infinite, fishes-wiggle ease-in-out infinite;
+      animation: fishes-swim linear infinite, fishes-wiggle ease-in-out infinite;
+    }
+
+    /* Keyframes for swimming (right to left) */
+    @-webkit-keyframes fishes-swim {
+      0% { left: 110%; }
+      100% { left: -10%; }
+    }
+    @keyframes fishes-swim {
+      0% { left: 110%; }
+      100% { left: -10%; }
+    }
+
+    /* Keyframes for wiggling (vertical movement) */
+    @-webkit-keyframes fishes-wiggle {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(10px); }
+      100% { transform: translateY(0px); }
+    }
+    @keyframes fishes-wiggle {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(10px); }
+      100% { transform: translateY(0px); }
+    }
+
+    /* Footer styling */
+    .footer {
+      background-color: #C2C6CA;
+      height: 28px;
+      width: 100%;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      z-index: 200; /* Above fish and grid */
+    }
+    .line {
+      background-color: #FFFFFF;
+      height: 1px;
+      width: 100%;
+      position: absolute;
+      top: 2px;
+      left: 0;
+    }
+    .start-button {
+      position: absolute;
+      bottom: 2px;
+      left: 2px;
+      top: 5px;
+      cursor: pointer;
+    }
+    .footer-box {
+      width: 248px;
+      height: 342px;
+      background-color: #C2C6CA;
+      position: fixed;
+      left: 3px;
+      bottom: 24px;
+      z-index: 204; /* Highest z-index for top priority */
+      border: none;
+      border-bottom: 1px solid black;
+      border-right: 1px solid black;
+      display: none;
+    }
+    .footer-box::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 248px;
+      height: 1px;
+      background-color: #808080;
+    }
+    .footer-box::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 1px;
+      height: 342px;
+      background-color: #808080;
+    }
+    .footer-box-top-line {
+      position: absolute;
+      top: 0;
+      left: 1px;
+      width: 247px;
+      height: 1px;
+      background-color: #FFFFFF;
+    }
+    .footer-box-left-line {
+      position: absolute;
+      left: 0;
+      top: 1px;
+      width: 1px;
+      height: 341px;
+      background-color: #FFFFFF;
+    }
+
+    /* Grid styling */
+    .icon-grid {
+      position: fixed;
+      left: 9px;
+      top: 3px;
+      width: 250px;
+      height: 250px;
+      display: grid;
+      grid-template-columns: repeat(5, 50px);
+      grid-template-rows: repeat(5, 50px);
+      gap: 0px;
+      z-index: 202;
+      background-color: transparent;
+    }
+    .icon {
+      width: 48px;
+      height: 48px;
+      position: absolute;
+      cursor: move;
+      user-select: none;
+    }
+
+    /* Draggable Box styling */
+    .draggable-box {
+      position: absolute;
+      left: 300px;
+      top: 100px;
+      width: 200px;
+      height: 150px;
+      background-color: #d5d2cd;
+      border-right: 1px solid black;
+      border-bottom: 1px solid black;
+      z-index: 203; /* Above grid and footer */
+      cursor: move;
+      user-select: none;
+      position: relative;
+    }
+    .draggable-box::before {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 1px;
+      height: 100%;
+      background-color: #838183;
+    }
+    .draggable-box::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background-color: #838183;
+    }
+    .resize-top {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background-color: #ffffff;
+      cursor: ns-resize;
+    }
+    .resize-left {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1px;
+      height: 100%;
+      background-color: #ffffff;
+      cursor: ew-resize;
+    }
+    .resize-right {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 1px;
+      height: 100%;
+      background-color: #ffffff;
+      cursor: ew-resize;
+    }
+    .resize-bottom {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background-color: #ffffff;
+      cursor: ns-resize;
+    }
+    .resize-right-bottom {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 10px;
+      height: 10px;
+      background-color: transparent;
+      cursor: nwse-resize;
+    }
+    .inner-square {
+      position: absolute;
+      top: 3px;
+      left: 2px;
+      width: calc(100% - 4px);
+      height: 22px;
+      background-color: #838183;
+    }
+    .button {
+      position: absolute;
+      width: 20px;
+      height: 18px;
+      right: 2px;
+      top: 2px;
+      background-color: #d5d2cd;
+      border: 1px solid black;
+    }
+    .button::before {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 1px;
+      height: 100%;
+      background-color: #838183;
+    }
+    .button::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background-color: #838183;
+    }
+    .button2 {
+      position: absolute;
+      width: 20px;
+      height: 18px;
+      right: 22px;
+      top: 2px;
+      background-color: #d5d2cd;
+      border: 1px solid black;
+    }
+    .button2::before {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 1px;
+      height: 100%;
+      background-color: #838183;
+    }
+    .button2::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background-color: #838183;
+    }
+    .button3 {
+      position: absolute;
+      width: 20px;
+      height: 18px;
+      right: 42px;
+      top: 2px;
+      background-color: #d5d2cd;
+      border: 1px solid black;
+    }
+    .button3::before {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 1px;
+      height: 100%;
+      background-color: #838183;
+    }
+    .button3::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background-color: #838183;
+    }
+  </style>
+</head>
+<body>
+  <!-- Fish elements -->
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+  <div class="fish"></div>
+
+  <footer class="footer">
+    <div class="line"></div>
+    <img src="https://p4vl0v.neocities.org/erererereeeeeee.png" alt="Start Button" class="start-button" id="start-button">
+    <div class="footer-box" id="footer-box">
+      <div class="footer-box-top-line"></div>
+      <div class="footer-box-left-line"></div>
+    </div>
+  </footer>
+
+  <div class="icon-grid">
+    <img src="https://p4vl0v.neocities.org/weweeeeee.png" alt="Recycle Bin" class="icon" style="grid-column: 1; grid-row: 1; left: 0; top: 0; width: 48px; height: 48px;" draggable="true">
+  </div>
+
+  <div class="draggable-box" id="draggable-box">
+    <div class="resize-top"></div>
+    <div class="resize-left"></div>
+    <div class="resize-right"></div>
+    <div class="resize-bottom"></div>
+    <div class="resize-right-bottom"></div>
+    <div class="inner-square">
+      <div class="button3">
+        <img src="https://p4vl0v.neocities.org/close.png" alt="Close Button" style="width: 9px; height: 4px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); image-rendering: pixelated;">
+      </div>
+      <div class="button2">
+        <img src="https://p4vl0v.neocities.org/page.png" alt="Page Button" style="width: 11px; height: 10px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); image-rendering: pixelated;">
+      </div>
+      <div class="button">
+        <img src="https://p4vl0v.neocities.org/x.png" alt="X Button" style="width: 9px; height: 9px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); image-rendering: pixelated;">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Glitter trail code
+    var colour = "#ffff";
+    var sparkles = 120;
+
+    var x = ox = 400;
+    var y = oy = 300;
+    var swide = 800;
+    var shigh = 600;
+    var sleft = sdown = 0;
+    var tiny = new Array();
+    var star = new Array();
+    var starv = new Array();
+    var starx = new Array();
+    var stary = new Array();
+    var tinyx = new Array();
+    var tinyy = new Array();
+    var tinyv = new Array();
+
+    window.onload = function() {
+      if (document.getElementById) {
+        var i, rats, rlef, rdow;
+        for (var i = 0; i < sparkles; i++) {
+          var rats = createDiv(3, 3);
+          rats.style.visibility = "hidden";
+          document.body.appendChild(tiny[i] = rats);
+          starv[i] = 0;
+          tinyv[i] = 0;
+          var rats = createDiv(5, 5);
+          rats.style.backgroundColor = "transparent";
+          rats.style.visibility = "hidden";
+          var rlef = createDiv(1, 5);
+          var rdow = createDiv(5, 1);
+          rats.appendChild(rlef);
+          rats.appendChild(rdow);
+          rlef.style.top = "2px";
+          rlef.style.left = "0px";
+          rdow.style.top = "0px";
+          rdow.style.left = "2px";
+          document.body.appendChild(star[i] = rats);
+        }
+        set_width();
+        sparkle();
+      }
+    };
+
+    function sparkle() {
+      var c;
+      if (x != ox || y != oy) {
+        ox = x;
+        oy = y;
+        for (c = 0; c < sparkles; c++) if (!starv[c]) {
+          star[c].style.left = (starx[c] = x) + "px";
+          star[c].style.top = (stary[c] = y) + "px";
+          star[c].style.clip = "rect(0px, 5px, 5px, 0px)";
+          star[c].style.visibility = "visible";
+          starv[c] = 50;
+          break;
+        }
+      }
+      for (c = 0; c < sparkles; c++) {
+        if (starv[c]) update_star(c);
+        if (tinyv[c]) update_tiny(c);
+      }
+      setTimeout("sparkle()", 40);
+    }
+
+    function update_star(i) {
+      if (--starv[i] == 25) star[i].style.clip = "rect(1px, 4px, 4px, 1px)";
+      if (starv[i]) {
+        stary[i] += 1 + Math.random() * 3;
+        if (stary[i] < shigh + sdown) {
+          star[i].style.top = stary[i] + "px";
+          starx[i] += (i % 5 - 2) / 5;
+          star[i].style.left = starx[i] + "px";
+        }
+        else {
+          star[i].style.visibility = "hidden";
+          starv[i] = 0;
+          return;
+        }
+      }
+      else {
+        tinyv[i] = 50;
+        tiny[i].style.top = (tinyy[i] = stary[i]) + "px";
+        tiny[i].style.left = (tinyx[i] = starx[i]) + "px";
+        tiny[i].style.width = "2px";
+        tiny[i].style.height = "2px";
+        star[i].style.visibility = "hidden";
+        tiny[i].style.visibility = "visible"
+      }
+    }
+
+    function update_tiny(i) {
+      if (--tinyv[i] == 25) {
+        tiny[i].style.width = "1px";
+        tiny[i].style.height = "1px";
+      }
+      if (tinyv[i]) {
+        tinyy[i] += 1 + Math.random() * 3;
+        if (tinyy[i] < shigh + sdown) {
+          tiny[i].style.top = tinyy[i] + "px";
+          tinyx[i] += (i % 5 - 2) / 5;
+          tiny[i].style.left = tinyx[i] + "px";
+        }
+        else {
+          tiny[i].style.visibility = "hidden";
+          tinyv[i] = 0;
+          return;
+        }
+      }
+      else tiny[i].style.visibility = "hidden";
+    }
+
+    document.onmousemove = mouse;
+    function mouse(e) {
+      set_scroll();
+      y = (e) ? e.pageY : event.y + sdown;
+      x = (e) ? e.pageX : event.x + sleft;
+    }
+
+    function set_scroll() {
+      if (typeof(self.pageYOffset) == "number") {
+        sdown = self.pageYOffset;
+        sleft = self.pageXOffset;
+      }
+      else if (document.body.scrollTop || document.body.scrollLeft) {
+        sdown = document.body.scrollTop;
+        sleft = document.body.scrollLeft;
+      }
+      else if (document.documentElement && (document.documentElement.scrollTop || document.documentElement.scrollLeft)) {
+        sleft = document.documentElement.scrollLeft;
+        sdown = document.documentElement.scrollTop;
+      }
+      else {
+        sdown = 0;
+        sleft = 0;
+      }
+    }
+
+    window.onresize = set_width;
+    function set_width() {
+      if (typeof(self.innerWidth) == "number") {
+        swide = self.innerWidth;
+        shigh = self.innerHeight;
+      }
+      else if (document.documentElement && document.documentElement.clientWidth) {
+        swide = document.documentElement.clientWidth;
+        shigh = document.documentElement.clientHeight;
+      }
+      else if (document.body.clientWidth) {
+        swide = document.body.clientWidth;
+        shigh = document.body.clientHeight;
+      }
+    }
+
+    function createDiv(height, width) {
+      var div = document.createElement("div");
+      div.style.position = "absolute";
+      div.style.height = height + "px";
+      div.style.width = width + "px";
+      div.style.overflow = "hidden";
+      div.style.backgroundColor = colour;
+      return (div);
+    }
+
+    // Fish animation code
+    const fishTypes = [
+      { url: 'https://p4vl0v.neocities.org/dfgghf.png', weight: 5 },
+      { url: 'https://p4vl0v.neocities.org/TRGRTG.png', weight: 5 },
+      { url: 'https://p4vl0v.neocities.org/ukhjhjhjh.png', weight: 10 },
+      { url: 'https://p4vl0v.neocities.org/iiiu.png', weight: 10 },
+      { url: 'https://p4vl0v.neocities.org/yuu66776.png', weight: 10 },
+      { url: 'https://p4vl0v.neocities.org/uuuyy.png', weight: 10 },
+      { url: 'https://p4vl0v.neocities.org/FFFFFFFF.png', weight: 15 },
+      { url: 'https://p4vl0v.neocities.org/RRRRRRRRRRRRRRRRRRRRRRRRRRR.png', weight: 15 },
+      { url: 'https://p4vl0v.neocities.org/khjh.png', weight: 20 }
+    ];
+
+    const getRandomNumber = (min, max) => Math.random() * (max - min) + min;
+
+    const getRandomFish = () => {
+      const totalWeight = fishTypes.reduce((sum, fish) => sum + fish.weight, 0);
+      let random = Math.random() * totalWeight;
+      for (const fish of fishTypes) {
+        random -= fish.weight;
+        if (random <= 0) return fish.url;
+      }
+      return fishTypes[fishTypes.length - 1].url;
+    };
+
+    const fishElements = document.querySelectorAll('.fish');
+
+    fishElements.forEach((fish) => {
+      const topPosition = getRandomNumber(0, 90);
+      const swimDuration = getRandomNumber(12, 30);
+      const wiggleDuration = getRandomNumber(3, 6);
+      const swimDelay = getRandomNumber(0, 5);
+      const wiggleDelay = getRandomNumber(0, 2);
+      const fishImage = getRandomFish();
+
+      fish.style.top = `${topPosition}%`;
+      fish.style.backgroundImage = `url('${fishImage}')`;
+      fish.style.animationDuration = `${swimDuration}s, ${wiggleDuration}s`;
+      fish.style.animationDelay = `${swimDelay}s, ${wiggleDelay}s`;
+    });
+
+    let mouseX = -100;
+    document.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      fishElements.forEach((fish) => {
+        const currentLeft = parseFloat(fish.style.left || 110);
+        const currentX = (currentLeft / 100) * window.innerWidth;
+        if (Math.abs(mouseX - currentX) < 100) {
+          const adjustment = 10 * (mouseX > currentX ? -1 : 1);
+          const newLeft = Math.max(0, Math.min(110, currentLeft + adjustment / (window.innerWidth / 100)));
+          fish.style.left = `${newLeft}%`;
+        }
+      });
+    });
+
+    // Toggle footer box
+    const startButton = document.getElementById('start-button');
+    const footerBox = document.getElementById('footer-box');
+    startButton.addEventListener('click', () => {
+      footerBox.style.display = footerBox.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Icon dragging
+    let draggedIcon = null;
+    const iconGrid = document.querySelector('.icon-grid');
+    const icons = document.querySelectorAll('.icon');
+    icons.forEach(icon => {
+      icon.addEventListener('dragstart', (e) => {
+        draggedIcon = icon;
+        e.dataTransfer.setData('text/plain', null);
+        setTimeout(() => { icon.style.opacity = '0.5'; }, 0);
+      });
+      icon.addEventListener('dragend', () => {
+        draggedIcon.style.opacity = '1';
+        draggedIcon = null;
+      });
+    });
+    iconGrid.addEventListener('dragover', (e) => e.preventDefault());
+    iconGrid.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (draggedIcon) {
+        const rect = iconGrid.getBoundingClientRect();
+        const gridX = e.clientX - rect.left;
+        const gridY = e.clientY - rect.top;
+        const cellX = Math.min(4, Math.max(0, Math.floor(gridX / 50)));
+        const cellY = Math.min(4, Math.max(0, Math.floor(gridY / 50)));
+        const newLeft = cellX * 50;
+        const newTop = cellY * 50;
+        draggedIcon.style.gridColumn = cellX + 1;
+        draggedIcon.style.gridRow = cellY + 1;
+        draggedIcon.style.left = `${newLeft}px`;
+        draggedIcon.style.top = `${newTop}px`;
+      }
+    });
+
+    // Draggable box
+    const draggableBox = document.getElementById('draggable-box');
+    const resizeTop = draggableBox.querySelector('.resize-top');
+    const resizeLeft = draggableBox.querySelector('.resize-left');
+    const resizeRight = draggableBox.querySelector('.resize-right');
+    const resizeBottom = draggableBox.querySelector('.resize-bottom');
+    const resizeRightBottom = draggableBox.querySelector('.resize-right-bottom');
+    let isDragging = false;
+    let isResizingTop = false;
+    let isResizingLeft = false;
+    let isResizingRight = false;
+    let isResizingBottom = false;
+    let isResizingRightBottom = false;
+    let startX, startY, startWidth, startHeight, startLeft, startTop;
+
+    draggableBox.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startX = e.clientX - draggableBox.offsetLeft;
+      startY = e.clientY - draggableBox.offsetTop;
+      draggableBox.style.cursor = 'grabbing';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        e.preventDefault();
+        const newLeft = e.clientX - startX;
+        const newTop = e.clientY - startY;
+        draggableBox.style.left = `${newLeft}px`;
+        draggableBox.style.top = `${newTop}px`;
+      } else if (isResizingTop) {
+        e.preventDefault();
+        const deltaY = e.clientY - startY;
+        const newHeight = Math.max(50, startHeight - deltaY);
+        const newTop = startTop + deltaY;
+        draggableBox.style.height = `${newHeight}px`;
+        draggableBox.style.top = `${newTop}px`;
+      } else if (isResizingLeft) {
+        e.preventDefault();
+        const deltaX = e.clientX - startX;
+        const newWidth = Math.max(50, startWidth - deltaX);
+        const newLeft = startLeft + deltaX;
+        draggableBox.style.width = `${newWidth}px`;
+        draggableBox.style.left = `${newLeft}px`;
+      } else if (isResizingRight) {
+        e.preventDefault();
+        const deltaX = e.clientX - (startLeft + startWidth);
+        const newWidth = Math.max(50, startWidth + deltaX);
+        draggableBox.style.width = `${newWidth}px`;
+      } else if (isResizingBottom) {
+        e.preventDefault();
+        const deltaY = e.clientY - (startTop + startHeight);
+        const newHeight = Math.max(50, startHeight + deltaY);
+        draggableBox.style.height = `${newHeight}px`;
+      } else if (isResizingRightBottom) {
+        e.preventDefault();
+        const deltaX = e.clientX - (startLeft + startWidth);
+        const deltaY = e.clientY - (startTop + startHeight);
+        const newWidth = Math.max(50, startWidth + deltaX);
+        const newHeight = Math.max(50, startHeight + deltaY);
+        draggableBox.style.width = `${newWidth}px`;
+        draggableBox.style.height = `${newHeight}px`;
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+      isResizingTop = false;
+      isResizingLeft = false;
+      isResizingRight = false;
+      isResizingBottom = false;
+      isResizingRightBottom = false;
+      draggableBox.style.cursor = 'move';
+    });
+
+    resizeTop.addEventListener('mousedown', (e) => {
+      isResizingTop = true;
+      startY = e.clientY;
+      startHeight = draggableBox.offsetHeight;
+      startTop = draggableBox.offsetTop;
+      e.stopPropagation();
+    });
+
+    resizeLeft.addEventListener('mousedown', (e) => {
+      isResizingLeft = true;
+      startX = e.clientX;
+      startWidth = draggableBox.offsetWidth;
+      startLeft = draggableBox.offsetLeft;
+      e.stopPropagation();
+    });
+
+    resizeRight.addEventListener('mousedown', (e) => {
+      isResizingRight = true;
+      startLeft = draggableBox.offsetLeft;
+      startWidth = draggableBox.offsetWidth;
+      e.stopPropagation();
+    });
+
+    resizeBottom.addEventListener('mousedown', (e) => {
+      isResizingBottom = true;
+      startTop = draggableBox.offsetTop;
+      startHeight = draggableBox.offsetHeight;
+      e.stopPropagation();
+    });
+
+    resizeRightBottom.addEventListener('mousedown', (e) => {
+      isResizingRightBottom = true;
+      startLeft = draggableBox.offsetLeft;
+      startTop = draggableBox.offsetTop;
+      startWidth = draggableBox.offsetWidth;
+      startHeight = draggableBox.offsetHeight;
+      e.stopPropagation();
+    });
+  </script>
+</body>
+</html>

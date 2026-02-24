@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Messages - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <link href="/css/tailwind.css" rel="stylesheet">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 720px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h1 { margin: 0 0 16px 0; font-size: 1.5rem; }
+    .msg-list { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+    .msg-row { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; cursor: pointer; background: #fff; gap: 12px; }
+    .msg-row:last-child { border-bottom: none; }
+    .msg-row:hover { background: #f9fafb; }
+    .msg-row.unread { background: #eff6ff; font-weight: 600; }
+    .msg-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1rem; font-weight: 600; color: #fff; }
+    .msg-row .from { flex: 0 0 120px; color: #374151; }
+    .msg-row .preview { flex: 1; min-width: 0; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; }
+    .msg-row.unread .preview { color: #1e40af; }
+    .msg-row .date { flex: 0 0 100px; text-align: right; font-size: 12px; color: #9ca3af; }
+    .msg-detail { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-top: 16px; background: #f9fafb; }
+    .msg-detail .meta { font-size: 12px; color: #6b7280; margin-bottom: 8px; }
+    .msg-detail .body { white-space: pre-wrap; word-break: break-word; }
+    .compose-form { margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+    .compose-form label { display: block; margin-top: 12px; font-weight: 600; font-size: 14px; }
+    .compose-form input, .compose-form textarea { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; margin-top: 4px; box-sizing: border-box; }
+    .compose-form textarea { min-height: 100px; resize: vertical; }
+    .btn { padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; font-size: 14px; }
+.btn-primary { background: var(--btn-pink-gradient); color: white; border: var(--btn-pink-border); box-shadow: var(--btn-pink-shadow); }
+.btn-primary:hover { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); }
+    .empty { color: #6b7280; text-align: center; padding: 32px 16px; }
+    .badge { display: inline-block; min-width: 18px; height: 18px; padding: 0 5px; line-height: 18px; font-size: 11px; font-weight: 700; color: #fff; background: #dc2626; border-radius: 9px; text-align: center; }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <h1>Messages</h1>
+    <p class="text-gray-600 text-sm mb-4">Your inbox. Click a message to read it and mark as read.</p>
+
+    <div id="msg-list" class="msg-list">
+      <div class="empty">Loading…</div>
+    </div>
+
+    <div id="msg-detail" class="msg-detail" style="display: none;">
+      <div class="meta" id="msg-detail-meta"></div>
+      <div class="body" id="msg-detail-body"></div>
+    </div>
+
+    <div class="compose-form">
+      <h2 class="text-lg font-semibold mb-2">Send a message</h2>
+      <label for="msg-to">To (search username)</label>
+      <div style="position: relative;">
+        <input type="text" id="msg-to" placeholder="Start typing username…" autocomplete="off">
+        <div id="msg-to-results" class="absolute left-0 right-0 top-100 bg-white border border-gray-200 rounded-md shadow-lg z-10 hidden" style="top: 100%; margin-top: 4px; max-height: 160px; overflow-y: auto;"></div>
+      </div>
+      <label for="msg-body">Message</label>
+      <textarea id="msg-body" placeholder="Type your message…"></textarea>
+      <button type="button" id="msg-send" class="btn btn-primary mt-3">Send</button>
+      <p id="msg-send-error" class="text-red-600 text-sm mt-2 hidden"></p>
+    </div>
+  </div>
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+  <script>
+    (function () {
+      const listEl = document.getElementById('msg-list');
+      const detailEl = document.getElementById('msg-detail');
+      const detailMeta = document.getElementById('msg-detail-meta');
+      const detailBody = document.getElementById('msg-detail-body');
+      const toInput = document.getElementById('msg-to');
+      const toResults = document.getElementById('msg-to-results');
+      const bodyInput = document.getElementById('msg-body');
+      const sendBtn = document.getElementById('msg-send');
+      const sendError = document.getElementById('msg-send-error');
+
+      let selectedToUserId = null;
+      let selectedToUsername = null;
+
+      function loadInbox() {
+        fetch('/api/messages', { credentials: 'same-origin' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (data) {
+            if (!data || !Array.isArray(data.messages)) {
+              listEl.innerHTML = '<div class="empty">Could not load messages.</div>';
+              return;
+            }
+            const messages = data.messages;
+            if (messages.length === 0) {
+              listEl.innerHTML = '<div class="empty">No messages yet. Send one using the form below.</div>';
+              return;
+            }
+            listEl.innerHTML = messages.map(function (m) {
+              const date = m.createdAt ? new Date(m.createdAt).toLocaleString() : '—';
+              const preview = (m.body || '').slice(0, 60) + ((m.body || '').length > 60 ? '…' : '');
+              const unreadClass = m.read ? '' : ' unread';
+              const name = m.fromUsername || 'Unknown';
+              const letter = name.charAt(0).toUpperCase();
+              const hue = (name.split('').reduce(function (a, c) { return a + c.charCodeAt(0); }, 0) % 360);
+              const bg = 'hsl(' + hue + ', 55%, 45%)';
+              return '<div class="msg-row' + unreadClass + '" data-id="' + (m.id || '') + '">' +
+                '<span class="msg-avatar" style="background:' + bg + '">' + letter + '</span>' +
+                '<span class="from">' + name + '</span>' +
+                '<span class="preview">' + preview + '</span>' +
+                '<span class="date">' + date + '</span></div>';
+            }).join('');
+            listEl.querySelectorAll('.msg-row').forEach(function (row) {
+              row.addEventListener('click', function () {
+                const id = row.dataset.id;
+                showMessage(id);
+                row.classList.remove('unread');
+                row.classList.remove('font-semibold');
+                row.querySelector('.preview').style.color = '';
+              });
+            });
+          })
+          .catch(function () {
+            listEl.innerHTML = '<div class="empty">Could not load messages.</div>';
+          });
+      }
+
+      function showMessage(id) {
+        fetch('/api/messages', { credentials: 'same-origin' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (data) {
+            const msg = (data && data.messages) ? data.messages.find(function (m) { return m.id === id; }) : null;
+            if (!msg) return;
+            detailMeta.textContent = 'From: ' + (msg.fromUsername || '—') + ' · ' + (msg.createdAt ? new Date(msg.createdAt).toLocaleString() : '');
+            detailBody.textContent = msg.body || '';
+            detailEl.style.display = 'block';
+            fetch('/api/messages/' + encodeURIComponent(id) + '/read', {
+              method: 'PATCH',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' }
+            }).catch(function () {});
+          });
+      }
+
+      toInput.addEventListener('input', function () {
+        selectedToUserId = null;
+        selectedToUsername = null;
+        const q = (toInput.value || '').trim();
+        if (q.length < 2) {
+          toResults.classList.add('hidden');
+          toResults.innerHTML = '';
+          return;
+        }
+        fetch('/api/users/search?q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+          .then(function (r) { return r.ok ? r.json() : []; })
+          .then(function (users) {
+            if (!users.length) {
+              toResults.innerHTML = '<div class="px-3 py-2 text-sm text-gray-500">No users found</div>';
+            } else {
+              toResults.innerHTML = users.map(function (u) {
+                return '<div class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100" data-id="' + (u.id || '') + '" data-username="' + (u.username || '').replace(/"/g, '&quot;') + '">' + (u.username || '') + '</div>';
+              }).join('');
+              toResults.querySelectorAll('div[data-id]').forEach(function (div) {
+                div.addEventListener('click', function () {
+                  selectedToUserId = div.dataset.id;
+                  selectedToUsername = div.dataset.username;
+                  toInput.value = div.dataset.username || '';
+                  toResults.classList.add('hidden');
+                });
+              });
+            }
+            toResults.classList.remove('hidden');
+          });
+      });
+      toInput.addEventListener('blur', function () { setTimeout(function () { toResults.classList.add('hidden'); }, 150); });
+
+      sendBtn.addEventListener('click', function () {
+        sendError.classList.add('hidden');
+        const body = (bodyInput.value || '').trim();
+        if (!selectedToUserId) {
+          sendError.textContent = 'Please select a recipient (search and click a username).';
+          sendError.classList.remove('hidden');
+          return;
+        }
+        if (!body) {
+          sendError.textContent = 'Please enter a message.';
+          sendError.classList.remove('hidden');
+          return;
+        }
+        sendBtn.disabled = true;
+        fetch('/api/messages', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ toUserId: selectedToUserId, body: body })
+        })
+          .then(function (r) {
+            if (!r.ok) return r.json().then(function (err) { throw new Error(err.error || 'Send failed'); });
+            bodyInput.value = '';
+            loadInbox();
+            if (typeof showToast === 'function') showToast('Message sent!');
+            else alert('Message sent!');
+          })
+          .catch(function (err) {
+            sendError.textContent = err.message || 'Failed to send message.';
+            sendError.classList.remove('hidden');
+          })
+          .finally(function () { sendBtn.disabled = false; });
+      });
+
+      loadInbox();
+    })();
+  </script>
+</body>
+</html>

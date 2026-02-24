@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Brand - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 420px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h1 { margin: 0 0 8px 0; font-size: 1.5rem; }
+    p.sub { margin: 0 0 20px 0; color: #6b7280; font-size: 14px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 6px; color: #374151; }
+    .form-group input { width: 100%; padding: 10px 12px; font-size: 16px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; }
+    .form-group input:focus { outline: none; border-color: #f87171; box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.2); }
+    .create-btn { display: block; width: 100%; padding: 12px 16px; margin-top: 8px; font-size: 16px; font-weight: 600; color: #fff; background: linear-gradient(180deg, #f87171 0%, #ef4444 100%); border: none; border-radius: 6px; cursor: pointer; }
+    .create-btn:hover { background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%); }
+    .create-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .back-link { display: inline-block; margin-bottom: 16px; color: #ec4899; text-decoration: none; font-size: 14px; }
+    .back-link:hover { text-decoration: underline; }
+    .error { margin-top: 8px; font-size: 14px; color: #dc2626; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <a href="./create.html" class="back-link">← Create</a>
+    <h1>Create Brand</h1>
+    <p class="sub">Create a brand (name only). You can add a brand label for it later from Brand label.</p>
+    <form id="create-brand-form">
+      <div class="form-group">
+        <label for="brand-name">Brand name</label>
+        <input type="text" id="brand-name" name="name" placeholder="e.g. My Brand" maxlength="120" required autofocus>
+        <div id="brand-name-error" class="error" style="display: none;"></div>
+      </div>
+      <button type="submit" class="create-btn" id="create-btn">Create brand</button>
+    </form>
+  </div>
+  <script src="/js/header.js"></script>
+  <script>
+    (function () {
+      var BRANDS_KEY = 'userBrands';
+
+      function getBrands() {
+        try {
+          var raw = localStorage.getItem(BRANDS_KEY);
+          return raw ? JSON.parse(raw) : [];
+        } catch (e) { return []; }
+      }
+      function setBrands(list) {
+        try { localStorage.setItem(BRANDS_KEY, JSON.stringify(list)); } catch (e) {}
+      }
+      function createBrand(name, owner) {
+        var id = 'brand-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+        var list = getBrands();
+        var rec = { id: id, name: (name || '').trim() || 'Untitled', createdAt: new Date().toISOString() };
+        if (owner) rec.owner = owner;
+        list.push(rec);
+        setBrands(list);
+        return id;
+      }
+
+      var form = document.getElementById('create-brand-form');
+      var input = document.getElementById('brand-name');
+      var errorEl = document.getElementById('brand-name-error');
+      var btn = document.getElementById('create-btn');
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var name = (input.value || '').trim();
+        if (!name) {
+          errorEl.textContent = 'Please enter a brand name.';
+          errorEl.style.display = 'block';
+          return;
+        }
+        errorEl.style.display = 'none';
+        btn.disabled = true;
+        btn.textContent = 'Creating…';
+        fetch('/api/me', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }).then(function (me) {
+          var owner = (me && (me.username || me.name || me.id)) ? (me.username || me.name || me.id) : '';
+          createBrand(name, owner || 'You');
+          window.location.href = './brands.html';
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

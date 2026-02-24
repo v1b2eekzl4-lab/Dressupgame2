@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moderation - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <link href="/css/tailwind.css" rel="stylesheet">
+  <style>
+    body { padding-top: 76px; min-height: 100vh; background: #f3f4f6; }
+    .role-check { margin-right: 12px; }
+    .report-row { border-bottom: 1px solid #e5e7eb; padding: 10px 0; }
+    .report-row:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="max-w-2xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-4">Moderation</h1>
+
+    <!-- Reports section: visible to admin + moderator -->
+    <section id="reports-section" class="mb-8">
+      <h2 class="text-xl font-bold mb-2">Reports</h2>
+      <p class="text-gray-600 mb-4">User-submitted reports. Resolve or dismiss after review.</p>
+      <div id="reports-list" class="bg-white rounded-lg shadow p-4">
+        <p class="text-gray-500">Loading…</p>
+      </div>
+    </section>
+
+    <!-- Permissions section: admin only; contains role assignment -->
+    <section id="permissions-section" class="hidden">
+      <h2 class="text-xl font-bold mb-2">Permissions</h2>
+      <p class="text-gray-600 mb-4">Assign admin, moderator, designer, and membership roles. Only admins can change roles.</p>
+      <div id="users-list" class="bg-white rounded-lg shadow p-4"></div>
+      <p id="save-status" class="mt-4 text-sm text-gray-500"></p>
+    </section>
+  </div>
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+  <script>
+(function () {
+  const reportsList = document.getElementById('reports-list');
+  const permissionsSection = document.getElementById('permissions-section');
+  const usersList = document.getElementById('users-list');
+  const status = document.getElementById('save-status');
+
+  function loadReports() {
+    fetch('/api/reports', { credentials: 'same-origin' })
+      .then(function (r) {
+        if (r.status === 403 || r.status === 401) { reportsList.innerHTML = '<p class="text-gray-500">You do not have access to reports.</p>'; return []; }
+        return r.ok ? r.json() : [];
+      })
+      .then(function (reports) {
+        if (!Array.isArray(reports) || reports.length === 0) {
+          reportsList.innerHTML = '<p class="text-gray-500">No reports.</p>';
+          return;
+        }
+        reportsList.innerHTML = reports.map(function (r) {
+          var link = '';
+          var typeLabel = r.targetType === 'forum_post' ? 'Forum post' : (r.targetType === 'forum_topic' ? 'Forum thread' : 'User');
+          if ((r.targetType === 'forum_post' || r.targetType === 'forum_topic') && (r.topicId || r.targetId)) {
+            var tid = r.topicId || r.targetId;
+            link = '<a href="./forum.html?topicId=' + encodeURIComponent(tid) + '" class="text-blue-600 hover:underline">View thread</a>';
+          } else if (r.targetType === 'user') {
+            link = '<a href="/profile?user=' + encodeURIComponent(r.targetId) + '" class="text-blue-600 hover:underline">View profile</a>';
+          } else {
+            link = 'Post #' + (r.targetId || '');
+          }
+          var statusClass = r.status === 'open' ? 'text-amber-600' : (r.status === 'resolved' ? 'text-green-600' : 'text-gray-500');
+          var actions = r.status === 'open'
+            ? '<button type="button" class="report-resolve mr-2 text-green-600 hover:underline text-sm" data-id="' + r.id + '">Resolve</button><button type="button" class="report-dismiss text-gray-600 hover:underline text-sm" data-id="' + r.id + '">Dismiss</button>'
+            : '';
+          var categoryLabel = (r.category || '').toString().trim() ? '<span class="inline-block bg-gray-200 text-gray-800 text-xs px-2 py-0.5 rounded mt-1">' + (r.category.replace(/</g, '&lt;')) + '</span>' : '';
+          return '<div class="report-row" data-report-id="' + r.id + '">' +
+            '<div class="flex justify-between items-start flex-wrap gap-2">' +
+            '<div><span class="font-medium">' + typeLabel + '</span> — ' + link +
+            ' <span class="text-gray-500 text-sm">by ' + (r.reporterUsername || '') + ' at ' + (r.createdAt ? new Date(r.createdAt).toLocaleString() : '') + '</span>' +
+            (categoryLabel ? '<p class="text-sm mt-1">' + categoryLabel + '</p>' : '') +
+            (r.reason ? '<p class="text-sm text-gray-600 mt-1">Details: ' + (r.reason.replace(/</g, '&lt;')) + '</p>' : '') + '</div>' +
+            '<div><span class="' + statusClass + ' text-sm">' + (r.status || 'open') + '</span> ' + actions + '</div>' +
+            '</div></div>';
+        }).join('');
+        reportsList.querySelectorAll('.report-resolve').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var id = btn.dataset.id;
+            fetch('/api/reports/' + encodeURIComponent(id), { method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'resolved' }) })
+              .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+              .then(function () { loadReports(); })
+              .catch(function () { alert('Failed to update report'); });
+          });
+        });
+        reportsList.querySelectorAll('.report-dismiss').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var id = btn.dataset.id;
+            fetch('/api/reports/' + encodeURIComponent(id), { method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'dismissed' }) })
+              .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+              .then(function () { loadReports(); })
+              .catch(function () { alert('Failed to update report'); });
+          });
+        });
+      })
+      .catch(function () {
+        reportsList.innerHTML = '<p class="text-red-600">Could not load reports.</p>';
+      });
+  }
+
+  function loadUsers() {
+    fetch('/api/users', { credentials: 'same-origin' })
+      .then(function (r) {
+        if (r.status === 403) { window.location.href = '/home'; return []; }
+        return r.ok ? r.json() : [];
+      })
+      .then(function (users) {
+        if (!Array.isArray(users) || users.length === 0) {
+          usersList.innerHTML = '<p class="text-gray-500">No users to manage.</p>';
+          return;
+        }
+        usersList.innerHTML = '<table class="w-full text-left"><thead><tr class="border-b"><th class="pb-2">User</th><th class="pb-2">Admin</th><th class="pb-2">Moderator</th><th class="pb-2">Designer</th><th class="pb-2">Membership</th><th class="pb-2">Save</th></tr></thead><tbody id="users-tbody"></tbody></table>';
+        const tbody = document.getElementById('users-tbody');
+        users.forEach(function (u) {
+          const tr = document.createElement('tr');
+          tr.className = 'border-b border-gray-100';
+          const roles = (u.roles && Array.isArray(u.roles)) ? u.roles : [];
+          const adminChecked = roles.indexOf('admin') !== -1;
+          const modChecked = roles.indexOf('moderator') !== -1;
+          const designChecked = roles.indexOf('designer') !== -1;
+          const membershipChecked = roles.indexOf('membership') !== -1;
+          const isBuiltIn = u.id === 1;
+          tr.innerHTML =
+            '<td class="py-2">' + (u.username || '') + ' (ID ' + u.id + ')' + (isBuiltIn ? ' <span class="text-gray-500 text-xs">built-in</span>' : '') + '</td>' +
+            '<td class="py-2">' + (isBuiltIn ? '—' : '<input type="checkbox" class="role-check role-admin" data-user-id="' + u.id + '" ' + (adminChecked ? 'checked' : '') + '>') + '</td>' +
+            '<td class="py-2">' + (isBuiltIn ? '—' : '<input type="checkbox" class="role-check role-moderator" data-user-id="' + u.id + '" ' + (modChecked ? 'checked' : '') + '>') + '</td>' +
+            '<td class="py-2">' + (isBuiltIn ? '—' : '<input type="checkbox" class="role-check role-designer" data-user-id="' + u.id + '" ' + (designChecked ? 'checked' : '') + '>') + '</td>' +
+            '<td class="py-2">' + (isBuiltIn ? '—' : '<input type="checkbox" class="role-check role-membership" data-user-id="' + u.id + '" ' + (membershipChecked ? 'checked' : '') + '>') + '</td>' +
+            '<td class="py-2">' + (isBuiltIn ? '—' : '<button type="button" class="save-roles-btn px-3 py-1 bg-blue-500 text-white rounded text-sm" data-user-id="' + u.id + '">Save</button>') + '</td>';
+          tbody.appendChild(tr);
+        });
+        tbody.querySelectorAll('.save-roles-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            const userId = btn.dataset.userId;
+            const row = btn.closest('tr');
+            const roles = [];
+            if (row.querySelector('.role-admin:checked')) roles.push('admin');
+            if (row.querySelector('.role-moderator:checked')) roles.push('moderator');
+            if (row.querySelector('.role-designer:checked')) roles.push('designer');
+            if (row.querySelector('.role-membership:checked')) roles.push('membership');
+            status.textContent = 'Saving…';
+            fetch('/api/users/' + encodeURIComponent(userId) + '/roles', {
+              method: 'PUT',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ roles: roles })
+            })
+              .then(function (r) {
+                if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || r.statusText); });
+                return r.json();
+              })
+              .then(function () {
+                status.textContent = 'Roles saved.';
+                setTimeout(function () { status.textContent = ''; }, 2000);
+              })
+              .catch(function (err) {
+                status.textContent = err.message || 'Failed to save.';
+              });
+          });
+        });
+      })
+      .catch(function () {
+        usersList.innerHTML = '<p class="text-red-600">Could not load users.</p>';
+      });
+  }
+
+  loadReports();
+
+  fetch('/api/me', { credentials: 'same-origin' })
+    .then(function (r) { return r.ok ? r.json() : {}; })
+    .catch(function () { return {}; })
+    .then(function (me) {
+      var roles = (me && me.roles) || [];
+      var isAdmin = roles.indexOf('admin') !== -1;
+      if (permissionsSection && isAdmin) {
+        permissionsSection.classList.remove('hidden');
+        loadUsers();
+      }
+    });
+})();
+  </script>
+</body>
+</html>

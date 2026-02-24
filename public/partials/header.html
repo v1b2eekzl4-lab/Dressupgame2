@@ -1,0 +1,82 @@
+<header class="header">
+  <div class="header-container">
+    <div class="header-nav">
+      <a href="/home" class="header-button">Home</a>
+      <a href="/wardrobe.html" class="header-button">Wardrobe</a>
+      <a href="/store-menu.html" class="header-button">Shopping</a>
+      <a href="/wishlist.html" class="header-button" title="Wishlist" aria-label="Wishlist">&#9733; Wishlist</a>
+      <a href="/create" class="header-button">Create</a>
+      <a href="/moderation.html" class="header-button" id="header-moderation" style="display:none;">Moderation</a>
+      <a href="/forummenu.html" class="header-button">Bulletin Board</a>
+      <a href="/games.html" class="header-button">Arcade</a>
+      <a href="/profile" class="header-button">Profile</a>
+      <a href="/logout" class="header-button">Logout</a>
+    </div>
+  </div>
+  <div class="header-secondary">
+    <div class="header-secondary-left">
+      <a href="/currency.html" class="header-secondary-currency" title="Buy currency" aria-label="View currency and buy more">
+        <img src="/img/currency-silver.svg" alt="Silver" class="header-currency-icon" width="20" height="20" decoding="async">
+        <span id="header-currency3-amount">—</span>
+        <img src="/img/currency-coin.svg" alt="Coins" class="header-currency-icon" width="20" height="20" decoding="async">
+        <span id="header-currency-amount">—</span>
+        <img src="/img/currency-gem.png" alt="Candies" class="header-currency-icon header-gem-icon" width="20" height="20" decoding="async">
+        <span id="header-currency2-amount">—</span>
+        <img src="/img/golden-ticket.png" alt="Golden Tickets" class="header-currency-icon header-ticket-icon" width="20" height="20" decoding="async" title="Golden Tickets">
+        <span id="header-golden-tickets-amount">—</span>
+      </a>
+      <button type="button" class="header-secondary-msg header-messages-toggle" id="header-messages-toggle" title="Messages" aria-label="Messages" aria-expanded="false">
+        <img src="/img/message-letter.png" alt="" class="header-msg-icon" width="20" height="20" decoding="async">
+        <span id="header-messages-badge" class="header-msg-badge" style="display:none;">0</span>
+      </button>
+      <button type="button" class="header-theme-toggle" id="header-theme-toggle" title="Toggle dark/light mode" aria-label="Toggle dark/light mode">
+        <span class="header-theme-icon header-theme-icon-sun" aria-hidden="true">☀</span>
+        <span class="header-theme-icon header-theme-icon-moon" aria-hidden="true">☽</span>
+      </button>
+      <div id="messages-panel-overlay" class="messages-panel-overlay" aria-hidden="true" style="display: none;">
+        <div class="messages-panel">
+          <div class="messages-panel-header">
+            <h2 class="messages-panel-title">Messages</h2>
+            <button type="button" class="messages-panel-close" id="messages-panel-close" aria-label="Close">×</button>
+          </div>
+          <p class="messages-panel-hint">Click a message to read and mark as read.</p>
+          <div id="messages-panel-list" class="messages-panel-list">
+            <div class="messages-panel-empty">Loading…</div>
+          </div>
+          <div id="messages-panel-detail" class="messages-panel-detail" style="display: none;">
+            <div class="messages-panel-detail-meta" id="messages-panel-detail-meta"></div>
+            <div class="messages-panel-detail-body" id="messages-panel-detail-body"></div>
+          </div>
+          <div class="messages-panel-compose">
+            <h3 class="messages-panel-compose-title">Send a message</h3>
+            <label for="messages-panel-to">To (search username)</label>
+            <div class="messages-panel-to-wrap">
+              <input type="text" id="messages-panel-to" placeholder="Start typing username…" autocomplete="off">
+              <div id="messages-panel-to-results" class="messages-panel-to-results" aria-hidden="true"></div>
+            </div>
+            <label for="messages-panel-body">Message</label>
+            <textarea id="messages-panel-body" placeholder="Type your message…" rows="3"></textarea>
+            <button type="button" id="messages-panel-send" class="messages-panel-send-btn">Send</button>
+            <p id="messages-panel-send-error" class="messages-panel-send-error"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="header-secondary-right">
+      <div class="header-secondary-search-wrap" id="header-search-wrap">
+        <button type="button" class="header-search-trigger" id="header-search-trigger" title="Search users" aria-label="Search users" aria-expanded="false">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </button>
+        <div class="header-search-expand-wrap">
+          <span class="header-search-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
+          <input type="search" id="header-search-users" placeholder="Search users…" class="header-secondary-search" autocomplete="off">
+          <div id="header-search-users-results" class="header-search-results hidden"></div>
+        </div>
+      </div>
+      <a href="/users.html" class="header-secondary-online-wrap" title="View online and all users">
+        <span class="header-secondary-online-label">Online:</span>
+        <div id="header-online-users" class="header-online-list"></div>
+      </a>
+    </div>
+  </div>
+</header>

@@ -1,0 +1,2744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulletin Board - Dress-Up Game</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <link href="/css/tailwind.css" rel="stylesheet">
+    <style>
+        /* Forum left avatar box: same size as home (250×350) */
+        .forum-saved-avatar {
+            width: 250px;
+            height: 350px;
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            transform: translateZ(0);
+            backface-visibility: hidden;
+        }
+        .forum-saved-avatar .forum-saved-inner {
+            position: absolute;
+            width: 250px;
+            height: 350px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .forum-saved-avatar .forum-saved-item {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: -webkit-optimize-contrast;
+            object-fit: none;
+            max-width: 250px;
+            max-height: 350px;
+            transform: translate(-50%, -50%);
+        }
+        /* Post row: header then avatar + content */
+        .forum-post-card {
+            display: flex;
+            flex-direction: column;
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem;
+            background: rgba(255, 255, 255, 0.55);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .forum-post-card.forum-post-has-custom-color {
+            background-color: var(--forum-post-bg) !important;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+        .forum-post-card.forum-post-has-custom-color .forum-post-header { border-bottom-color: var(--forum-post-accent) !important; }
+        .forum-post-card.forum-post-has-custom-color .forum-custom-header { border-bottom-color: var(--forum-post-accent) !important; }
+        .forum-post-card.forum-post-has-custom-color .forum-avatar-box { border-color: var(--forum-post-accent) !important; }
+        .forum-post-card.forum-post-has-custom-color .forum-quote-box { border-left: 4px solid var(--forum-post-accent) !important; }
+        .forum-post-card.forum-post-has-custom-color .forum-quote-box .forum-quote-header { border-bottom-color: var(--forum-post-accent) !important; }
+        .forum-post-card.forum-post-has-custom-color .forum-reply-form-box { border: 1px solid var(--forum-post-accent) !important; }
+        .forum-post-card.forum-post-has-custom-color .forum-attachment-item { border-color: var(--forum-post-accent) !important; }
+        .forum-main-box .forum-post-card .forum-post-header { margin-left: 0; margin-right: 0; padding: 0.75rem 1.5rem; }
+        .forum-main-box .forum-post-card .forum-post-header.forum-post-header-has-graphic { padding: 0; }
+        .forum-main-box .forum-post-card .forum-post-header.forum-post-header-has-graphic > .forum-post-header-left,
+        .forum-main-box .forum-post-card .forum-post-header.forum-post-header-has-graphic > div.flex { padding: 0.5rem 1.5rem; }
+        .forum-main-box .forum-post-card .forum-post-card-inner { padding: 1rem 1.5rem 1.25rem; }
+        .forum-post-card .forum-post-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .forum-post-card .forum-post-content .forum-username { font-size: 1.1rem; font-weight: 600; }
+        .forum-username-hover { cursor: pointer; }
+        .forum-username-hover:hover { color: #ec4899; }
+        .forum-post-card .forum-post-content .forum-timestamp { font-size: 0.95rem; color: #6b7280; margin-top: 2px; }
+        .forum-post-card .forum-post-content .forum-message { font-size: 1rem; margin-top: 0.5rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+        .forum-post-card .forum-post-content .forum-message .forum-emote { display: inline; vertical-align: middle; }
+        .forum-post-card .forum-post-content .forum-message img.forum-emote { max-height: 80px; height: auto; width: auto; max-width: 80px; object-fit: contain; }
+        .forum-post-card .forum-post-content .forum-message img.forum-gif { max-height: 120px; height: auto; width: auto; max-width: 120px; object-fit: contain; vertical-align: middle; }
+        .forum-quote-box { background: rgba(229, 231, 235, 0.6); padding: 10px 12px; margin-bottom: 10px; border-radius: 0 6px 6px 0; border-left: 4px solid #6b7280; }
+        .forum-quote-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; padding-bottom: 6px; margin-bottom: 6px; }
+        .forum-quote-header-left { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+        .forum-quote-name, .forum-quote-author { font-weight: 600; color: #374151; }
+        .forum-quote-header.forum-quote-name-hover { cursor: pointer; }
+        .forum-quote-header.forum-quote-name-hover .forum-quote-name { cursor: pointer; }
+        .forum-quote-header.forum-quote-name-hover:hover .forum-quote-name { color: #ec4899; }
+        .forum-quote-roles { display: inline-flex; align-items: center; gap: 2px; }
+        .forum-quote-date { font-size: 0.9rem; color: #6b7280; }
+        .forum-quote-box .forum-quote-author { font-weight: 600; color: #374151; display: block; margin-bottom: 4px; }
+        .forum-quote-box .forum-quote-text { font-size: 0.95rem; color: #4b5563; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+        .forum-quote-box .forum-quote-text .forum-emote { display: inline; vertical-align: middle; }
+        .forum-quote-box .forum-quote-text img.forum-emote { max-height: 80px; max-width: 80px; }
+        .forum-quote-box .forum-quote-text img.forum-gif { max-height: 120px; max-width: 120px; }
+        .forum-reply-below { margin-top: 0; }
+        .forum-custom-header { font-size: 0.9rem; font-weight: 600; color: #4b5563; margin-bottom: 6px; padding-bottom: 4px; }
+        .forum-blinky { height: auto; width: auto; max-height: none; vertical-align: middle; margin-left: 4px; image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; }
+        .forum-post-footer { padding: 0.5rem 1.5rem 0.75rem; margin-top: 0; }
+        .forum-post-card.forum-post-has-custom-color .forum-post-footer { border-top: none; }
+        .forum-post-footer .forum-blinky { margin-left: 0; margin-right: 6px; }
+        .forum-post-header.forum-post-header-has-graphic { position: relative; height: 48px; min-height: 48px; overflow: hidden; flex-shrink: 0; padding: 0; }
+        .forum-post-header.forum-post-header-has-graphic > .forum-post-header-left,
+        .forum-post-header.forum-post-header-has-graphic > div.flex { padding: 0.5rem 1rem; }
+        .forum-post-header.forum-post-header-has-graphic .forum-header-graphic { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; z-index: 0; display: block; pointer-events: none; }
+        .forum-post-header.forum-post-header-has-graphic > *:not(.forum-header-graphic) { position: relative; z-index: 1; }
+        .forum-post-header.forum-post-header-has-graphic .forum-post-header-name,
+        .forum-post-header.forum-post-header-has-graphic .forum-post-header-date { text-shadow: 0 1px 3px rgba(0,0,0,0.8); color: #fff !important; }
+        .forum-post-body { display: flex; align-items: flex-start; gap: 1rem; margin-top: 0.5rem; }
+        .forum-post-message-wrap { flex: 1; min-width: 0; }
+        .forum-attachments { flex-shrink: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end; max-width: 320px; }
+        .forum-attachment-item { max-width: 280px; border-radius: 8px; overflow: hidden; }
+        .forum-attachment-item img { max-width: 100%; height: auto; display: block; }
+        .forum-attachment-item video { max-width: 100%; max-height: 240px; display: block; }
+        .forum-emote-picker { display: flex; flex-wrap: wrap; gap: 4px; max-height: 160px; overflow-y: auto; padding: 6px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; }
+        .forum-emote-picker span, .forum-emote-picker img.forum-picker-emote { cursor: pointer; padding: 2px; border-radius: 4px; }
+        .forum-emote-picker span:hover, .forum-emote-picker img.forum-picker-emote:hover { background: #e5e7eb; }
+        .forum-picker-emote { height: 24px; width: auto; vertical-align: middle; }
+        .forum-picker-gif { height: 36px; width: auto; vertical-align: middle; cursor: pointer; padding: 2px; border-radius: 4px; }
+        .forum-picker-gif:hover { background: #e5e7eb; }
+        /* Post avatar: same as home, 250×350 at 1:1 scale */
+        .forum-avatar-box {
+            width: 250px;
+            height: 350px;
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
+        }
+        .forum-avatar-box .forum-avatar-inner {
+            position: absolute;
+            width: 250px;
+            height: 350px;
+            left: 0;
+            top: 0;
+        }
+        .forum-avatar-box .forum-avatar-inner img {
+            position: absolute;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
+            pointer-events: none;
+        }
+        .forum-avatar-box .forum-avatar-inner .forum-outfit-item {
+            width: 250px;
+            height: 350px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            object-fit: none;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
+        }
+        .forum-avatar-box .forum-avatar-inner .single-avatar {
+            width: 250px;
+            height: 350px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            object-fit: none;
+            object-position: center top;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
+        }
+        .forum-avatar-box .forum-avatar-inner.forum-avatar-inner-profile {
+            width: 100%;
+            height: 100%;
+            transform: none;
+            left: 0;
+            top: 0;
+        }
+        .forum-avatar-box .forum-avatar-inner.forum-avatar-inner-profile .forum-profile-picture {
+            width: 250px;
+            height: 350px;
+            object-fit: cover;
+            object-position: center top;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
+        }
+        .forum-avatar-wrap { position: relative; flex-shrink: 0; }
+        .forum-user-card {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            flex-direction: row;
+            align-items: stretch;
+            gap: 24px;
+            padding: 24px 28px;
+            background: rgba(255, 255, 255, 0.55);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            font-size: 16px;
+            width: 500px;
+            min-height: 328px;
+            overflow: visible;
+            isolation: isolate;
+        }
+        .forum-user-card.forum-user-card-visible { display: flex; }
+        .forum-user-card .forum-user-card-left { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+        .forum-user-card .forum-user-name { font-weight: 600; margin-bottom: 8px; font-size: 1.25rem; }
+        .forum-user-card .forum-user-bio { color: #6b7280; margin-bottom: 14px; font-size: 15px; line-height: 1.45; }
+        .forum-user-card .forum-user-links { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+        .forum-user-card a { color: #ec4899; text-decoration: none; font-size: 15px; }
+        .forum-user-card a:hover { text-decoration: underline; }
+        /* Avatar box: fixed size (250×350 to match home avatar) */
+        .forum-user-card .forum-user-card-avatar {
+            width: 250px;
+            height: 350px;
+            min-height: 350px;
+            max-height: 350px;
+            flex-shrink: 0;
+            align-self: center;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* Inner: exact box size, center the image inside (layered avatar = home style) */
+        .forum-user-card .forum-user-card-avatar .forum-user-card-avatar-inner {
+            position: relative;
+            width: 250px;
+            height: 350px;
+            min-width: 250px;
+            min-height: 350px;
+            flex-shrink: 0;
+            pointer-events: none;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* Single full-avatar img only; layered avatar uses .forum-avatar-base / .forum-avatar-item (pixel-perfect) */
+        .forum-user-card .forum-user-card-avatar .forum-user-card-avatar-inner .forum-user-card-full-avatar {
+            display: block;
+            width: 250px;
+            height: 350px;
+            object-fit: none;
+            object-position: center center;
+            image-rendering: pixelated;
+        }
+        .forum-user-card .forum-user-card-avatar .forum-user-card-avatar-inner.forum-avatar-inner-profile {
+            width: 250px;
+            height: 350px;
+        }
+        .forum-user-card .forum-user-card-avatar .forum-user-card-avatar-inner.forum-avatar-inner-profile img {
+            width: 250px;
+            height: 350px;
+        }
+        /* Home-style layered avatar (same structure and rendering as home page) */
+        .forum-user-card .forum-user-card-avatar .forum-avatar-outfit-box {
+            position: relative;
+            width: 250px;
+            height: 350px;
+            overflow: hidden;
+            background: #fff;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+        }
+        .forum-user-card .forum-user-card-avatar .forum-avatar-outfit-box .forum-avatar-items {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .forum-user-card .forum-user-card-avatar .forum-avatar-base {
+            position: absolute;
+            width: 250px;
+            height: 350px;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: -webkit-optimize-contrast;
+            object-fit: none;
+            z-index: 0;
+            pointer-events: none;
+            user-drag: none;
+            -webkit-user-drag: none;
+        }
+        .forum-user-card .forum-user-card-avatar .forum-avatar-item {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: auto;
+            height: auto;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: -webkit-optimize-contrast;
+            object-fit: none;
+            max-width: 250px;
+            max-height: 350px;
+            pointer-events: none;
+        }
+        .forum-user-card .forum-user-card-avatar .forum-user-card-avatar-inner.forum-user-card-avatar-canvas {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .forum-user-card .forum-user-card-avatar .forum-user-card-full-avatar {
+            display: block;
+            width: 250px;
+            height: 350px;
+            object-fit: none;
+            image-rendering: pixelated;
+        }
+        .forum-user-card .forum-request-friend {
+            margin-top: 16px;
+            padding: 10px 18px;
+            font-size: 15px;
+            background: var(--btn-pink-gradient);
+            color: #fff;
+            border: var(--btn-pink-border);
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: var(--btn-pink-shadow);
+        }
+        .forum-user-card .forum-request-friend:hover { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); }
+        .forum-user-card .forum-request-friend:disabled { background: #9ca3af; cursor: default; }
+        .forum-user-card-foil { position: absolute; inset: 0; z-index: 0; border-radius: 12px; overflow: hidden; pointer-events: none; top: 0; left: 0; right: 0; bottom: 0; }
+        .forum-user-card-foil .holo-mask-wrap { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; }
+        .forum-user-card-foil .holo-mask-wrap.mask-none { -webkit-mask-image: none; mask-image: none; }
+        .forum-user-card-foil .holo-mask-wrap.mask-radial { -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, black 40%, transparent 70%); mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, black 40%, transparent 70%); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+        .forum-user-card-foil .holo-mask-wrap.mask-linear-v { -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 80%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 80%, transparent 100%); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+        .forum-user-card-foil .holo-mask-wrap.mask-linear-h { -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 25%, black 75%, transparent 100%); mask-image: linear-gradient(90deg, transparent 0%, black 25%, black 75%, transparent 100%); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+        .forum-user-card-foil .holo-layer { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
+        .forum-user-card-foil .holo-grad-1 { background: conic-gradient(from 0deg at 50% 50%, #ff0080, #ff8c00, #40e0d0, #9d4edd, #ff0080); mix-blend-mode: overlay; }
+        .forum-user-card-foil .holo-grad-2 { background: linear-gradient(135deg, #fbbf24 0%, #a78bfa 50%, #06b6d4 100%); mix-blend-mode: overlay; }
+        .forum-user-card-foil .holo-grad-3 { background: radial-gradient(ellipse 80% 80% at 50% 50%, #f472b6, transparent 60%); mix-blend-mode: overlay; }
+        .forum-user-card-foil .holo-pattern-1 { background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.12) 8px, rgba(255,255,255,0.12) 16px); mix-blend-mode: overlay; }
+        .forum-user-card-foil .holo-pattern-2 { background: radial-gradient(circle at center, rgba(255,255,255,0.2) 1px, transparent 1px); background-size: 12px 12px; mix-blend-mode: overlay; }
+        .forum-user-card-foil .holo-pattern-3 { background: repeating-linear-gradient(0deg, transparent 0, transparent 6px, rgba(255,255,255,0.08) 6px, rgba(255,255,255,0.08) 12px), repeating-linear-gradient(90deg, transparent 0, transparent 6px, rgba(255,255,255,0.08) 6px, rgba(255,255,255,0.08) 12px); mix-blend-mode: overlay; }
+        .forum-user-card-foil .holo-reflect { position: absolute; inset: 0; border-radius: inherit; mix-blend-mode: overlay; pointer-events: none; -webkit-mask-size: 32px 32px; mask-size: 32px 32px; -webkit-mask-repeat: repeat; mask-repeat: repeat; }
+        .forum-user-card-foil .holo-reflect-hearts { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E"); }
+        .forum-user-card-foil .holo-reflect-stars { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E"); }
+        .forum-user-card-foil .holo-reflect-prisms { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2L2 12l10 10 10-10L12 2z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2L2 12l10 10 10-10L12 2z'/%3E%3C/svg%3E"); }
+        .forum-user-card-foil .holo-foil-shimmer { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.2) 30%, rgba(255,255,255,0.45) 45%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.45) 55%, rgba(255,255,255,0.2) 70%, transparent 100%); background-size: 200% 200%; animation: forum-holo-shimmer 4s ease-in-out infinite; pointer-events: none; }
+        @keyframes forum-holo-spin { to { transform: rotate(360deg); } }
+        @keyframes forum-holo-shimmer { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        .forum-role-icon {
+            display: inline-block;
+            margin-left: 4px;
+            padding: 0 4px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            vertical-align: middle;
+        }
+        .forum-role-icon.role-admin { background: #dc2626; color: #fff; }
+        .forum-role-icon.role-moderator { background: #ec4899; color: #fff; }
+        .forum-role-icon.role-designer { background: #059669; color: #fff; }
+        .forum-role-icon.role-membership { background: #d97706; color: #fff; }
+        .forum-post-card.forum-post-member { border-left: 4px solid #d97706; background: linear-gradient(90deg, #fffbeb 0%, #fff 12%); }
+        /* Forum: three-column layout - left categories, center content, right avatar bar */
+        body.forum-page { height: 100vh; overflow: hidden; display: flex; flex-direction: column; background: linear-gradient(180deg, #f5f3ff 0%, #fafafa 100%); }
+        .forum-page-main { flex: 1; min-height: 0; display: flex; width: 100%; max-width: 1400px; margin: 0 auto; padding-top: 4.5rem; }
+        .forum-sidebar-left {
+            width: 220px; min-width: 220px; flex-shrink: 0;
+            background: rgba(243, 244, 246, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 1rem 0; display: flex; flex-direction: column; gap: 0.5rem;
+        }
+        .forum-sidebar-left a, .forum-sidebar-left .forum-nav-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; color: #374151; text-decoration: none; font-size: 0.9rem; }
+        .forum-sidebar-left a:hover, .forum-sidebar-left .forum-nav-item:hover { background: #e5e7eb; color: #1f2937; }
+        .forum-sidebar-left .forum-nav-section { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; padding: 0.75rem 1rem 0.25rem; }
+        .forum-sidebar-left .forum-cat-item { padding: 0.4rem 1rem; font-size: 0.875rem; color: #4b5563; }
+        .forum-sidebar-separator { padding: 0.5rem 1rem; margin-top: 0.25rem; font-size: 0.75rem; color: #9ca3af; letter-spacing: 0.1em; }
+        .forum-sidebar-left .forum-cat-item:hover { background: #e5e7eb; }
+        .forum-sidebar-forums { margin-top: 0.25rem; }
+        .forum-sidebar-forums-loading { font-size: 0.8rem; color: #6b7280; padding: 0 1rem; margin: 0; }
+        .forum-sidebar-forums a { display: block; padding: 0.4rem 1rem; font-size: 0.875rem; color: #4b5563; text-decoration: none; }
+        .forum-sidebar-forums a:hover { background: #e5e7eb; color: #1f2937; }
+        .forum-sidebar-forums a.forum-sidebar-forum-item { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .forum-ad-space { margin-top: 1.5rem; width: 100%; min-width: 0; }
+        .forum-ad-space + .forum-ad-space { margin-top: 1rem; }
+        .forum-ad-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; margin-bottom: 0.5rem; }
+        .forum-ad-placeholder { width: 100%; min-height: 250px; background: #e5e7eb; border: 1px dashed #9ca3af; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6b7280; font-size: 0.875rem; box-sizing: border-box; }
+        .forum-ad-placeholder.forum-ad-placeholder-secondary { min-height: 220px; margin-top: 0.5rem; }
+        .forum-sidebar-right {
+            width: 300px; min-width: 300px; flex-shrink: 0;
+            background: rgba(243, 244, 246, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 1rem; display: flex; flex-direction: column; align-items: stretch;
+        }
+        .forum-sidebar-right .forum-ad-space { width: 100%; max-width: 100%; }
+        .forum-sidebar-right .forum-ad-space:last-of-type { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+        .forum-sidebar-right .forum-ad-space:last-of-type .forum-ad-placeholder { flex: 1; min-height: 220px; }
+        .forum-sidebar-right .forum-avatar-label { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.75rem; color: #374151; }
+        .forum-sidebar-right .forum-saved-avatar { background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .forum-sidebar-right .forum-right-ads-guest .forum-ad-space { margin-top: 1rem; }
+        .forum-sidebar-right .forum-right-ads-guest .forum-ad-space:first-child { margin-top: 0; }
+        .forum-center { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 0 1.5rem; overflow: hidden; }
+        .forum-box { display: flex; flex-direction: column; min-height: 0; flex: 1; background: transparent; box-shadow: none; padding: 0; }
+        .forum-box .forum-title-row { margin-bottom: 1rem; }
+        .forum-title-text { font-size: 1.5rem; font-weight: 700; color: #000; margin: 0; }
+        .forum-posts-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; min-height: 0; }
+        .forum-main-box { background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden; }
+        .forum-main-box.forum-main-box-has-accent { background-color: var(--forum-post-bg) !important; }
+        .forum-main-box .forum-post-card { margin-left: 0; box-shadow: none; padding: 0; }
+        .forum-main-box .forum-post-card .forum-post-header.forum-post-header-has-graphic { margin-left: -1.5rem; margin-right: -1.5rem; margin-bottom: 0; width: calc(100% + 3rem); box-sizing: content-box; }
+        .forum-main-box .forum-post-card > .forum-post-header.forum-post-header-has-graphic:first-child { margin-top: -1.5rem; }
+        .forum-post-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; width: 100%; padding: 0.5rem 0 0.75rem; margin-bottom: 0.25rem; }
+        .forum-post-header .forum-post-header-left { display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; }
+        .forum-post-header .forum-post-header-name { font-weight: 600; color: #1f2937; }
+        .forum-post-header .forum-post-header-date { color: #6b7280; font-size: 0.9rem; }
+        .forum-post-card-inner { display: flex; align-items: flex-start; gap: 1rem; }
+        .forum-comments-section { margin-top: 0.5rem; }
+        .forum-comments-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; color: #000; }
+        /* Comment cards: same structure as main post (no card padding; header and body match .forum-main-box) */
+        .forum-comments-list .forum-post-card { background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 0.75rem; overflow: hidden; padding: 0; }
+        .forum-comments-list .forum-post-card .forum-post-header { margin-left: 0; margin-right: 0; padding: 0.75rem 1.5rem; }
+        .forum-comments-list .forum-post-card .forum-post-header.forum-post-header-has-graphic { padding: 0; margin: 0; margin-bottom: 0; border-radius: 12px 12px 0 0; }
+        .forum-comments-list .forum-post-card .forum-post-header.forum-post-header-has-graphic > .forum-post-header-left,
+        .forum-comments-list .forum-post-card .forum-post-header.forum-post-header-has-graphic > div.flex { padding: 0.5rem 1.5rem; }
+        .forum-comments-list .forum-post-card .forum-post-card-inner { padding: 1rem 1.5rem 1.25rem; }
+        .forum-comments-list .forum-post-card .forum-post-footer { padding: 0.5rem 1.5rem 0.75rem; }
+        .forum-comments-list .forum-post-card .forum-post-content .forum-username { color: #1f2937; }
+        .forum-comments-list .forum-post-card .forum-post-content .forum-message { color: #374151; }
+        .forum-category-tag { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 500; background: #fce4ec; color: #be185d; }
+        .forum-category-tag:empty { display: none; }
+        /* Report modal: overlay + box so all categories appear in one clear box */
+        #report-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+        #report-modal .report-modal-box {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            max-width: 28rem;
+            width: 100%;
+            padding: 1.5rem;
+            border: 1px solid #e5e7eb;
+        }
+        #report-modal .report-modal-box h3 { margin: 0 0 1rem 0; font-size: 1.125rem; }
+        #report-modal .report-modal-box label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem; }
+        #report-modal .report-modal-box select,
+        #report-modal .report-modal-box textarea {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 1rem;
+            box-sizing: border-box;
+        }
+        #report-modal .report-modal-box textarea { min-height: 80px; resize: vertical; }
+        #report-modal .report-modal-box .report-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
+        #report-modal .report-modal-box .report-modal-actions button { padding: 0.5rem 1rem; border-radius: 8px; font-size: 14px; cursor: pointer; }
+        #report-modal .report-modal-box .report-modal-actions .report-cancel { border: 1px solid #d1d5db; background: #fff; }
+        #report-modal .report-modal-box .report-modal-actions .report-cancel:hover { background: #f3f4f6; }
+        #report-modal .report-modal-box .report-modal-actions .report-submit { background: #dc2626; color: #fff; border: none; }
+        #report-modal .report-modal-box .report-modal-actions .report-submit:hover { background: #b91c1c; }
+        #edit-forum-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+        #edit-forum-modal .report-modal-box input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; margin-bottom: 1rem; box-sizing: border-box; }
+    </style>
+</head>
+<body class="forum-page">
+    <div id="header-placeholder"></div>
+    <div class="forum-page-main">
+        <!-- Left sidebar: categories -->
+        <aside class="forum-sidebar-left">
+            <a href="./forummenu.html">← Bulletin Board</a>
+            <div class="forum-nav-section">Categories</div>
+            <a href="./forummenu.html" class="forum-cat-item">All threads</a>
+            <a href="./forummenu.html?category=General" class="forum-cat-item">General</a>
+            <a href="./forummenu.html?category=Help" class="forum-cat-item">Help</a>
+            <a href="./forummenu.html?category=Feedback" class="forum-cat-item">Feedback</a>
+            <a href="./forummenu.html?category=Ideas" class="forum-cat-item">Ideas</a>
+            <a href="./forummenu.html?category=Off-topic" class="forum-cat-item">Off-topic</a>
+            <div class="forum-sidebar-separator">────────────────</div>
+            <div class="forum-nav-section">Bulletin board</div>
+            <div id="forum-sidebar-forums" class="forum-sidebar-forums">
+                <p class="forum-sidebar-forums-loading">Loading…</p>
+            </div>
+        </aside>
+
+        <!-- Center: main content - white boxes for forum and comments -->
+        <main class="forum-center">
+            <div class="forum-box">
+                <div class="forum-title-row flex justify-between items-center flex-wrap gap-2 flex-shrink-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 id="topic-title" class="forum-title-text">Bulletin Board</h1>
+                        <span id="topic-category" class="forum-category-tag"></span>
+                    </div>
+                    <div class="flex gap-2 flex-wrap items-center">
+                        <button type="button" id="edit-forum-btn" class="hidden text-pink-500 hover:underline text-sm">Edit thread</button>
+                        <button type="button" id="report-forum-btn" class="hidden text-gray-600 hover:underline text-sm">Report thread</button>
+                        <button type="button" id="lock-forum-btn" class="hidden text-pink-500 hover:underline text-sm">Lock thread</button>
+                        <button type="button" id="delete-forum-btn" class="hidden text-red-600 hover:underline text-sm">Delete thread</button>
+                    </div>
+                </div>
+                <p id="thread-locked-notice" class="hidden text-amber-700 bg-amber-100 px-3 py-2 rounded text-sm mb-4">This thread is locked. Only admins and moderators can post.</p>
+
+                <div id="posts" class="forum-posts-scroll space-y-5 mb-4"></div>
+
+                <div id="post-form-wrap" class="flex-shrink-0 pt-2">
+                    <button type="button" id="write-comment-btn" class="btn-primary px-4 py-2 rounded-lg text-sm font-medium">Add Response</button>
+                    <div id="post-form-inner" class="hidden mt-4 p-4 bg-white rounded-lg border border-gray-200">
+                        <textarea id="message" placeholder="Your message" class="w-full p-2 mb-2 border rounded" rows="4"></textarea>
+                        <div class="flex flex-wrap gap-2 mb-2 items-center">
+                            <button type="button" id="forum-add-image-btn" class="text-sm px-2 py-1 border rounded hover:bg-gray-100">Add image</button>
+                            <button type="button" id="forum-add-video-btn" class="text-sm px-2 py-1 border rounded hover:bg-gray-100">Add video</button>
+                            <button type="button" id="forum-add-gif-btn" class="text-sm px-2 py-1 border rounded hover:bg-gray-100">Add GIF</button>
+                            <button type="button" id="forum-emotes-btn" class="text-sm px-2 py-1 border rounded hover:bg-gray-100">Emoticons</button>
+                            <input type="file" id="forum-media-input" accept="image/*,video/*" class="hidden">
+                        </div>
+                        <div id="forum-emote-picker-wrap" class="hidden mb-2"></div>
+                        <div id="forum-attachment-previews" class="flex flex-wrap gap-2 mb-2"></div>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="submitForumPost()" class="btn-primary px-4 py-2 rounded">Post</button>
+                            <button type="button" id="cancel-comment-btn" class="px-4 py-2 border rounded hover:bg-gray-100">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right sidebar: when logged in = avatar + ads; when not logged in = more ads only -->
+        <aside class="forum-sidebar-right">
+            <div id="forum-right-avatar-wrap">
+                <p class="forum-avatar-label">Your avatar</p>
+                <div id="saved-avatar-box" class="forum-saved-avatar">
+                    <div id="saved-avatar-inner" class="forum-saved-inner"></div>
+                </div>
+            </div>
+            <div id="forum-right-ads-guest" class="forum-right-ads-guest" style="display: none;">
+                <div class="forum-ad-space">
+                    <p class="forum-ad-label">Advertisement</p>
+                    <div class="forum-ad-placeholder">Ad space</div>
+                </div>
+                <div class="forum-ad-space">
+                    <p class="forum-ad-label">Advertisement</p>
+                    <div class="forum-ad-placeholder forum-ad-placeholder-secondary">Ad space</div>
+                </div>
+                <div class="forum-ad-space">
+                    <p class="forum-ad-label">Advertisement</p>
+                    <div class="forum-ad-placeholder forum-ad-placeholder-secondary">Ad space</div>
+                </div>
+            </div>
+            <div class="forum-ad-space">
+                <p class="forum-ad-label">Advertisement</p>
+                <div class="forum-ad-placeholder">Ad space</div>
+            </div>
+            <div class="forum-ad-space">
+                <p class="forum-ad-label">Advertisement</p>
+                <div class="forum-ad-placeholder forum-ad-placeholder-secondary">Ad space</div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- GIF search modal -->
+    <div id="forum-gif-modal" aria-hidden="true" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display: none; background: rgba(0,0,0,0.5);">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col">
+            <div class="p-4 border-b flex items-center gap-2">
+                <input type="text" id="forum-gif-search" placeholder="Search GIFs..." class="flex-1 p-2 border rounded" autocomplete="off">
+                <button type="button" id="forum-gif-search-btn" class="px-4 py-2 btn-primary rounded">Search</button>
+                <button type="button" id="forum-gif-modal-close" class="px-3 py-2 border rounded hover:bg-gray-100" aria-label="Close">×</button>
+            </div>
+            <div id="forum-gif-results" class="p-4 overflow-y-auto flex-1 grid grid-cols-2 sm:grid-cols-3 gap-2 min-h-[200px]">
+                <p class="col-span-full text-gray-500 text-sm">Enter a search term and click Search to find GIFs.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report modal: overlay with box containing all categories -->
+    <div id="report-modal" aria-hidden="true" style="display: none;">
+        <div class="report-modal-box">
+            <h3>Report</h3>
+            <label for="report-category">Category (required)</label>
+            <select id="report-category">
+                <option value="">Select a category</option>
+                <option value="Spam">Spam</option>
+                <option value="Harassment/Bullying">Harassment/Bullying</option>
+                <option value="Toxic behaviour">Toxic behaviour</option>
+                <option value="Hate speech/Bigotry">Hate speech/Bigotry</option>
+                <option value="Threats/Violence">Threats/Violence</option>
+                <option value="Illegal content">Illegal content</option>
+                <option value="NSFW">NSFW</option>
+                <option value="Others">Others</option>
+            </select>
+            <label for="report-details">Additional details (optional)</label>
+            <textarea id="report-details" rows="3" placeholder="Any extra context..."></textarea>
+            <div class="report-modal-actions">
+                <button type="button" id="report-modal-cancel" class="report-cancel">Cancel</button>
+                <button type="button" id="report-modal-submit" class="report-submit">Submit report</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit forum modal -->
+    <div id="edit-forum-modal" aria-hidden="true" style="display: none;">
+        <div class="report-modal-box">
+            <h3>Edit forum</h3>
+            <label for="edit-forum-title">Title</label>
+            <input type="text" id="edit-forum-title" class="w-full p-2 mb-4 border rounded" placeholder="Topic title">
+            <label for="edit-forum-category">Category</label>
+            <input type="text" id="edit-forum-category" class="w-full p-2 mb-4 border rounded" placeholder="Category">
+            <label for="edit-forum-postContent">Initial post</label>
+            <textarea id="edit-forum-postContent" class="w-full p-2 mb-4 border rounded" rows="4" placeholder="First post content"></textarea>
+            <div class="report-modal-actions">
+                <button type="button" id="edit-forum-cancel" class="report-cancel">Cancel</button>
+                <button type="button" id="edit-forum-submit" class="report-submit">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Placeholder avatar URL
+        const placeholderAvatar = 'https://p4vl0v.neocities.org/dfer5erer.png';
+
+        window._forumEmotes = { builtin: {}, custom: [] };
+        window._forumGifs = [];
+        window._forumAttachmentList = [];
+        window._replyAttachments = {};
+        window._editForumAttachments = [];
+        window._editCommentAttachments = {};
+        window._forumCurrentMessageEl = null;
+
+        function forumPostAccentColor(hex) {
+            if (!hex || !/^#[0-9A-Fa-f]{3,6}$/.test(hex)) return '#c4c8cc';
+            var h = hex.slice(1);
+            if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+            var r = parseInt(h.slice(0, 2), 16) / 255, g = parseInt(h.slice(2, 4), 16) / 255, b = parseInt(h.slice(4, 6), 16) / 255;
+            var max = Math.max(r, g, b), min = Math.min(r, g, b);
+            var L = (max + min) / 2, S = 0, H = 0;
+            if (max !== min) {
+                var d = max - min;
+                S = L > 0.5 ? d / (2 - max - min) : d / (max + min);
+                if (max === r) H = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+                else if (max === g) H = ((b - r) / d + 2) / 6;
+                else H = ((r - g) / d + 4) / 6;
+                if (H < 0) H += 1;
+                if (H > 1) H -= 1;
+            }
+            L = Math.max(0, Math.min(1, L * 0.72));
+            S = Math.max(0, Math.min(1, S * 0.5));
+            var c = (1 - Math.abs(2 * L - 1)) * S, x = c * (1 - Math.abs((H * 6) % 2 - 1)), m = L - c / 2;
+            var rr = 0, gg = 0, bb = 0;
+            if (H < 1/6) { rr = c; gg = x; }
+            else if (H < 2/6) { rr = x; gg = c; }
+            else if (H < 3/6) { gg = c; bb = x; }
+            else if (H < 4/6) { gg = x; bb = c; }
+            else if (H < 5/6) { rr = x; bb = c; }
+            else { rr = c; bb = x; }
+            return '#' + [rr + m, gg + m, bb + m].map(function(v) { var n = Math.round(Math.max(0, Math.min(1, v)) * 255); return (n < 16 ? '0' : '') + n.toString(16); }).join('');
+        }
+        function escapeForumHtml(s) {
+            if (s == null) return '';
+            var t = String(s);
+            return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function canUseCustomEmotes() {
+            var roles = window._forumUserRoles || [];
+            return roles.indexOf('membership') !== -1 || roles.indexOf('admin') !== -1 || roles.indexOf('moderator') !== -1;
+        }
+
+        function clampCardToViewport(left, top, w, h) {
+            var pad = 8;
+            var W = window.innerWidth;
+            var H = window.innerHeight;
+            left = Math.max(pad, Math.min(left, W - w - pad));
+            top = Math.max(pad, Math.min(top, H - h - pad));
+            return { left: left, top: top };
+        }
+
+        function formatForumMessage(text, builtin, custom) {
+            if (text == null) text = '';
+            var out = escapeForumHtml(text);
+            builtin = builtin || window._forumEmotes.builtin || {};
+            custom = custom || window._forumEmotes.custom || [];
+            var gifs = window._forumGifs || [];
+            /* Render custom emotes for all viewers (guests and non-members can see them in posts) */
+            var shortcodes = custom.slice().map(function(c) { return c.shortcode; }).filter(Boolean);
+            shortcodes.sort(function(a, b) { return (b.length || 0) - (a.length || 0); });
+            shortcodes.forEach(function(sc) {
+                var item = custom.find(function(c) { return c.shortcode === sc; });
+                if (!item || !item.url) return;
+                var url = escapeForumHtml(item.url);
+                var re = new RegExp(sc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                out = out.replace(re, '<img src="' + url + '" class="forum-emote" alt="' + escapeForumHtml(sc) + '" />');
+            });
+            var gifShortcodes = gifs.slice().map(function(g) { return g.shortcode; }).filter(Boolean);
+            gifShortcodes.sort(function(a, b) { return (b.length || 0) - (a.length || 0); });
+            gifShortcodes.forEach(function(sc) {
+                var item = gifs.find(function(g) { return g.shortcode === sc; });
+                if (!item || !item.url) return;
+                var url = escapeForumHtml(item.url);
+                var re = new RegExp(sc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                out = out.replace(re, '<img src="' + url + '" class="forum-gif" alt="' + escapeForumHtml(sc) + '" />');
+            });
+            Object.keys(builtin).forEach(function(sc) {
+                var re = new RegExp(sc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                out = out.replace(re, '<span class="forum-emote">' + escapeForumHtml(builtin[sc]) + '</span>');
+            });
+            return out;
+        }
+
+        function formatForumPostMessage(text) {
+            if (text == null) text = '';
+            var raw = String(text).replace(/\r\n/g, '\n');
+            var lines = raw.split('\n');
+            var hasMeta = lines.length > 0 && lines[0].indexOf('> __quote:') === 0 && lines[0].endsWith('__') && lines[0].length > 12;
+            var quoteAuthor = '';
+            var quoteUserId = '';
+            var quoteTimestamp = '';
+            var quoteRoles = [];
+            var startAuthorLine = 0;
+            var startQuoteLines = 1;
+            if (hasMeta) {
+                var metaLine = lines[0];
+                var metaMatch = metaLine.match(/> __quote:([^_]+)__/);
+                if (metaMatch) {
+                    var parts = metaMatch[1].split('|');
+                    quoteUserId = (parts[0] || '').trim();
+                    quoteTimestamp = (parts[1] || '').trim();
+                    quoteRoles = (parts[2] || '').split(',').map(function(r) { return r.trim(); }).filter(Boolean);
+                }
+                if (lines.length > 1 && lines[1].indexOf('> **') === 0) {
+                    quoteAuthor = lines[1].replace(/^\s*> \*\*/, '').replace(/\*\*:?\s*$/, '').trim();
+                    startQuoteLines = 2;
+                }
+            }
+            if (!hasMeta && lines.length > 0 && lines[0].indexOf('> **') === 0 && lines[0].indexOf(':**') !== -1) {
+                quoteAuthor = lines[0].replace(/^\s*> \*\*/, '').replace(/\*\*:?\s*$/, '').trim();
+                startQuoteLines = 1;
+            }
+            if (!quoteAuthor && !hasMeta) {
+                if (lines.length === 0 || lines[0].indexOf('> **') !== 0 || lines[0].indexOf(':**') === -1) {
+                    return '<div class="forum-message">' + formatForumMessage(raw) + '</div>';
+                }
+                quoteAuthor = lines[0].replace(/^\s*> \*\*/, '').replace(/\*\*:?\s*$/, '').trim();
+                startQuoteLines = 1;
+            }
+            var quoteLines = [];
+            var i = startQuoteLines;
+            while (i < lines.length && lines[i].indexOf('> ') === 0) {
+                quoteLines.push(lines[i].slice(2));
+                i++;
+            }
+            while (i < lines.length && lines[i].trim() === '') i++;
+            var quoteText = quoteLines.join('\n').trim();
+            var replyText = lines.slice(i).join('\n').trim();
+            var roleIcons = '';
+            if (quoteRoles.length) {
+                if (quoteRoles.indexOf('admin') !== -1) roleIcons += '<span class="forum-role-icon role-admin" title="Admin">A</span>';
+                if (quoteRoles.indexOf('moderator') !== -1) roleIcons += '<span class="forum-role-icon role-moderator" title="Moderator">M</span>';
+                if (quoteRoles.indexOf('designer') !== -1) roleIcons += '<span class="forum-role-icon role-designer" title="Designer">D</span>';
+                if (quoteRoles.indexOf('membership') !== -1) roleIcons += '<span class="forum-role-icon role-membership" title="Member">★</span>';
+            }
+            var quoteHeader = '';
+            if (hasMeta && (quoteAuthor || quoteUserId)) {
+                var safeName = escapeForumHtml(quoteAuthor || 'Guest');
+                quoteHeader = '<div class="forum-quote-header forum-quote-name-hover forum-username-hover" title="View profile" data-user-id="' + escapeForumHtml(quoteUserId) + '"><div class="forum-quote-header-left"><span class="forum-quote-name">' + safeName + '</span><span class="forum-quote-roles">' + roleIcons + '</span></div><span class="forum-quote-date">' + escapeForumHtml(quoteTimestamp) + '</span></div>';
+            } else if (quoteAuthor) {
+                quoteHeader = '<div class="forum-quote-header"><div class="forum-quote-header-left"><span class="forum-quote-author">' + escapeForumHtml(quoteAuthor) + '</span></div><span class="forum-quote-date">—</span></div>';
+            }
+            var quoteHtml = '<div class="forum-quote-box">' + quoteHeader + '<div class="forum-quote-text">' + formatForumMessage(quoteText) + '</div></div>';
+            var replyHtml = replyText ? '<div class="forum-message forum-reply-below">' + formatForumMessage(replyText) + '</div>' : '';
+            return quoteHtml + replyHtml;
+        }
+
+        function loadForumEmotes(cb) {
+            if (window._forumEmotes.custom.length > 0 || Object.keys(window._forumEmotes.builtin).length > 0) {
+                if (cb) cb(); return;
+            }
+            fetch('/api/forum/emotes', { credentials: 'same-origin' }).then(function(r) { return r.ok ? r.json() : {}; }).then(function(data) {
+                window._forumEmotes.builtin = data.builtin || {};
+                window._forumEmotes.custom = data.custom || [];
+                if (cb) cb();
+            }).catch(function() { if (cb) cb(); });
+        }
+
+        function outfitListToItems(outfits) {
+            if (!Array.isArray(outfits) || outfits.length === 0) return null;
+            var last = outfits[outfits.length - 1];
+            if (!last || !last.items || typeof last.items !== 'object') return null;
+            var slotOrder = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
+            var all = [];
+            slotOrder.forEach(function (slotId) {
+                var arr = last.items[slotId];
+                if (Array.isArray(arr)) arr.forEach(function (item) { all.push({ src: item.src || '', x: item.x != null ? item.x : 0, y: item.y != null ? item.y : 0, z: item.zIndex != null ? item.zIndex : 0 }); });
+            });
+            if (all.length === 0) return null;
+            all.sort(function (a, b) { return (a.z || 0) - (b.z || 0); });
+            return [{ src: '/Uploads/character.png', x: 0, y: 0, z: -1 }].concat(all);
+        }
+
+        function fetchFullAvatarItems(userId, currentUserId, post, cb) {
+            var url = (userId != null && String(userId) === String(currentUserId))
+                ? '/api/outfits'
+                : '/api/users/' + encodeURIComponent(userId) + '/outfits';
+            fetch(url, { credentials: 'same-origin' })
+                .then(function (r) { return r.ok ? r.json() : []; })
+                .catch(function () { return []; })
+                .then(function (outfits) {
+                    var items = outfitListToItems(outfits);
+                    if (items && items.length > 0) return cb(items);
+                    if (post.outfitItems && Array.isArray(post.outfitItems) && post.outfitItems.length > 0) {
+                        items = [{ src: '/Uploads/character.png', x: 0, y: 0, z: -1 }];
+                        post.outfitItems.forEach(function (item) {
+                            items.push({ src: item.src || '', x: item.x != null ? item.x : 0, y: item.y != null ? item.y : 0, z: item.zIndex != null ? item.zIndex : 0 });
+                        });
+                        return cb(items);
+                    }
+                    cb([{ src: post.avatar || placeholderAvatar, x: 0, y: 0, z: 0 }]);
+                });
+        }
+
+        function drawFullAvatarToCanvas(items, callback) {
+            var W = 250, H = 350;
+            var canvas = document.createElement('canvas');
+            canvas.width = W;
+            canvas.height = H;
+            var ctx = canvas.getContext('2d');
+            items = items.slice();
+            items.sort(function (a, b) { return (a.z || 0) - (b.z || 0); });
+            var loaded = 0;
+            var imgs = [];
+            function draw() {
+                if (loaded !== items.length) return;
+                ctx.clearRect(0, 0, W, H);
+                for (var i = 0; i < items.length; i++) {
+                    var img = imgs[i];
+                    if (!img || !img.complete) continue;
+                    var nw = img.naturalWidth || W, nh = img.naturalHeight || H;
+                    var scale = Math.min(1, W / nw, H / nh);
+                    var dw = nw * scale, dh = nh * scale;
+                    var cx = 125 + (items[i].x || 0), cy = 175 + (items[i].y || 0);
+                    ctx.drawImage(img, 0, 0, nw, nh, cx - dw / 2, cy - dh / 2, dw, dh);
+                }
+                try { callback(canvas); } catch (e) {}
+            }
+            items.forEach(function (item, i) {
+                var img = new Image();
+                img.onload = function () { imgs[i] = img; loaded++; draw(); };
+                img.onerror = function () { loaded++; draw(); };
+                img.src = item.src || '';
+            });
+        }
+
+        function applyPixelPerfectSize(img, maxW, maxH) {
+            maxW = maxW || 250;
+            maxH = maxH || 350;
+            var nw = img.naturalWidth, nh = img.naturalHeight;
+            if (!nw || !nh) return;
+            var scale = Math.min(1, maxW / nw, maxH / nh);
+            if (scale < 1) scale = 1 / Math.ceil(1 / scale);
+            var w = Math.round(nw * scale), h = Math.round(nh * scale);
+            if (w % 2 !== 0) w++;
+            if (h % 2 !== 0) h++;
+            img.style.width = w + 'px';
+            img.style.height = h + 'px';
+        }
+
+        function hookPixelPerfect(img, maxW, maxH) {
+            img.addEventListener('load', function () { applyPixelPerfectSize(img, maxW, maxH); });
+            if (img.complete) applyPixelPerfectSize(img, maxW, maxH);
+        }
+
+        function renderAvatarAsLayeredImages(placeholderEl, items, callback) {
+            if (!placeholderEl || !items || items.length === 0) {
+                if (callback) callback();
+                return;
+            }
+            items = items.slice();
+            items.sort(function (a, b) { return (a.z || 0) - (b.z || 0); });
+            var isSingleFallback = (items.length === 1 && (items[0].src || '').indexOf('character') === -1);
+            if (isSingleFallback) {
+                var fallbackImg = document.createElement('img');
+                fallbackImg.alt = '';
+                fallbackImg.className = 'forum-user-card-full-avatar';
+                fallbackImg.src = items[0].src || '';
+                fallbackImg.onerror = function () { fallbackImg.style.display = 'none'; };
+                placeholderEl.innerHTML = '';
+                placeholderEl.appendChild(fallbackImg);
+                if (callback) callback();
+                return;
+            }
+            var box = document.createElement('div');
+            box.className = 'forum-avatar-outfit-box';
+            var baseUrl = (items[0] && items[0].src) ? items[0].src : '/Uploads/character.png';
+            var baseImg = document.createElement('img');
+            baseImg.className = 'forum-avatar-base';
+            baseImg.src = baseUrl.indexOf('/') === 0 ? (window.location.origin || '') + baseUrl : baseUrl;
+            baseImg.alt = 'Character base';
+            baseImg.setAttribute('width', '250');
+            baseImg.setAttribute('height', '350');
+            baseImg.draggable = false;
+            baseImg.onerror = function () { baseImg.style.display = 'none'; };
+            hookPixelPerfect(baseImg);
+            box.appendChild(baseImg);
+            var itemsContainer = document.createElement('div');
+            itemsContainer.className = 'forum-avatar-items';
+            var startIdx = ((items[0] && items[0].src && items[0].src.indexOf('character') !== -1) ? 1 : 0);
+            for (var i = startIdx; i < items.length; i++) {
+                var it = items[i];
+                var src = (it.src || '').trim();
+                if (src && src.indexOf('/') === 0) src = (window.location.origin || '') + src;
+                var el = document.createElement('img');
+                el.className = 'forum-avatar-item';
+                el.src = src || '';
+                el.alt = it.alt || '';
+                el.loading = 'lazy';
+                el.style.zIndex = (it.z != null ? it.z : (it.zIndex != null ? it.zIndex : 2));
+                el.style.transform = 'translate(-50%, -50%) translate(' + (it.x || 0) + 'px, ' + (it.y || 0) + 'px)';
+                el.onerror = function () { el.style.display = 'none'; };
+                hookPixelPerfect(el);
+                itemsContainer.appendChild(el);
+            }
+            box.appendChild(itemsContainer);
+            placeholderEl.innerHTML = '';
+            placeholderEl.appendChild(box);
+            if (callback) callback();
+        }
+
+        function getTopicId() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('topicId') || '';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPosts();
+            function doRefreshPosts() {
+                var fn = window._forumLoadPosts || (typeof loadPosts === 'function' ? loadPosts : null);
+                if (fn) fn();
+            }
+            document.body.addEventListener('click', function(e) {
+                var editCommentBtn = e.target.closest('.forum-edit-post-btn');
+                if (editCommentBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var postId = String(editCommentBtn.getAttribute('data-post-id') || '').trim();
+                    if (!postId) return;
+                    var editForm = document.getElementById('edit-form-' + postId);
+                    var msgEl = document.getElementById('post-msg-' + postId);
+                    if (editForm && msgEl) {
+                        window._editCommentAttachments = window._editCommentAttachments || {};
+                        try {
+                            var attStr = editForm.getAttribute('data-attachments');
+                            window._editCommentAttachments[postId] = (attStr ? JSON.parse(attStr.replace(/&quot;/g, '"')) : []) || [];
+                        } catch (err) { window._editCommentAttachments[postId] = []; }
+                        if (typeof renderEditCommentAttachmentPreviews === 'function') renderEditCommentAttachmentPreviews(postId);
+                        editForm.classList.remove('hidden');
+                        msgEl.style.display = 'none';
+                    }
+                    return;
+                }
+                var saveBtn = e.target.closest('.forum-edit-save-btn');
+                if (saveBtn && saveBtn.closest('[id^="edit-form-"]')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var postId = String(saveBtn.getAttribute('data-post-id') || '').trim();
+                    if (!postId) { alert('Cannot save: missing post id'); return; }
+                    var msgEl = document.getElementById('edit-msg-' + postId);
+                    var msg = (msgEl && msgEl.value != null ? msgEl.value : '').trim();
+                    var attachments = (window._editCommentAttachments && window._editCommentAttachments[postId]) ? window._editCommentAttachments[postId].slice() : [];
+                    if (!msg) { alert('Message is required.'); return; }
+                    saveBtn.disabled = true;
+                    var origText = saveBtn.textContent;
+                    saveBtn.textContent = 'Saving...';
+                    fetch('/api/forum/posts/' + encodeURIComponent(postId), {
+                        method: 'PATCH',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: msg, banner: '', bannerText: '', attachments: attachments })
+                    }).then(function(r) {
+                        return r.json().then(function(d) {
+                            if (!r.ok) throw new Error(d.error || d.message || 'Failed to save');
+                            return d;
+                        }).catch(function(parseErr) {
+                            if (!r.ok) throw new Error('Failed to save');
+                            throw parseErr;
+                        });
+                    }).then(function() {
+                        doRefreshPosts();
+                    }).catch(function(err) {
+                        alert(err && err.message ? err.message : 'Failed to save');
+                    }).finally(function() {
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = origText;
+                    });
+                    return;
+                }
+                var cancelBtn = e.target.closest('.forum-edit-cancel-btn');
+                if (cancelBtn && cancelBtn.closest('[id^="edit-form-"]')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var postId = cancelBtn.getAttribute('data-post-id');
+                    if (postId) {
+                        var editForm = document.getElementById('edit-form-' + postId);
+                        var msgEl = document.getElementById('post-msg-' + postId);
+                        if (editForm && msgEl) { editForm.classList.add('hidden'); msgEl.style.display = ''; }
+                    }
+                    return;
+                }
+                var deleteBtn = e.target.closest('.forum-edit-delete-btn');
+                if (deleteBtn && deleteBtn.closest('[id^="edit-form-"]')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var postId = String(deleteBtn.getAttribute('data-post-id') || '').trim();
+                    if (!postId) return;
+                    if (!confirm('Delete this comment? This cannot be undone.')) return;
+                    fetch('/api/forum/posts/' + encodeURIComponent(postId), { method: 'DELETE', credentials: 'same-origin' })
+                        .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error || 'Failed to delete'); return d; }).catch(function() { if (!r.ok) throw new Error('Failed to delete'); }); })
+                        .then(doRefreshPosts)
+                        .catch(function(err) { alert(err && err.message ? err.message : 'Failed to delete comment'); });
+                    return;
+                }
+            }, true);
+            var reportModal = document.getElementById('report-modal');
+            var reportCategory = document.getElementById('report-category');
+            var reportDetails = document.getElementById('report-details');
+            function hideReportModal() {
+                if (reportModal) { reportModal.style.display = 'none'; reportModal.setAttribute('aria-hidden', 'true'); }
+                window._reportPending = null;
+            }
+            document.getElementById('report-modal-cancel') && document.getElementById('report-modal-cancel').addEventListener('click', hideReportModal);
+            document.getElementById('report-modal-submit') && document.getElementById('report-modal-submit').addEventListener('click', function() {
+                var cat = (reportCategory && reportCategory.value) ? reportCategory.value.trim() : '';
+                if (!cat) { alert('Please select a category.'); return; }
+                var pending = window._reportPending;
+                if (!pending) { hideReportModal(); return; }
+                var reason = (reportDetails && reportDetails.value) ? reportDetails.value.trim() : null;
+                fetch('/api/reports', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ targetType: pending.targetType, targetId: pending.targetId, topicId: pending.topicId || null, category: cat, reason: reason || '' })
+                }).then(function(r) {
+                    if (r.ok) { alert('Report submitted.'); hideReportModal(); }
+                    else { r.json().then(function(d) { alert(d.error || 'Failed to submit report'); }); }
+                }).catch(function() { alert('Failed to submit report'); });
+            });
+            var editForumModal = document.getElementById('edit-forum-modal');
+            function hideEditForumModal() {
+                if (editForumModal) { editForumModal.style.display = 'none'; editForumModal.setAttribute('aria-hidden', 'true'); }
+                window._editForumTopicId = null;
+            }
+            document.getElementById('edit-forum-cancel') && document.getElementById('edit-forum-cancel').addEventListener('click', hideEditForumModal);
+            document.getElementById('edit-forum-submit') && document.getElementById('edit-forum-submit').addEventListener('click', function() {
+                var topicId = window._editForumTopicId;
+                if (!topicId) { hideEditForumModal(); return; }
+                var title = (document.getElementById('edit-forum-title') && document.getElementById('edit-forum-title').value || '').trim();
+                var category = (document.getElementById('edit-forum-category') && document.getElementById('edit-forum-category').value || '').trim();
+                var postContent = (document.getElementById('edit-forum-postContent') && document.getElementById('edit-forum-postContent').value || '').trim();
+                if (!title) { alert('Title is required.'); return; }
+                if (!category) { alert('Category is required.'); return; }
+                fetch('/api/forum/topics/' + encodeURIComponent(topicId), {
+                    method: 'PATCH',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: title, category: category, postContent: postContent || undefined })
+                }).then(function(r) {
+                    if (r.ok) { hideEditForumModal(); loadPosts(); }
+                    else { r.json().then(function(d) { alert(d.error || 'Failed to save'); }); }
+                }).catch(function() { alert('Failed to save'); });
+            });
+            var writeBtn = document.getElementById('write-comment-btn');
+            var formInner = document.getElementById('post-form-inner');
+            var cancelBtn = document.getElementById('cancel-comment-btn');
+            if (writeBtn && formInner) writeBtn.addEventListener('click', function() {
+                formInner.classList.remove('hidden');
+                window._forumCurrentMessageEl = document.getElementById('message');
+                window._forumUploadTarget = 'main';
+            });
+            if (cancelBtn && formInner) cancelBtn.addEventListener('click', function() {
+                formInner.classList.add('hidden');
+                document.getElementById('forum-emote-picker-wrap').classList.add('hidden');
+            });
+            var mediaInput = document.getElementById('forum-media-input');
+            var addImageBtn = document.getElementById('forum-add-image-btn');
+            var addVideoBtn = document.getElementById('forum-add-video-btn');
+            if (mediaInput && addImageBtn) addImageBtn.addEventListener('click', function() { window._forumUploadTarget = 'main'; mediaInput.accept = 'image/*'; mediaInput.click(); });
+            if (mediaInput && addVideoBtn) addVideoBtn.addEventListener('click', function() { window._forumUploadTarget = 'main'; mediaInput.accept = 'video/*'; mediaInput.click(); });
+            window._forumGifTarget = 'main';
+            var gifModal = document.getElementById('forum-gif-modal');
+            var gifSearchInput = document.getElementById('forum-gif-search');
+            var gifSearchBtn = document.getElementById('forum-gif-search-btn');
+            var gifResults = document.getElementById('forum-gif-results');
+            var gifModalClose = document.getElementById('forum-gif-modal-close');
+            function openForumGifPicker(target) {
+                window._forumGifTarget = target || 'main';
+                if (gifModal) { gifModal.style.display = 'flex'; gifModal.setAttribute('aria-hidden', 'false'); }
+                if (gifResults) gifResults.innerHTML = '<p class="col-span-full text-gray-500 text-sm">Enter a search term and click Search to find GIFs.</p>';
+                if (gifSearchInput) { gifSearchInput.value = ''; gifSearchInput.focus(); }
+            }
+            function closeForumGifPicker() {
+                if (gifModal) { gifModal.style.display = 'none'; gifModal.setAttribute('aria-hidden', 'true'); }
+            }
+            function addForumGifByTarget(url) {
+                var t = window._forumGifTarget;
+                if (t === 'main') {
+                    window._forumAttachmentList = window._forumAttachmentList || [];
+                    window._forumAttachmentList.push({ type: 'image', url: url });
+                    renderForumAttachmentPreviews();
+                } else if (t && String(t).indexOf('reply-') === 0) {
+                    var postId = t.replace('reply-', '');
+                    window._replyAttachments[postId] = window._replyAttachments[postId] || [];
+                    window._replyAttachments[postId].push({ type: 'image', url: url });
+                    renderReplyAttachmentPreviews(postId);
+                } else if (t && String(t).indexOf('edit-comment-') === 0) {
+                    var postId = t.replace('edit-comment-', '');
+                    window._editCommentAttachments[postId] = window._editCommentAttachments[postId] || [];
+                    window._editCommentAttachments[postId].push({ type: 'image', url: url });
+                    renderEditCommentAttachmentPreviews(postId);
+                } else if (t === 'edit-forum') {
+                    window._editForumAttachments = window._editForumAttachments || [];
+                    window._editForumAttachments.push({ type: 'image', url: url });
+                    renderEditForumAttachmentPreviews();
+                }
+                closeForumGifPicker();
+            }
+            function searchForumGifs() {
+                var q = (gifSearchInput && gifSearchInput.value) ? gifSearchInput.value.trim() : '';
+                if (!q) { if (gifResults) gifResults.innerHTML = '<p class="col-span-full text-gray-500 text-sm">Enter a search term first.</p>'; return; }
+                if (gifResults) gifResults.innerHTML = '<p class="col-span-full text-gray-500 text-sm">Searching...</p>';
+                fetch('/api/forum/giphy-search?q=' + encodeURIComponent(q), { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(data) {
+                    if (!gifResults) return;
+                    if (data.error) {
+                        gifResults.innerHTML = '<p class="col-span-full text-red-500 text-sm">' + (data.error || 'Search failed') + '</p>';
+                        return;
+                    }
+                    if (!data.data || !data.data.length) {
+                        gifResults.innerHTML = '<p class="col-span-full text-gray-500 text-sm">No GIFs found. Try another search.</p>';
+                        return;
+                    }
+                    gifResults.innerHTML = '';
+                    data.data.forEach(function(g) {
+                        var u = (g.images && g.images.downsized_medium && g.images.downsized_medium.url) || (g.images && g.images.fixed_height && g.images.fixed_height.url) || '';
+                        if (!u) return;
+                        var div = document.createElement('div');
+                        div.className = 'cursor-pointer rounded overflow-hidden border border-gray-200 hover:border-pink-400 hover:opacity-90';
+                        div.style.aspectRatio = '1';
+                        var img = document.createElement('img');
+                        img.src = (g.images && g.images.fixed_height_small && g.images.fixed_height_small.url) || u;
+                        img.alt = (g.title || 'GIF') + '';
+                        img.className = 'w-full h-full object-cover';
+                        img.loading = 'lazy';
+                        div.appendChild(img);
+                        div.addEventListener('click', function() { addForumGifByTarget(u); });
+                        gifResults.appendChild(div);
+                    });
+                }).catch(function() {
+                    if (gifResults) gifResults.innerHTML = '<p class="col-span-full text-red-500 text-sm">Search failed. Check your connection or try again.</p>';
+                });
+            }
+            window.openForumGifPicker = openForumGifPicker;
+            var addGifBtn = document.getElementById('forum-add-gif-btn');
+            if (addGifBtn) addGifBtn.addEventListener('click', function() { openForumGifPicker('main'); });
+            if (gifSearchBtn) gifSearchBtn.addEventListener('click', searchForumGifs);
+            if (gifSearchInput) gifSearchInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); searchForumGifs(); } });
+            if (gifModalClose) gifModalClose.addEventListener('click', closeForumGifPicker);
+            if (gifModal) gifModal.addEventListener('click', function(e) { if (e.target === gifModal) closeForumGifPicker(); });
+            if (mediaInput) mediaInput.addEventListener('change', function() {
+                var file = mediaInput.files && mediaInput.files[0];
+                if (!file) return;
+                var target = window._forumUploadTarget;
+                var fd = new FormData();
+                fd.append('file', file);
+                fetch('/api/forum/upload', { method: 'POST', credentials: 'same-origin', body: fd })
+                    .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error || 'Upload failed'); return d; }); })
+                    .then(function(d) {
+                        if (target === 'edit-forum') {
+                            window._editForumAttachments = window._editForumAttachments || [];
+                            window._editForumAttachments.push({ type: d.type || 'image', url: d.url });
+                            renderEditForumAttachmentPreviews();
+                        } else if (target && String(target).indexOf('edit-comment-') === 0) {
+                            var editPostId = target.replace('edit-comment-', '');
+                            window._editCommentAttachments[editPostId] = window._editCommentAttachments[editPostId] || [];
+                            window._editCommentAttachments[editPostId].push({ type: d.type || 'image', url: d.url });
+                            renderEditCommentAttachmentPreviews(editPostId);
+                        } else if (target && target !== 'main') {
+                            window._replyAttachments[target] = window._replyAttachments[target] || [];
+                            window._replyAttachments[target].push({ type: d.type || 'image', url: d.url });
+                            renderReplyAttachmentPreviews(target);
+                        } else {
+                            window._forumAttachmentList.push({ type: d.type || 'image', url: d.url });
+                            renderForumAttachmentPreviews();
+                        }
+                    })
+                    .catch(function(e) { alert(e.message || 'Upload failed'); });
+                mediaInput.value = '';
+            });
+            var emotesBtn = document.getElementById('forum-emotes-btn');
+            var emotePickerWrap = document.getElementById('forum-emote-picker-wrap');
+            if (emotesBtn && emotePickerWrap) emotesBtn.addEventListener('click', function() {
+                window._forumCurrentMessageEl = document.getElementById('message');
+                if (emotePickerWrap.classList.contains('hidden')) {
+                    loadForumEmotes(function() {
+                        emotePickerWrap.classList.remove('hidden');
+                        emotePickerWrap.innerHTML = '';
+                        var panel = document.createElement('div');
+                        panel.className = 'forum-emote-picker';
+                        var builtin = window._forumEmotes.builtin || {};
+                        Object.keys(builtin).forEach(function(sc) {
+                            var s = document.createElement('span');
+                            s.textContent = builtin[sc];
+                            s.title = sc;
+                            s.onclick = function() { insertForumEmoteAtCursor(sc); };
+                            panel.appendChild(s);
+                        });
+                        if (canUseCustomEmotes()) {
+                            (window._forumEmotes.custom || []).forEach(function(c) {
+                                var img = document.createElement('img');
+                                img.className = 'forum-picker-emote';
+                                img.src = c.url;
+                                img.alt = c.shortcode;
+                                img.title = c.shortcode;
+                                img.onclick = function() { insertForumEmoteAtCursor(c.shortcode); };
+                                panel.appendChild(img);
+                            });
+                        }
+                        (window._forumGifs || []).forEach(function(g) {
+                            var img = document.createElement('img');
+                            img.className = 'forum-picker-gif';
+                            img.src = g.url;
+                            img.alt = g.shortcode;
+                            img.title = g.shortcode;
+                            img.onclick = function() { insertForumEmoteAtCursor(g.shortcode); };
+                            panel.appendChild(img);
+                        });
+                        var roles = window._forumUserRoles || [];
+                        if (roles.indexOf('admin') !== -1 || roles.indexOf('moderator') !== -1) {
+                            var customDiv = document.createElement('div');
+                            customDiv.className = 'w-full mt-2 pt-2 border-t border-gray-200';
+                            customDiv.innerHTML = '<label class="text-xs font-medium text-gray-600">Add custom emoticon (shortcode like :name:)</label>';
+                            var row = document.createElement('div');
+                            row.className = 'flex gap-2 items-center mt-1';
+                            var shortcodeInp = document.createElement('input');
+                            shortcodeInp.type = 'text';
+                            shortcodeInp.placeholder = ':name:';
+                            shortcodeInp.className = 'flex-1 p-1 border rounded text-sm';
+                            shortcodeInp.id = 'forum-custom-emote-shortcode';
+                            var fileInp = document.createElement('input');
+                            fileInp.type = 'file';
+                            fileInp.accept = 'image/*';
+                            fileInp.className = 'hidden';
+                            fileInp.id = 'forum-custom-emote-file';
+                            var addBtn = document.createElement('button');
+                            addBtn.type = 'button';
+                            addBtn.className = 'px-2 py-1 btn-primary rounded text-sm';
+                            addBtn.textContent = 'Add emoticon';
+                            addBtn.onclick = function() {
+                                var sc = (shortcodeInp.value || '').trim();
+                                if (!/^:[a-zA-Z0-9_]+:$/.test(sc)) { alert('Shortcode must be like :name:'); return; }
+                                if (!fileInp.files || !fileInp.files[0]) { alert('Choose an image'); return; }
+                                var fd = new FormData();
+                                fd.append('shortcode', sc);
+                                fd.append('image', fileInp.files[0]);
+                                fetch('/api/forum/emotes', { method: 'POST', credentials: 'same-origin', body: fd })
+                                    .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error || 'Failed'); return d; }); })
+                                    .then(function(data) {
+                                        var url = (data && data.url) ? data.url : '';
+                                        window._forumEmotes.custom.push({ shortcode: sc, url: url });
+                                        var img = document.createElement('img');
+                                        img.className = 'forum-picker-emote';
+                                        img.src = url;
+                                        img.alt = sc;
+                                        img.title = sc;
+                                        img.onclick = function() { insertForumEmoteAtCursor(sc); };
+                                        panel.insertBefore(img, customDiv);
+                                        shortcodeInp.value = '';
+                                        fileInp.value = '';
+                                    })
+                                    .catch(function(e) { alert(e.message || 'Failed to add emoticon'); });
+                            };
+                            row.appendChild(shortcodeInp);
+                            row.appendChild(fileInp);
+                            var fileBtn = document.createElement('button');
+                            fileBtn.type = 'button';
+                            fileBtn.className = 'px-2 py-1 border rounded text-sm';
+                            fileBtn.textContent = 'Choose image';
+                            fileBtn.onclick = function() { fileInp.click(); };
+                            row.appendChild(fileBtn);
+                            row.appendChild(addBtn);
+                            customDiv.appendChild(row);
+                            panel.appendChild(customDiv);
+                        }
+                        emotePickerWrap.appendChild(panel);
+                    });
+                } else {
+                    emotePickerWrap.classList.add('hidden');
+                    emotePickerWrap.innerHTML = '';
+                }
+            });
+        });
+
+        function insertForumEmoteAtCursor(shortcode) {
+            var el = window._forumCurrentMessageEl;
+            if (!el) return;
+            var start = el.selectionStart, end = el.selectionEnd, val = el.value;
+            el.value = val.slice(0, start) + shortcode + val.slice(end);
+            el.selectionStart = el.selectionEnd = start + shortcode.length;
+            el.focus();
+        }
+
+        function renderForumAttachmentPreviews() {
+            var wrap = document.getElementById('forum-attachment-previews');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+            (window._forumAttachmentList || []).forEach(function(a, i) {
+                var div = document.createElement('div');
+                div.className = 'forum-attachment-item relative';
+                if (a.type === 'video') {
+                    var v = document.createElement('video');
+                    v.src = a.url;
+                    v.controls = false;
+                    v.style.maxWidth = '120px';
+                    v.style.maxHeight = '80px';
+                    div.appendChild(v);
+                } else {
+                    var img = document.createElement('img');
+                    img.src = a.url;
+                    img.alt = 'Preview';
+                    img.style.maxWidth = '120px';
+                    img.style.maxHeight = '80px';
+                    img.style.objectFit = 'cover';
+                    div.appendChild(img);
+                }
+                var rm = document.createElement('button');
+                rm.type = 'button';
+                rm.className = 'absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5';
+                rm.textContent = '×';
+                rm.onclick = function() {
+                    window._forumAttachmentList.splice(i, 1);
+                    renderForumAttachmentPreviews();
+                };
+                div.appendChild(rm);
+                wrap.appendChild(div);
+            });
+        }
+
+        function renderEditCommentAttachmentPreviews(postId) {
+            var wrap = document.getElementById('edit-comment-attachment-previews-' + postId);
+            if (!wrap) return;
+            var list = (window._editCommentAttachments && window._editCommentAttachments[postId]) || [];
+            wrap.innerHTML = '';
+            list.forEach(function(a, i) {
+                var div = document.createElement('div');
+                div.className = 'forum-attachment-item relative';
+                if (a.type === 'video') {
+                    var v = document.createElement('video');
+                    v.src = a.url;
+                    v.controls = false;
+                    v.style.maxWidth = '120px';
+                    v.style.maxHeight = '80px';
+                    div.appendChild(v);
+                } else {
+                    var img = document.createElement('img');
+                    img.src = a.url;
+                    img.alt = 'Preview';
+                    img.style.maxWidth = '120px';
+                    img.style.maxHeight = '80px';
+                    img.style.objectFit = 'cover';
+                    div.appendChild(img);
+                }
+                var rm = document.createElement('button');
+                rm.type = 'button';
+                rm.className = 'absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5';
+                rm.textContent = '×';
+                rm.onclick = function() {
+                    if (window._editCommentAttachments[postId]) window._editCommentAttachments[postId].splice(i, 1);
+                    renderEditCommentAttachmentPreviews(postId);
+                };
+                div.appendChild(rm);
+                wrap.appendChild(div);
+            });
+        }
+
+        function renderEditForumAttachmentPreviews() {
+            var wrap = document.getElementById('edit-forum-attachment-previews');
+            if (!wrap) return;
+            var list = window._editForumAttachments || [];
+            wrap.innerHTML = '';
+            list.forEach(function(a, i) {
+                var div = document.createElement('div');
+                div.className = 'forum-attachment-item relative';
+                if (a.type === 'video') {
+                    var v = document.createElement('video');
+                    v.src = a.url;
+                    v.controls = false;
+                    v.style.maxWidth = '120px';
+                    v.style.maxHeight = '80px';
+                    div.appendChild(v);
+                } else {
+                    var img = document.createElement('img');
+                    img.src = a.url;
+                    img.alt = 'Preview';
+                    img.style.maxWidth = '120px';
+                    img.style.maxHeight = '80px';
+                    img.style.objectFit = 'cover';
+                    div.appendChild(img);
+                }
+                var rm = document.createElement('button');
+                rm.type = 'button';
+                rm.className = 'absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5';
+                rm.textContent = '×';
+                rm.onclick = function() {
+                    if (window._editForumAttachments) window._editForumAttachments.splice(i, 1);
+                    renderEditForumAttachmentPreviews();
+                };
+                div.appendChild(rm);
+                wrap.appendChild(div);
+            });
+        }
+
+        function renderReplyAttachmentPreviews(postId) {
+            var wrap = document.getElementById('reply-attachment-previews-' + postId);
+            if (!wrap) return;
+            var list = (window._replyAttachments || {})[postId] || [];
+            wrap.innerHTML = '';
+            list.forEach(function(a, i) {
+                var div = document.createElement('div');
+                div.className = 'forum-attachment-item relative';
+                if (a.type === 'video') {
+                    var v = document.createElement('video');
+                    v.src = a.url;
+                    v.controls = false;
+                    v.style.maxWidth = '120px';
+                    v.style.maxHeight = '80px';
+                    div.appendChild(v);
+                } else {
+                    var img = document.createElement('img');
+                    img.src = a.url;
+                    img.alt = 'Preview';
+                    img.style.maxWidth = '120px';
+                    img.style.maxHeight = '80px';
+                    img.style.objectFit = 'cover';
+                    div.appendChild(img);
+                }
+                var rm = document.createElement('button');
+                rm.type = 'button';
+                rm.className = 'absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5';
+                rm.textContent = '×';
+                rm.onclick = function() {
+                    if (window._replyAttachments[postId]) window._replyAttachments[postId].splice(i, 1);
+                    renderReplyAttachmentPreviews(postId);
+                };
+                div.appendChild(rm);
+                wrap.appendChild(div);
+            });
+        }
+
+        function loadSavedAvatar() {
+            const inner = document.getElementById('saved-avatar-inner');
+            if (!inner) return;
+            fetch('/api/outfits', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(outfits => {
+                inner.innerHTML = '';
+                if (!Array.isArray(outfits) || outfits.length === 0) return;
+                const last = outfits[outfits.length - 1];
+                if (!last || !last.items || typeof last.items !== 'object') return;
+                const slotOrder = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
+                const all = [];
+                slotOrder.forEach(slotId => {
+                    const arr = last.items[slotId];
+                    if (Array.isArray(arr)) arr.forEach(item => all.push({ ...item, slotId }));
+                });
+                all.forEach(item => {
+                    const img = document.createElement('img');
+                    img.className = 'forum-saved-item';
+                    img.src = item.src || '';
+                    img.alt = item.alt || '';
+                    img.style.zIndex = item.zIndex != null ? item.zIndex : 2;
+                    img.style.transform = 'translate(-50%, -50%) translate(' + (item.x || 0) + 'px, ' + (item.y || 0) + 'px)';
+                    img.onerror = () => { img.style.display = 'none'; };
+                    inner.appendChild(img);
+                });
+            }).catch(() => {});
+        }
+
+        function submitForumPost(parentId) {
+            if (parentId === undefined) parentId = null;
+            const messageEl = document.getElementById('message');
+            const message = messageEl ? messageEl.value.trim() : '';
+            const topicId = getTopicId();
+
+            if (!message) {
+                alert('Please enter a message.');
+                return;
+            }
+            if (!topicId) {
+                alert('Open a thread to post.');
+                return;
+            }
+
+            fetch('/api/outfits', { credentials: 'same-origin' })
+                .then(r => r.ok ? r.json() : null)
+                .catch(() => null)
+                .then(outfits => {
+                    let outfitItems = null;
+                    if (Array.isArray(outfits) && outfits.length > 0) {
+                        const last = outfits[outfits.length - 1];
+                        if (last && last.items && typeof last.items === 'object') {
+                            const slots = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
+                            const all = [];
+                            slots.forEach(slotId => {
+                                const arr = last.items[slotId];
+                                if (Array.isArray(arr)) arr.forEach(item => all.push({ ...item, slotId }));
+                            });
+                            all.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+                            outfitItems = all;
+                        }
+                    }
+                    var attachments = (window._forumAttachmentList && window._forumAttachmentList.length) ? window._forumAttachmentList.slice() : [];
+                    return fetch('/api/forum/posts', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ topicId, parentId, message, banner: '', bannerText: '', outfitItems, attachments })
+                    });
+                })
+                .then(r => r.json().then(data => {
+                    if (!r.ok) throw new Error(data.error || r.statusText || 'Failed to post');
+                    return data;
+                }))
+                .then(() => {
+                    document.getElementById('message').value = '';
+                    window._forumAttachmentList = [];
+                    renderForumAttachmentPreviews();
+                    var inner = document.getElementById('post-form-inner');
+                    if (inner) inner.classList.add('hidden');
+                    loadPosts();
+                })
+                .catch(err => alert(err.message || 'Could not post. Please try again.'));
+        }
+
+        function findPostById(posts, id) {
+            return posts.find(post => post.id === id);
+        }
+
+        function showReplyForm(postId) {
+            const replyForm = document.getElementById(`reply-form-${postId}`);
+            if (replyForm) {
+                var wasHidden = replyForm.classList.contains('hidden');
+                replyForm.classList.toggle('hidden');
+                if (wasHidden) {
+                    var textarea = document.getElementById('reply-message-' + postId);
+                    var info = (window._forumPostsById && window._forumPostsById[postId]) || null;
+                    if (textarea && info) {
+                        var username = (info.username || 'Guest').replace(/\n/g, ' ');
+                        var msg = (info.message || '').trim().replace(/\r\n/g, '\n').split('\n').slice(0, 5).join('\n');
+                        if (msg.length > 300) msg = msg.slice(0, 300) + '...';
+                        var userId = info.userId != null ? String(info.userId) : '';
+                        var ts = (info.timestamp || '').replace(/\|/g, ' ').replace(/\n/g, ' ');
+                        var roles = (info.authorRoles && Array.isArray(info.authorRoles)) ? info.authorRoles.join(',') : '';
+                        var metaLine = '> __quote:' + userId + '|' + ts + '|' + roles + '__';
+                        var quote = metaLine + '\n> **' + username + ':**\n' + msg.split('\n').map(function(line) { return '> ' + line; }).join('\n') + '\n\n';
+                        textarea.value = quote;
+                        textarea.focus();
+                    }
+                }
+            }
+        }
+
+        function buildForumUserCardForQuote(userId, authorProfile, authorRoles, currentUserId, profilePictureUrl, done) {
+            var postLike = { userId: userId, profilePictureUrl: profilePictureUrl || null, outfitItems: null, avatar: null };
+            var authorProfileObj = authorProfile || {};
+            var authorRolesArr = Array.isArray(authorRoles) ? authorRoles : [];
+            var name = (authorProfileObj.username || 'Guest').trim() || 'Guest';
+            var bio = (authorProfileObj.bio || '').trim();
+            var isSelf = currentUserId != null && String(userId) === String(currentUserId);
+            var hc = authorProfileObj;
+            var card = document.createElement('div');
+            card.className = 'forum-user-card';
+            if (hc.hoverCardBgOpacity != null || hc.hoverCardBlurPx != null || hc.hoverCardBorderOpacity != null) {
+              card.style.background = 'rgba(255,255,255,' + (hc.hoverCardBgOpacity != null ? hc.hoverCardBgOpacity : 0.55) + ')';
+              card.style.backdropFilter = 'blur(' + (hc.hoverCardBlurPx != null ? hc.hoverCardBlurPx : 14) + 'px)';
+              card.style.webkitBackdropFilter = card.style.backdropFilter;
+              card.style.borderColor = 'rgba(255,255,255,' + (hc.hoverCardBorderOpacity != null ? hc.hoverCardBorderOpacity : 0.5) + ')';
+            }
+            var cardLeft = document.createElement('div');
+            cardLeft.className = 'forum-user-card-left';
+            cardLeft.innerHTML = '<div class="forum-user-name">' + (name.replace(/</g, '&lt;')) + '</div>' + (bio ? '<div class="forum-user-bio">' + (bio.replace(/</g, '&lt;')) + '</div>' : '');
+            var linksDiv = document.createElement('div');
+            linksDiv.className = 'forum-user-links';
+            if (userId != null) {
+              var profileLink = document.createElement('a');
+              profileLink.href = '/profile?user=' + encodeURIComponent(userId);
+              profileLink.textContent = 'Profile';
+              linksDiv.appendChild(profileLink);
+              var bioLink = document.createElement('a');
+              bioLink.href = '/profile-bio?user=' + encodeURIComponent(userId);
+              bioLink.textContent = 'Bio';
+              linksDiv.appendChild(bioLink);
+              var wardrobeLink = document.createElement('a');
+              wardrobeLink.href = isSelf ? './wardrobe.html' : ('/profile?user=' + encodeURIComponent(userId));
+              wardrobeLink.textContent = isSelf ? 'Wardrobe' : 'View outfit';
+              linksDiv.appendChild(wardrobeLink);
+              var wishlistLink = document.createElement('a');
+              wishlistLink.href = './wishlist.html';
+              wishlistLink.textContent = 'Wishlist';
+              linksDiv.appendChild(wishlistLink);
+            }
+            cardLeft.appendChild(linksDiv);
+            if (userId != null && !isSelf) {
+              var friendBtn = document.createElement('button');
+              friendBtn.type = 'button';
+              friendBtn.className = 'forum-request-friend';
+              friendBtn.textContent = 'Request friendship';
+              friendBtn.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); friendBtn.disabled = true; friendBtn.textContent = 'Sending…'; fetch('/api/friends/request', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: String(userId) }), credentials: 'same-origin' }).then(function(r) { if (r.ok) friendBtn.textContent = 'Request sent'; else { friendBtn.disabled = false; friendBtn.textContent = 'Request friendship'; } }).catch(function() { friendBtn.disabled = false; friendBtn.textContent = 'Request friendship'; }); });
+              cardLeft.appendChild(friendBtn);
+            }
+            var cardAvatarWrap = document.createElement('div');
+            cardAvatarWrap.className = 'forum-user-card-avatar';
+            if (hc.hoverCardAvatarBgOpacity != null || hc.hoverCardAvatarBlurPx != null) {
+              cardAvatarWrap.style.background = 'rgba(255,255,255,' + (hc.hoverCardAvatarBgOpacity != null ? hc.hoverCardAvatarBgOpacity : 0.4) + ')';
+              cardAvatarWrap.style.backdropFilter = 'blur(' + (hc.hoverCardAvatarBlurPx != null ? hc.hoverCardAvatarBlurPx : 8) + 'px)';
+              cardAvatarWrap.style.webkitBackdropFilter = cardAvatarWrap.style.backdropFilter;
+            }
+            var cardAvatarPlaceholder = document.createElement('div');
+            cardAvatarPlaceholder.className = 'forum-user-card-avatar-inner forum-user-card-avatar-canvas';
+            cardAvatarWrap.appendChild(cardAvatarPlaceholder);
+            var cardContentWrap = document.createElement('div');
+            cardContentWrap.className = 'forum-user-card-content-wrap';
+            cardContentWrap.style.cssText = 'position:relative;z-index:1;display:flex;flex:1;flex-direction:row;align-items:stretch;gap:24px;min-width:0;';
+            cardContentWrap.appendChild(cardAvatarWrap);
+            cardContentWrap.appendChild(cardLeft);
+            card.appendChild(cardContentWrap);
+            fetchFullAvatarItems(userId, currentUserId, postLike, function(items) {
+              renderAvatarAsLayeredImages(cardAvatarPlaceholder, items);
+            });
+            var foilData = hc.hoverCardFoil;
+            var foilEnabled = !!(foilData && typeof foilData === 'object' && !Array.isArray(foilData) && (foilData.enabled === true || foilData.enabled === 'true'));
+            if (foilEnabled) {
+              var f = foilData;
+              var conicColors = '#ff0080, #ff8c00, #40e0d0, #9d4edd, #ff0080';
+              function op(pct) { var n = (pct != null && pct !== '') ? (typeof pct === 'number' ? pct : parseInt(pct, 10)) : 90; return String(Math.max(0.1, Math.min(1, (Number(n) || 90) / 100))); }
+              var maskVal = (f.mask && ['none','radial','linear-v','linear-h'].indexOf(String(f.mask)) !== -1) ? f.mask : 'none';
+              var foilWrap = document.createElement('div');
+              foilWrap.className = 'forum-user-card-foil';
+              foilWrap.setAttribute('data-foil', '1');
+              var mask = document.createElement('div');
+              mask.className = 'holo-mask-wrap mask-' + maskVal;
+              mask.style.opacity = op(f.masterOp != null ? f.masterOp : 90);
+              var g1 = document.createElement('div'); g1.className = 'holo-layer holo-grad-1'; g1.style.display = f.g1On !== false ? '' : 'none'; g1.style.opacity = op(f.g1Op); if (f.spin) g1.style.animation = 'forum-holo-spin 8s linear infinite';
+              var g2 = document.createElement('div'); g2.className = 'holo-layer holo-grad-2'; g2.style.display = f.g2On !== false ? '' : 'none'; g2.style.opacity = op(f.g2Op);
+              var g3 = document.createElement('div'); g3.className = 'holo-layer holo-grad-3'; g3.style.display = f.g3On !== false ? '' : 'none'; g3.style.opacity = op(f.g3Op);
+              var p1 = document.createElement('div'); p1.className = 'holo-layer holo-pattern-1'; p1.style.display = f.p1On !== false ? '' : 'none'; p1.style.opacity = op(f.p1Op);
+              var p2 = document.createElement('div'); p2.className = 'holo-layer holo-pattern-2'; p2.style.display = f.p2On ? '' : 'none'; p2.style.opacity = op(f.p2Op);
+              var p3 = document.createElement('div'); p3.className = 'holo-layer holo-pattern-3'; p3.style.display = f.p3On ? '' : 'none'; p3.style.opacity = op(f.p3Op);
+              var rh = document.createElement('div'); rh.className = 'holo-layer holo-reflect holo-reflect-hearts'; rh.style.display = f.rhOn !== false ? '' : 'none'; rh.style.opacity = op(f.rhOp); rh.style.background = 'conic-gradient(from ' + (Number(f.rhAngle) || 0) + 'deg at 50% 50%, ' + conicColors + ')';
+              var rs = document.createElement('div'); rs.className = 'holo-layer holo-reflect holo-reflect-stars'; rs.style.display = f.rsOn !== false ? '' : 'none'; rs.style.opacity = op(f.rsOp); rs.style.background = 'conic-gradient(from ' + (Number(f.rsAngle) || 120) + 'deg at 50% 50%, ' + conicColors + ')';
+              var rp = document.createElement('div'); rp.className = 'holo-layer holo-reflect holo-reflect-prisms'; rp.style.display = f.rpOn !== false ? '' : 'none'; rp.style.opacity = op(f.rpOp); rp.style.background = 'conic-gradient(from ' + (Number(f.rpAngle) || 240) + 'deg at 50% 50%, ' + conicColors + ')';
+              mask.appendChild(g1); mask.appendChild(g2); mask.appendChild(g3); mask.appendChild(p1); mask.appendChild(p2); mask.appendChild(p3); mask.appendChild(rh); mask.appendChild(rs); mask.appendChild(rp);
+              foilWrap.appendChild(mask);
+              var shimmer = document.createElement('div'); shimmer.className = 'holo-foil-shimmer'; shimmer.style.animation = f.shimmer !== false ? 'forum-holo-shimmer 4s ease-in-out infinite' : 'none';
+              foilWrap.appendChild(shimmer);
+              card.appendChild(foilWrap);
+            }
+            var sigImageUrl = (hc.hoverCardSignatureImage && typeof hc.hoverCardSignatureImage === 'string' && hc.hoverCardSignatureImage.indexOf('data:image/') === 0) ? hc.hoverCardSignatureImage : '';
+            var sigText = (!sigImageUrl && hc.hoverCardSignature && typeof hc.hoverCardSignature === 'string') ? hc.hoverCardSignature.trim().slice(0, 120) : '';
+            if (sigImageUrl) {
+              var sigWrap = document.createElement('div');
+              sigWrap.className = 'forum-user-card-signature';
+              sigWrap.style.cssText = 'position:absolute;left:0;right:0;bottom:12px;z-index:2;text-align:right;padding:0 20px;pointer-events:none;display:flex;align-items:flex-end;justify-content:flex-end;';
+              var sigImg = document.createElement('img');
+              sigImg.src = sigImageUrl;
+              sigImg.alt = 'Signature';
+              sigImg.style.cssText = 'max-height:48px;width:auto;image-rendering:pixelated;image-rendering:-moz-crisp-edges;image-rendering:crisp-edges;';
+              sigWrap.appendChild(sigImg);
+              card.appendChild(sigWrap);
+            } else if (sigText) {
+              var sigEl = document.createElement('div');
+              sigEl.className = 'forum-user-card-signature';
+              sigEl.style.cssText = 'position:absolute;left:0;right:0;bottom:12px;z-index:2;text-align:right;padding:0 20px;pointer-events:none;font-size:12px;color:rgba(55,65,81,0.9);font-style:italic;';
+              sigEl.textContent = sigText;
+              card.appendChild(sigEl);
+            }
+            var cardStickers = (hc.hoverCardStickers && Array.isArray(hc.hoverCardStickers)) ? hc.hoverCardStickers.slice(0, 12) : [];
+            if (cardStickers.length > 0) {
+              var stickerWrap = document.createElement('div');
+              stickerWrap.className = 'forum-user-card-stickers';
+              stickerWrap.style.cssText = 'position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:12px;overflow:visible;';
+              cardStickers.forEach(function(s) {
+                if (!s || typeof s.id !== 'string') return;
+                var scale = (typeof s.scale === 'number' && s.scale >= 0.25 && s.scale <= 3) ? s.scale : 1;
+                var rotation = typeof s.rotation === 'number' ? s.rotation : 0;
+                var flipH = s.flipH ? -1 : 1, flipV = s.flipV ? -1 : 1;
+                var img = document.createElement('img');
+                img.src = '/Uploads/hover-card-stickers/' + encodeURIComponent(s.id);
+                img.alt = '';
+                var sx = Number(s.x) || 0, sy = Number(s.y) || 0;
+                var norm = (sx >= 0 && sx <= 1 && sy >= 0 && sy <= 1);
+                var leftPx = norm ? (sx * 500) : (sx * (500 / 320));
+                var topPx = norm ? (sy * 328) : (sy * (328 / 180));
+                img.style.cssText = 'position:absolute;left:' + leftPx + 'px;top:' + topPx + 'px;max-width:56px;max-height:56px;object-fit:contain;transform-origin:center center;transform:translate(-50%,-50%) scale(' + scale + ') rotate(' + rotation + 'deg) scale(' + flipH + ',' + flipV + ');';
+                img.onerror = function() { img.style.display = 'none'; };
+                stickerWrap.appendChild(img);
+              });
+              card.appendChild(stickerWrap);
+            }
+            done(card);
+        }
+
+        (function setupQuoteNameHoverCard() {
+            var quoteCard = null;
+            var quoteCardHideTimer = null;
+            function getQuoteCard() {
+                if (!quoteCard) {
+                    quoteCard = document.createElement('div');
+                    quoteCard.id = 'forum-quote-user-card';
+                    quoteCard.className = 'forum-user-card';
+                    quoteCard.style.position = 'fixed';
+                    quoteCard.style.zIndex = '9999';
+                    document.body.appendChild(quoteCard);
+                }
+                return quoteCard;
+            }
+            function showQuoteCard(anchor, userId) {
+                if (!userId) return;
+                clearTimeout(quoteCardHideTimer);
+                var container = getQuoteCard();
+                container.innerHTML = '<div class="forum-user-card-left"><div class="forum-user-name">Loading…</div></div>';
+                container.classList.add('forum-user-card-visible');
+                var r = anchor.getBoundingClientRect();
+                var pos = clampCardToViewport(r.left, r.bottom + 6, 500, 380);
+                container.style.left = pos.left + 'px';
+                container.style.top = pos.top + 'px';
+                Promise.all([
+                    fetch('/api/users/' + encodeURIComponent(userId) + '/forum-hover-profile', { credentials: 'same-origin' }).then(function(res) { return res.ok ? res.json() : null; }).catch(function() { return null; }),
+                    fetch('/api/me', { credentials: 'same-origin' }).then(function(res) { return res.ok ? res.json() : {}; }).catch(function() { return {}; })
+                ]).then(function(results) {
+                    var data = results[0];
+                    var me = results[1];
+                    var currentUserId = (me && me.userId != null) ? me.userId : null;
+                    if (!data || !data.authorProfile) {
+                        container.innerHTML = '<div class="forum-user-card-left"><div class="forum-user-name">Could not load</div></div>';
+                        return;
+                    }
+                    buildForumUserCardForQuote(userId, data.authorProfile, data.authorRoles || [], currentUserId, data.profilePictureUrl || null, function(card) {
+                        if (!container.parentNode) return;
+                        container.innerHTML = '';
+                        container.appendChild(card);
+                        container.classList.add('forum-user-card-visible');
+                        card.addEventListener('mouseenter', function() { clearTimeout(quoteCardHideTimer); });
+                        card.addEventListener('mouseleave', function() { hideQuoteCard(); });
+                    });
+                });
+            }
+            function hideQuoteCard() {
+                quoteCardHideTimer = setTimeout(function() {
+                    if (quoteCard) quoteCard.classList.remove('forum-user-card-visible');
+                }, 150);
+            }
+            document.body.addEventListener('mouseenter', function(e) {
+                var anchor = e.target.closest && e.target.closest('.forum-quote-name-hover');
+                if (anchor) {
+                    var userId = anchor.getAttribute('data-user-id');
+                    if (userId) showQuoteCard(anchor, userId);
+                }
+            }, true);
+            document.body.addEventListener('mouseleave', function(e) {
+                var anchor = e.target.closest && e.target.closest('.forum-quote-name-hover');
+                var card = document.getElementById('forum-quote-user-card');
+                if (anchor) {
+                    if (!e.relatedTarget || !card || !card.contains(e.relatedTarget)) hideQuoteCard();
+                    return;
+                }
+                if (card && (e.target === card || card.contains(e.target))) {
+                    if (!e.relatedTarget || !e.relatedTarget.closest || !e.relatedTarget.closest('.forum-quote-name-hover')) hideQuoteCard();
+                }
+            }, true);
+            document.body.addEventListener('mouseenter', function(e) {
+                if (e.target.id === 'forum-quote-user-card' || (e.target.closest && e.target.closest('#forum-quote-user-card'))) clearTimeout(quoteCardHideTimer);
+            }, true);
+        })();
+
+        function loadPosts() {
+            window._forumLoadPosts = loadPosts;
+            const postsContainer = document.getElementById('posts');
+            const topicId = getTopicId();
+            postsContainer.innerHTML = '';
+
+            Promise.all([
+                fetch('/api/me', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+                fetch('/api/forum/topics', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : []).catch(() => []),
+                topicId ? fetch('/api/forum/posts?topicId=' + encodeURIComponent(topicId) + '&_=' + Date.now(), { credentials: 'same-origin', cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []).then(arr => Array.isArray(arr) ? arr : []) : Promise.resolve([]),
+                fetch('/api/forum/emotes', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+                fetch('/api/forum/gifs', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : {}).catch(() => ({}))
+            ]).then(([me, topics, posts, emotesData, gifsData]) => {
+                if (emotesData && emotesData.builtin) window._forumEmotes.builtin = emotesData.builtin;
+                if (emotesData && Array.isArray(emotesData.custom)) window._forumEmotes.custom = emotesData.custom;
+                if (gifsData && Array.isArray(gifsData.custom)) window._forumGifs = gifsData.custom;
+                window._forumUserRoles = (me && me.roles) ? me.roles : [];
+                var loggedIn = me && (me.userId != null || (me.username && me.username !== ''));
+                var avatarWrap = document.getElementById('forum-right-avatar-wrap');
+                var adsGuest = document.getElementById('forum-right-ads-guest');
+                if (avatarWrap && adsGuest) {
+                    if (loggedIn) {
+                        avatarWrap.style.display = '';
+                        adsGuest.style.display = 'none';
+                        loadSavedAvatar();
+                    } else {
+                        avatarWrap.style.display = 'none';
+                        adsGuest.style.display = '';
+                    }
+                }
+                const topicsList = Array.isArray(topics) ? topics : [];
+                var forumsEl = document.getElementById('forum-sidebar-forums');
+                if (forumsEl) {
+                    if (topicsList.length === 0) {
+                        forumsEl.innerHTML = '<p class="forum-sidebar-forums-loading">No threads</p>';
+                    } else {
+                        forumsEl.innerHTML = topicsList.slice(0, 15).map(function(t) {
+                            var title = (t.topic || 'Thread').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                            return '<a href="./forum.html?topicId=' + encodeURIComponent(t.id) + '" class="forum-sidebar-forum-item" title="' + title + '">' + (t.topic || 'Thread').replace(/</g, '&lt;') + '</a>';
+                        }).join('');
+                    }
+                }
+                const topic = topicsList.find(t => String(t.id) === String(topicId));
+                const topicTitleEl = document.getElementById('topic-title');
+                if (topicTitleEl) {
+                    topicTitleEl.textContent = topic ? topic.topic : (topicId ? 'Topic' : 'Social');
+                }
+                const topicCategoryEl = document.getElementById('topic-category');
+                if (topicCategoryEl) {
+                    topicCategoryEl.textContent = topic && topic.category ? topic.category : '';
+                }
+                const roles = (me && me.roles) || [];
+                const currentUserId = (me && me.userId != null) ? me.userId : null;
+                const canDelete = roles.includes('admin') || roles.includes('moderator');
+                const deleteBtn = document.getElementById('delete-forum-btn');
+                if (deleteBtn) {
+                    if (canDelete && topicId) {
+                        deleteBtn.classList.remove('hidden');
+                        deleteBtn.onclick = function() {
+                            if (!confirm('Delete this forum? All posts will be removed.')) return;
+                            fetch('/api/forum/topics/' + encodeURIComponent(topicId), { method: 'DELETE', credentials: 'same-origin' })
+                                .then(r => { if (!r.ok) throw new Error('Could not delete'); return r.json(); })
+                                .then(() => { window.location.href = 'forummenu.html'; })
+                                .catch(() => alert('Could not delete forum.'));
+                        };
+                    } else {
+                        deleteBtn.classList.add('hidden');
+                    }
+                }
+                const reportForumBtn = document.getElementById('report-forum-btn');
+                if (reportForumBtn) {
+                    if (topicId && currentUserId) {
+                        reportForumBtn.classList.remove('hidden');
+                        reportForumBtn.onclick = function() {
+                            window._reportPending = { targetType: 'forum_topic', targetId: topicId, topicId: topicId };
+                            var modal = document.getElementById('report-modal');
+                            if (modal) {
+                                document.getElementById('report-category').value = '';
+                                document.getElementById('report-details').value = '';
+                                modal.style.display = 'flex';
+                                modal.setAttribute('aria-hidden', 'false');
+                            }
+                        };
+                    } else {
+                        reportForumBtn.classList.add('hidden');
+                    }
+                }
+                const list = Array.isArray(posts) ? posts : [];
+                const firstPost = topicId && list.length ? list.find(function(p) { return (p.topicId || '') === topicId && (p.parentId == null || p.parentId === ''); }) : null;
+                const editForumBtn = document.getElementById('edit-forum-btn');
+                if (editForumBtn && topicId && topic) {
+                    if (currentUserId != null && String(topic.authorId) === String(currentUserId)) {
+                        editForumBtn.classList.remove('hidden');
+                        editForumBtn.onclick = function() {
+                            window._editForumTopicId = topicId;
+                            var titleEl = document.getElementById('edit-inline-title');
+                            var catEl = document.getElementById('edit-inline-category');
+                            var msgEl = document.getElementById('edit-inline-message');
+                            if (titleEl) titleEl.value = topic.topic || '';
+                            if (catEl) catEl.value = topic.category || '';
+                            if (msgEl) msgEl.value = (firstPost && firstPost.message) || '';
+                            window._editForumAttachments = (firstPost && firstPost.attachments && firstPost.attachments.length) ? firstPost.attachments.slice() : [];
+                            renderEditForumAttachmentPreviews();
+                            var postWrap = document.getElementById('forum-main-post-wrap');
+                            var editWrap = document.getElementById('forum-main-edit-wrap');
+                            if (postWrap) postWrap.style.display = 'none';
+                            if (editWrap) editWrap.style.display = 'block';
+                        };
+                    } else {
+                        editForumBtn.classList.add('hidden');
+                    }
+                } else if (editForumBtn) editForumBtn.classList.add('hidden');
+                const inTopic = topicId ? function(post) { return String(post.topicId || '') === String(topicId); } : function() { return true; };
+                const topLevelPosts = list.filter(post => !post.parentId && inTopic(post));
+                const canLock = roles.includes('admin') || roles.includes('moderator');
+                const topicLocked = topic && topic.locked;
+                const op = topLevelPosts.length ? topLevelPosts[0] : null;
+                if (op) {
+                    const mainBox = document.createElement('div');
+                    mainBox.className = 'forum-main-box';
+                    const opEl = createPostElement(op, list, 0, currentUserId, topicLocked, canLock, topicId, true);
+                    var opAuthor = (op.authorProfile && typeof op.authorProfile === 'object') ? op.authorProfile : {};
+                    if (opAuthor.forumPostColor) {
+                        mainBox.style.setProperty('--forum-post-bg', opAuthor.forumPostColor);
+                        mainBox.style.setProperty('--forum-post-accent', forumPostAccentColor(opAuthor.forumPostColor));
+                        mainBox.classList.add('forum-main-box-has-accent');
+                    }
+                    const postWrap = document.createElement('div');
+                    postWrap.id = 'forum-main-post-wrap';
+                    postWrap.appendChild(opEl);
+                    mainBox.appendChild(postWrap);
+                    const editWrap = document.createElement('div');
+                    editWrap.id = 'forum-main-edit-wrap';
+                    editWrap.style.display = 'none';
+                    editWrap.className = 'forum-edit-inline';
+                    const editTitleLabel = document.createElement('label');
+                    editTitleLabel.htmlFor = 'edit-inline-title';
+                    editTitleLabel.textContent = 'Title';
+                    editTitleLabel.className = 'block text-sm font-medium text-gray-700 mb-1';
+                    const editTitleInput = document.createElement('input');
+                    editTitleInput.type = 'text';
+                    editTitleInput.id = 'edit-inline-title';
+                    editTitleInput.className = 'w-full p-2 mb-4 border rounded';
+                    editTitleInput.placeholder = 'Topic title';
+                    const editCatLabel = document.createElement('label');
+                    editCatLabel.htmlFor = 'edit-inline-category';
+                    editCatLabel.textContent = 'Category';
+                    editCatLabel.className = 'block text-sm font-medium text-gray-700 mb-1';
+                    const editCatInput = document.createElement('input');
+                    editCatInput.type = 'text';
+                    editCatInput.id = 'edit-inline-category';
+                    editCatInput.className = 'w-full p-2 mb-4 border rounded';
+                    editCatInput.placeholder = 'Category';
+                    const editMsgLabel = document.createElement('label');
+                    editMsgLabel.htmlFor = 'edit-inline-message';
+                    editMsgLabel.textContent = 'Initial post';
+                    editMsgLabel.className = 'block text-sm font-medium text-gray-700 mb-1';
+                    const editMsgTextarea = document.createElement('textarea');
+                    editMsgTextarea.id = 'edit-inline-message';
+                    editMsgTextarea.className = 'w-full p-2 mb-4 border rounded';
+                    editMsgTextarea.rows = 6;
+                    editMsgTextarea.placeholder = 'Post content. Use :smile: for emoticons.';
+                    const editMediaRow = document.createElement('div');
+                    editMediaRow.className = 'flex flex-wrap gap-2 mb-2 items-center';
+                    const editAddImageBtn = document.createElement('button');
+                    editAddImageBtn.type = 'button';
+                    editAddImageBtn.className = 'text-sm px-2 py-1 border rounded hover:bg-gray-100';
+                    editAddImageBtn.textContent = 'Add image';
+                    const editAddVideoBtn = document.createElement('button');
+                    editAddVideoBtn.type = 'button';
+                    editAddVideoBtn.className = 'text-sm px-2 py-1 border rounded hover:bg-gray-100';
+                    editAddVideoBtn.textContent = 'Add video';
+                    const editEmotesBtn = document.createElement('button');
+                    editEmotesBtn.type = 'button';
+                    editEmotesBtn.className = 'text-sm px-2 py-1 border rounded hover:bg-gray-100';
+                    editEmotesBtn.textContent = 'Emoticons';
+                    editAddImageBtn.onclick = function() {
+                        window._forumUploadTarget = 'edit-forum';
+                        var inp = document.getElementById('forum-media-input');
+                        if (inp) { inp.accept = 'image/*'; inp.click(); }
+                    };
+                    editAddVideoBtn.onclick = function() {
+                        window._forumUploadTarget = 'edit-forum';
+                        var inp = document.getElementById('forum-media-input');
+                        if (inp) { inp.accept = 'video/*'; inp.click(); }
+                    };
+                    editEmotesBtn.onclick = function() {
+                        window._forumCurrentMessageEl = document.getElementById('edit-inline-message');
+                        var wrap = document.getElementById('edit-forum-emote-picker-wrap');
+                        if (!wrap) return;
+                        if (wrap.classList.contains('hidden')) {
+                            loadForumEmotes(function() {
+                                wrap.classList.remove('hidden');
+                                wrap.innerHTML = '';
+                                var panel = document.createElement('div');
+                                panel.className = 'forum-emote-picker';
+                                var builtin = window._forumEmotes.builtin || {};
+                                Object.keys(builtin).forEach(function(sc) {
+                                    var s = document.createElement('span');
+                                    s.textContent = builtin[sc];
+                                    s.title = sc;
+                                    s.onclick = function() { insertForumEmoteAtCursor(sc); };
+                                    panel.appendChild(s);
+                                });
+                                if (canUseCustomEmotes()) {
+                                    (window._forumEmotes.custom || []).forEach(function(c) {
+                                        var img = document.createElement('img');
+                                        img.className = 'forum-picker-emote';
+                                        img.src = c.url;
+                                        img.alt = c.shortcode;
+                                        img.title = c.shortcode;
+                                        img.onclick = function() { insertForumEmoteAtCursor(c.shortcode); };
+                                        panel.appendChild(img);
+                                    });
+                                }
+                                (window._forumGifs || []).forEach(function(g) {
+                                    var img = document.createElement('img');
+                                    img.className = 'forum-picker-gif';
+                                    img.src = g.url;
+                                    img.alt = g.shortcode;
+                                    img.title = g.shortcode;
+                                    img.onclick = function() { insertForumEmoteAtCursor(g.shortcode); };
+                                    panel.appendChild(img);
+                                });
+                                var roles = window._forumUserRoles || [];
+                                if (roles.indexOf('admin') !== -1 || roles.indexOf('moderator') !== -1) {
+                                    var customDiv = document.createElement('div');
+                                    customDiv.className = 'w-full mt-2 pt-2 border-t border-gray-200';
+                                    customDiv.innerHTML = '<label class="text-xs font-medium text-gray-600">Add custom emoticon</label>';
+                                    var row = document.createElement('div');
+                                    row.className = 'flex gap-2 items-center mt-1';
+                                    var shortcodeInp = document.createElement('input');
+                                    shortcodeInp.type = 'text';
+                                    shortcodeInp.placeholder = ':name:';
+                                    shortcodeInp.className = 'flex-1 p-1 border rounded text-sm';
+                                    var fileInp = document.createElement('input');
+                                    fileInp.type = 'file';
+                                    fileInp.accept = 'image/*';
+                                    fileInp.className = 'hidden';
+                                    var addBtn = document.createElement('button');
+                                    addBtn.type = 'button';
+                                    addBtn.className = 'px-2 py-1 btn-primary rounded text-sm';
+                                    addBtn.textContent = 'Add emoticon';
+                                    addBtn.onclick = function() {
+                                        var sc = (shortcodeInp.value || '').trim();
+                                        if (!/^:[a-zA-Z0-9_]+:$/.test(sc)) { alert('Shortcode must be like :name:'); return; }
+                                        if (!fileInp.files || !fileInp.files[0]) { alert('Choose an image'); return; }
+                                        var fd = new FormData();
+                                        fd.append('shortcode', sc);
+                                        fd.append('image', fileInp.files[0]);
+                                        fetch('/api/forum/emotes', { method: 'POST', credentials: 'same-origin', body: fd })
+                                            .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error || 'Failed'); return d; }); })
+                                            .then(function(data) {
+                                                var url = (data && data.url) ? data.url : '';
+                                                window._forumEmotes.custom.push({ shortcode: sc, url: url });
+                                                var img = document.createElement('img');
+                                                img.className = 'forum-picker-emote';
+                                                img.src = url;
+                                                img.alt = sc;
+                                                img.title = sc;
+                                                img.onclick = function() { insertForumEmoteAtCursor(sc); };
+                                                panel.insertBefore(img, customDiv);
+                                                shortcodeInp.value = '';
+                                                fileInp.value = '';
+                                            })
+                                            .catch(function(e) { alert(e.message || 'Failed to add emoticon'); });
+                                    };
+                                    row.appendChild(shortcodeInp);
+                                    row.appendChild(fileInp);
+                                    var fileBtn = document.createElement('button');
+                                    fileBtn.type = 'button';
+                                    fileBtn.className = 'px-2 py-1 border rounded text-sm';
+                                    fileBtn.textContent = 'Choose image';
+                                    fileBtn.onclick = function() { fileInp.click(); };
+                                    row.appendChild(fileBtn);
+                                    row.appendChild(addBtn);
+                                    customDiv.appendChild(row);
+                                    panel.appendChild(customDiv);
+                                }
+                                wrap.appendChild(panel);
+                            });
+                        } else { wrap.classList.add('hidden'); wrap.innerHTML = ''; }
+                    };
+                    editMediaRow.appendChild(editAddImageBtn);
+                    editMediaRow.appendChild(editAddVideoBtn);
+                    editMediaRow.appendChild(editEmotesBtn);
+                    const editEmotePickerWrap = document.createElement('div');
+                    editEmotePickerWrap.id = 'edit-forum-emote-picker-wrap';
+                    editEmotePickerWrap.className = 'hidden mb-2';
+                    const editAttachmentPreviews = document.createElement('div');
+                    editAttachmentPreviews.id = 'edit-forum-attachment-previews';
+                    editAttachmentPreviews.className = 'flex flex-wrap gap-2 mb-4';
+                    const editActions = document.createElement('div');
+                    editActions.className = 'flex gap-2';
+                    const saveBtn = document.createElement('button');
+                    saveBtn.type = 'button';
+                    saveBtn.className = 'btn-primary px-4 py-2 rounded';
+                    saveBtn.textContent = 'Save';
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.type = 'button';
+                    cancelBtn.className = 'px-4 py-2 border rounded hover:bg-gray-100';
+                    cancelBtn.textContent = 'Cancel';
+                    saveBtn.onclick = function() {
+                        var tid = window._editForumTopicId;
+                        if (!tid) return;
+                        var title = document.getElementById('edit-inline-title').value;
+                        var category = document.getElementById('edit-inline-category').value;
+                        var message = document.getElementById('edit-inline-message').value;
+                        var attachments = (window._editForumAttachments && window._editForumAttachments.length) ? window._editForumAttachments.slice() : [];
+                        fetch('/api/forum/topics/' + encodeURIComponent(tid), {
+                            method: 'PATCH',
+                            credentials: 'same-origin',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ topic: title, category: category, postContent: message, attachments: attachments })
+                        }).then(function(r) { if (!r.ok) throw new Error(); return r.json(); }).then(function() { loadPosts(); }).catch(function() { alert('Could not update.'); });
+                    };
+                    cancelBtn.onclick = function() {
+                        document.getElementById('forum-main-edit-wrap').style.display = 'none';
+                        document.getElementById('forum-main-post-wrap').style.display = '';
+                    };
+                    editActions.appendChild(saveBtn);
+                    editActions.appendChild(cancelBtn);
+                    editWrap.appendChild(editTitleLabel);
+                    editWrap.appendChild(editTitleInput);
+                    editWrap.appendChild(editCatLabel);
+                    editWrap.appendChild(editCatInput);
+                    editWrap.appendChild(editMsgLabel);
+                    editWrap.appendChild(editMsgTextarea);
+                    editWrap.appendChild(editMediaRow);
+                    editWrap.appendChild(editEmotePickerWrap);
+                    editWrap.appendChild(editAttachmentPreviews);
+                    editWrap.appendChild(editActions);
+                    mainBox.appendChild(editWrap);
+                    postsContainer.appendChild(mainBox);
+                }
+                const commentsSection = document.createElement('div');
+                commentsSection.className = 'forum-comments-section';
+                const commentsTitle = document.createElement('h2');
+                commentsTitle.className = 'forum-comments-title';
+                commentsTitle.textContent = 'Comments';
+                commentsSection.appendChild(commentsTitle);
+                const commentsList = document.createElement('div');
+                commentsList.className = 'forum-comments-list space-y-5';
+                if (op && op.replies && op.replies.length) {
+                    var replyPosts = op.replies.map(function(replyId) {
+                        return list.find(function(p) { return String(p.id) === String(replyId); });
+                    }).filter(Boolean);
+                    replyPosts.sort(function(a, b) { return (a.timestamp || '').localeCompare(b.timestamp || ''); });
+                    replyPosts.forEach(function(reply) {
+                        commentsList.appendChild(createPostElement(reply, list, 0, currentUserId, topicLocked, canLock, topicId, false));
+                    });
+                }
+                commentsSection.appendChild(commentsList);
+                postsContainer.appendChild(commentsSection);
+                const lockBtn = document.getElementById('lock-forum-btn');
+                if (lockBtn && topicId && canLock) {
+                    lockBtn.classList.remove('hidden');
+                    lockBtn.textContent = topicLocked ? 'Unlock thread' : 'Lock thread';
+                    lockBtn.onclick = function() {
+                        fetch('/api/forum/topics/' + encodeURIComponent(topicId) + '/lock', {
+                            method: 'PATCH',
+                            credentials: 'same-origin',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ locked: !topicLocked })
+                        }).then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(() => loadPosts()).catch(() => alert('Could not update lock.'));
+                    };
+                } else if (lockBtn) lockBtn.classList.add('hidden');
+                const lockedNotice = document.getElementById('thread-locked-notice');
+                const postFormWrap = document.getElementById('post-form-wrap');
+                if (topicLocked && lockedNotice) lockedNotice.classList.remove('hidden');
+                else if (lockedNotice) lockedNotice.classList.add('hidden');
+                if (topicLocked && postFormWrap && !canLock) postFormWrap.style.display = 'none';
+                else if (postFormWrap) postFormWrap.style.display = '';
+            });
+        }
+
+        function createPostElement(post, allPosts, indentLevel, currentUserId, topicLocked, canLock, topicId, isFirstPost) {
+            if (isFirstPost === undefined) isFirstPost = false;
+            window._forumPostsById = window._forumPostsById || {};
+            window._forumPostsById[post.id] = {
+                username: post.username || 'Guest',
+                message: post.message || '',
+                userId: post.userId != null ? post.userId : null,
+                timestamp: post.timestamp || '',
+                authorRoles: (post.authorRoles && Array.isArray(post.authorRoles)) ? post.authorRoles : []
+            };
+            const postElement = document.createElement('div');
+            postElement.className = 'forum-post-card' + (indentLevel > 0 ? ' forum-post-reply' : '') + (isFirstPost ? ' forum-post-op' : '');
+            if (indentLevel > 0) postElement.style.marginLeft = (indentLevel * 24) + 'px';
+
+            // Avatar wrap: use same saved outfit as home (fetch current user outfit, not post snapshot)
+            const avatarWrap = document.createElement('div');
+            avatarWrap.className = 'forum-avatar-wrap';
+            const avatarBox = document.createElement('div');
+            avatarBox.className = 'forum-avatar-box';
+            const inner = document.createElement('div');
+            inner.className = 'forum-avatar-inner';
+            avatarBox.appendChild(inner);
+            const authorUserId = post.userId != null ? post.userId : null;
+            fetchFullAvatarItems(authorUserId, currentUserId, post, function (items) {
+                if (!items || items.length === 0) return;
+                if (items.length === 1 && (items[0].src || '').indexOf('character') === -1) {
+                    const avatarImg = document.createElement('img');
+                    avatarImg.className = 'single-avatar';
+                    avatarImg.src = items[0].src || placeholderAvatar;
+                    avatarImg.alt = '';
+                    avatarImg.onerror = function () { avatarImg.style.display = 'none'; };
+                    inner.appendChild(avatarImg);
+                } else {
+                    items.forEach(function (item) {
+                        const img = document.createElement('img');
+                        img.className = 'forum-outfit-item';
+                        img.src = item.src || '';
+                        img.alt = '';
+                        img.style.zIndex = (item.z != null ? item.z : 2);
+                        img.style.transform = 'translate(-50%, -50%) translate(' + (item.x || 0) + 'px, ' + (item.y || 0) + 'px)';
+                        img.onerror = function () { img.style.display = 'none'; };
+                        inner.appendChild(img);
+                    });
+                }
+            });
+            const authorRoles = (post.authorRoles && Array.isArray(post.authorRoles)) ? post.authorRoles : [];
+            const authorProfile = post.authorProfile || {};
+            const name = (authorProfile.username || post.username || 'Guest').trim() || 'Guest';
+            const bio = (authorProfile.bio || '').trim();
+            const isSelf = authorUserId != null && currentUserId != null && String(authorUserId) === String(currentUserId);
+
+            const card = document.createElement('div');
+            card.className = 'forum-user-card';
+            var hc = authorProfile || {};
+            if (hc.hoverCardBgOpacity != null || hc.hoverCardBlurPx != null || hc.hoverCardBorderOpacity != null) {
+              card.style.background = 'rgba(255,255,255,' + (hc.hoverCardBgOpacity != null ? hc.hoverCardBgOpacity : 0.55) + ')';
+              card.style.backdropFilter = 'blur(' + (hc.hoverCardBlurPx != null ? hc.hoverCardBlurPx : 14) + 'px)';
+              card.style.webkitBackdropFilter = card.style.backdropFilter;
+              card.style.borderColor = 'rgba(255,255,255,' + (hc.hoverCardBorderOpacity != null ? hc.hoverCardBorderOpacity : 0.5) + ')';
+            }
+            const cardLeft = document.createElement('div');
+            cardLeft.className = 'forum-user-card-left';
+            cardLeft.innerHTML = '<div class="forum-user-name">' + (name.replace(/</g, '&lt;')) + '</div>' +
+                (bio ? '<div class="forum-user-bio">' + (bio.replace(/</g, '&lt;')) + '</div>' : '');
+            const linksDiv = document.createElement('div');
+            linksDiv.className = 'forum-user-links';
+            if (authorUserId != null) {
+                const profileLink = document.createElement('a');
+                profileLink.href = '/profile?user=' + encodeURIComponent(authorUserId);
+                profileLink.textContent = 'Profile';
+                linksDiv.appendChild(profileLink);
+                const bioLink = document.createElement('a');
+                bioLink.href = '/profile-bio?user=' + encodeURIComponent(authorUserId);
+                bioLink.textContent = 'Bio';
+                linksDiv.appendChild(bioLink);
+                const wardrobeLink = document.createElement('a');
+                wardrobeLink.href = isSelf ? './wardrobe.html' : ('/profile?user=' + encodeURIComponent(authorUserId));
+                wardrobeLink.textContent = isSelf ? 'Wardrobe' : 'View outfit';
+                linksDiv.appendChild(wardrobeLink);
+                const wishlistLink = document.createElement('a');
+                wishlistLink.href = './wishlist.html';
+                wishlistLink.textContent = 'Wishlist';
+                linksDiv.appendChild(wishlistLink);
+            }
+            cardLeft.appendChild(linksDiv);
+            if (authorUserId != null && !isSelf) {
+                const friendBtn = document.createElement('button');
+                friendBtn.type = 'button';
+                friendBtn.className = 'forum-request-friend';
+                friendBtn.textContent = 'Request friendship';
+                friendBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    friendBtn.disabled = true;
+                    friendBtn.textContent = 'Sending…';
+                    fetch('/api/friends/request', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: String(authorUserId) }),
+                        credentials: 'same-origin'
+                    }).then(function (r) {
+                        if (r.ok) friendBtn.textContent = 'Request sent';
+                        else { friendBtn.disabled = false; friendBtn.textContent = 'Request friendship'; }
+                    }).catch(function () {
+                        friendBtn.disabled = false;
+                        friendBtn.textContent = 'Request friendship';
+                    });
+                });
+                cardLeft.appendChild(friendBtn);
+            }
+            const cardAvatarWrap = document.createElement('div');
+            cardAvatarWrap.className = 'forum-user-card-avatar';
+            if (hc.hoverCardAvatarBgOpacity != null || hc.hoverCardAvatarBlurPx != null) {
+              cardAvatarWrap.style.background = 'rgba(255,255,255,' + (hc.hoverCardAvatarBgOpacity != null ? hc.hoverCardAvatarBgOpacity : 0.4) + ')';
+              cardAvatarWrap.style.backdropFilter = 'blur(' + (hc.hoverCardAvatarBlurPx != null ? hc.hoverCardAvatarBlurPx : 8) + 'px)';
+              cardAvatarWrap.style.webkitBackdropFilter = cardAvatarWrap.style.backdropFilter;
+            }
+            const cardAvatarPlaceholder = document.createElement('div');
+            cardAvatarPlaceholder.className = 'forum-user-card-avatar-inner forum-user-card-avatar-canvas';
+            cardAvatarWrap.appendChild(cardAvatarPlaceholder);
+            var cardContentWrap = document.createElement('div');
+            cardContentWrap.className = 'forum-user-card-content-wrap';
+            cardContentWrap.style.cssText = 'position:relative;z-index:1;display:flex;flex:1;flex-direction:row;align-items:stretch;gap:24px;min-width:0;';
+            cardContentWrap.appendChild(cardAvatarWrap);
+            cardContentWrap.appendChild(cardLeft);
+            card.appendChild(cardContentWrap);
+            fetchFullAvatarItems(authorUserId, currentUserId, post, function (items) {
+                renderAvatarAsLayeredImages(cardAvatarPlaceholder, items);
+            });
+
+            var foilData = hc.hoverCardFoil;
+            var foilEnabled = !!(foilData && typeof foilData === 'object' && !Array.isArray(foilData) && (foilData.enabled === true || foilData.enabled === 'true'));
+            if (foilEnabled) {
+              var f = foilData;
+              var conicColors = '#ff0080, #ff8c00, #40e0d0, #9d4edd, #ff0080';
+              function op(pct) { var n = (pct != null && pct !== '') ? (typeof pct === 'number' ? pct : parseInt(pct, 10)) : 90; return String(Math.max(0.1, Math.min(1, (Number(n) || 90) / 100))); }
+              var maskVal = (f.mask && ['none','radial','linear-v','linear-h'].indexOf(String(f.mask)) !== -1) ? f.mask : 'none';
+              var foilWrap = document.createElement('div');
+              foilWrap.className = 'forum-user-card-foil';
+              foilWrap.setAttribute('data-foil', '1');
+              var mask = document.createElement('div');
+              mask.className = 'holo-mask-wrap mask-' + maskVal;
+              mask.style.opacity = op(f.masterOp != null ? f.masterOp : 90);
+              var g1 = document.createElement('div'); g1.className = 'holo-layer holo-grad-1'; g1.style.display = f.g1On !== false ? '' : 'none'; g1.style.opacity = op(f.g1Op); if (f.spin) g1.style.animation = 'forum-holo-spin 8s linear infinite';
+              var g2 = document.createElement('div'); g2.className = 'holo-layer holo-grad-2'; g2.style.display = f.g2On !== false ? '' : 'none'; g2.style.opacity = op(f.g2Op);
+              var g3 = document.createElement('div'); g3.className = 'holo-layer holo-grad-3'; g3.style.display = f.g3On !== false ? '' : 'none'; g3.style.opacity = op(f.g3Op);
+              var p1 = document.createElement('div'); p1.className = 'holo-layer holo-pattern-1'; p1.style.display = f.p1On !== false ? '' : 'none'; p1.style.opacity = op(f.p1Op);
+              var p2 = document.createElement('div'); p2.className = 'holo-layer holo-pattern-2'; p2.style.display = f.p2On ? '' : 'none'; p2.style.opacity = op(f.p2Op);
+              var p3 = document.createElement('div'); p3.className = 'holo-layer holo-pattern-3'; p3.style.display = f.p3On ? '' : 'none'; p3.style.opacity = op(f.p3Op);
+              var rh = document.createElement('div'); rh.className = 'holo-layer holo-reflect holo-reflect-hearts'; rh.style.display = f.rhOn !== false ? '' : 'none'; rh.style.opacity = op(f.rhOp); rh.style.background = 'conic-gradient(from ' + (Number(f.rhAngle) || 0) + 'deg at 50% 50%, ' + conicColors + ')';
+              var rs = document.createElement('div'); rs.className = 'holo-layer holo-reflect holo-reflect-stars'; rs.style.display = f.rsOn !== false ? '' : 'none'; rs.style.opacity = op(f.rsOp); rs.style.background = 'conic-gradient(from ' + (Number(f.rsAngle) || 120) + 'deg at 50% 50%, ' + conicColors + ')';
+              var rp = document.createElement('div'); rp.className = 'holo-layer holo-reflect holo-reflect-prisms'; rp.style.display = f.rpOn !== false ? '' : 'none'; rp.style.opacity = op(f.rpOp); rp.style.background = 'conic-gradient(from ' + (Number(f.rpAngle) || 240) + 'deg at 50% 50%, ' + conicColors + ')';
+              mask.appendChild(g1); mask.appendChild(g2); mask.appendChild(g3); mask.appendChild(p1); mask.appendChild(p2); mask.appendChild(p3); mask.appendChild(rh); mask.appendChild(rs); mask.appendChild(rp);
+              foilWrap.appendChild(mask);
+              var shimmer = document.createElement('div'); shimmer.className = 'holo-foil-shimmer'; shimmer.style.animation = f.shimmer !== false ? 'forum-holo-shimmer 4s ease-in-out infinite' : 'none';
+              foilWrap.appendChild(shimmer);
+              card.appendChild(foilWrap);
+            }
+            var sigImageUrl = (hc.hoverCardSignatureImage && typeof hc.hoverCardSignatureImage === 'string' && hc.hoverCardSignatureImage.indexOf('data:image/') === 0) ? hc.hoverCardSignatureImage : '';
+            var sigText = (!sigImageUrl && hc.hoverCardSignature && typeof hc.hoverCardSignature === 'string') ? hc.hoverCardSignature.trim().slice(0, 120) : '';
+            if (sigImageUrl) {
+              var sigWrap = document.createElement('div');
+              sigWrap.className = 'forum-user-card-signature';
+              sigWrap.style.cssText = 'position:absolute;left:0;right:0;bottom:12px;z-index:2;text-align:right;padding:0 20px;pointer-events:none;display:flex;align-items:flex-end;justify-content:flex-end;';
+              var sigImg = document.createElement('img');
+              sigImg.src = sigImageUrl;
+              sigImg.alt = 'Signature';
+              sigImg.style.cssText = 'max-height:48px;width:auto;image-rendering:pixelated;image-rendering:-moz-crisp-edges;image-rendering:crisp-edges;';
+              sigWrap.appendChild(sigImg);
+              card.appendChild(sigWrap);
+            } else if (sigText) {
+              var sigEl = document.createElement('div');
+              sigEl.className = 'forum-user-card-signature';
+              sigEl.style.cssText = 'position:absolute;left:0;right:0;bottom:12px;z-index:2;text-align:right;padding:0 20px;pointer-events:none;font-size:12px;color:rgba(55,65,81,0.9);font-style:italic;';
+              sigEl.textContent = sigText;
+              card.appendChild(sigEl);
+            }
+            var cardStickers = (hc.hoverCardStickers && Array.isArray(hc.hoverCardStickers)) ? hc.hoverCardStickers.slice(0, 12) : [];
+            if (cardStickers.length > 0) {
+              var stickerWrap = document.createElement('div');
+              stickerWrap.className = 'forum-user-card-stickers';
+              stickerWrap.style.cssText = 'position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:12px;overflow:visible;';
+              cardStickers.forEach(function (s) {
+                if (!s || typeof s.id !== 'string') return;
+                var scale = (typeof s.scale === 'number' && s.scale >= 0.25 && s.scale <= 3) ? s.scale : 1;
+                var rotation = typeof s.rotation === 'number' ? s.rotation : 0;
+                var flipH = s.flipH ? -1 : 1, flipV = s.flipV ? -1 : 1;
+                var img = document.createElement('img');
+                img.src = '/Uploads/hover-card-stickers/' + encodeURIComponent(s.id);
+                img.alt = '';
+                var sx = Number(s.x) || 0, sy = Number(s.y) || 0;
+                var norm = (sx >= 0 && sx <= 1 && sy >= 0 && sy <= 1);
+                var leftPx = norm ? (sx * 500) : (sx * (500 / 320));
+                var topPx = norm ? (sy * 328) : (sy * (328 / 180));
+                img.style.cssText = 'position:absolute;left:' + leftPx + 'px;top:' + topPx + 'px;max-width:56px;max-height:56px;object-fit:contain;transform-origin:center center;transform:translate(-50%,-50%) scale(' + scale + ') rotate(' + rotation + 'deg) scale(' + flipH + ',' + flipV + ');';
+                img.onerror = function () { img.style.display = 'none'; };
+                stickerWrap.appendChild(img);
+              });
+              card.appendChild(stickerWrap);
+            }
+
+            avatarWrap.appendChild(avatarBox);
+            document.body.appendChild(card);
+            var cardHideTimer;
+            var roleIcons = (authorRoles.includes('admin') ? '<span class="forum-role-icon role-admin" title="Admin">A</span>' : '') +
+                (authorRoles.includes('moderator') ? '<span class="forum-role-icon role-moderator" title="Moderator">M</span>' : '') +
+                (authorRoles.includes('designer') ? '<span class="forum-role-icon role-designer" title="Designer">D</span>' : '') +
+                (authorRoles.includes('membership') ? '<span class="forum-role-icon role-membership" title="Member">★</span>' : '');
+            function positionCard(anchor) {
+                var el = anchor || avatarWrap;
+                var r = el.getBoundingClientRect();
+                var pos = clampCardToViewport(r.left, r.bottom + 6, 420, 380);
+                card.style.left = pos.left + 'px';
+                card.style.top = pos.top + 'px';
+            }
+            function showCard(anchor) {
+                clearTimeout(cardHideTimer);
+                positionCard(anchor || avatarWrap);
+                card.classList.add('forum-user-card-visible');
+            }
+            function hideCard() {
+                cardHideTimer = setTimeout(function() { card.classList.remove('forum-user-card-visible'); }, 150);
+            }
+            avatarWrap.addEventListener('mouseenter', function() { showCard(avatarWrap); });
+            avatarWrap.addEventListener('mouseleave', hideCard);
+            card.addEventListener('mouseenter', function() { clearTimeout(cardHideTimer); card.classList.add('forum-user-card-visible'); });
+            card.addEventListener('mouseleave', function() { card.classList.remove('forum-user-card-visible'); });
+            if (authorRoles.includes('membership')) postElement.classList.add('forum-post-member');
+            if (authorProfile && authorProfile.forumPostColor) {
+                var accent = forumPostAccentColor(authorProfile.forumPostColor);
+                postElement.classList.add('forum-post-has-custom-color');
+                postElement.style.setProperty('--forum-post-bg', authorProfile.forumPostColor);
+                postElement.style.setProperty('--forum-post-accent', accent);
+                postElement.style.borderRadius = '8px';
+            }
+
+            // Post content: aligned with avatar
+            const contentBox = document.createElement('div');
+            contentBox.className = 'forum-post-content';
+            let bannerHtml = '';
+            if (post.banner || post.bannerText) {
+                const bannerLabel = post.banner ? `<span class="inline-block bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded">${post.banner}</span>` : '';
+                const bannerText = post.bannerText ? `<span class="text-sm text-gray-500">${post.bannerText}</span>` : '';
+                bannerHtml = `<div class="mt-2 flex items-center space-x-2">${bannerLabel}${bannerText}</div>`;
+            }
+            const showReply = (!topicLocked || canLock) && !isFirstPost;
+            const isOwnPost = currentUserId != null && post.userId != null && String(currentUserId) === String(post.userId);
+            const showReport = currentUserId != null && !isOwnPost && (topicId || post.topicId);
+            const showEditComment = isOwnPost;
+            const showDeleteComment = isOwnPost && !isFirstPost;
+            var authorCustom = (post.authorProfile && typeof post.authorProfile === 'object') ? post.authorProfile : {};
+            var nameStyle = '';
+            if (authorCustom.forumNameColor) nameStyle += 'color:' + authorCustom.forumNameColor + ';';
+            if (authorCustom.forumNameFont) nameStyle += 'font-family:' + authorCustom.forumNameFont + ';';
+            var nameAttr = nameStyle ? ' style="' + nameStyle.replace(/"/g, '&quot;') + '"' : '';
+            var headerGraphicHtml = '';
+            if (authorCustom.forumHeaderGraphic && typeof authorCustom.forumHeaderGraphic === 'string') {
+                var graphicUrl = authorCustom.forumHeaderGraphic.trim().replace(/</g, '&lt;').replace(/"/g, '&quot;').slice(0, 500);
+                if (graphicUrl) headerGraphicHtml = '<img src="' + graphicUrl + '" class="forum-header-graphic" alt="" loading="lazy">';
+            }
+            var blinkiesHtml = '';
+            if (Array.isArray(authorCustom.forumBlinkies) && authorCustom.forumBlinkies.length) {
+                authorCustom.forumBlinkies.forEach(function(url) {
+                    var safe = (typeof url === 'string' ? url : '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                    if (safe) blinkiesHtml += '<img src="' + safe + '" class="forum-blinky" alt="" loading="lazy">';
+                });
+            }
+            var usernameDisplay = ((post.username || 'Guest').replace(/</g, '&lt;')) + roleIcons;
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'forum-post-header' + (headerGraphicHtml ? ' forum-post-header-has-graphic' : '');
+            headerDiv.innerHTML = (headerGraphicHtml ? headerGraphicHtml : '') + `
+                <div class="forum-post-header-left">
+                    <span class="forum-post-header-name forum-username-hover" title="View profile"${nameAttr}>${usernameDisplay}</span>
+                    <span class="forum-post-header-date">${(post.timestamp || '').replace(/</g, '&lt;')}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                ${showReply ? '<button onclick="showReplyForm(\'' + post.id + '\')" class="text-pink-500 hover:underline text-sm">Reply</button>' : ''}
+                ${showEditComment ? '<button type="button" class="forum-edit-post-btn text-pink-500 hover:underline text-sm" data-post-id="' + post.id + '">Edit comment</button>' : ''}
+                ${showReport ? '<button type="button" class="forum-report-btn text-gray-500 hover:text-red-600 text-sm" data-post-id="' + post.id + '" data-topic-id="' + (topicId || post.topicId || '') + '">Report comment</button>' : ''}
+                </div>
+            `;
+            contentBox.innerHTML = `
+                <div class="forum-post-body">
+                    <div class="forum-post-message-wrap">
+                        <div id="post-msg-${post.id}">${formatForumPostMessage(post.message)}</div>
+                        ${bannerHtml}
+                    </div>
+                    ${(post.attachments && post.attachments.length) ? '<div class="forum-attachments">' + post.attachments.map(function(a) {
+                        var u = escapeForumHtml(a.url || '');
+                        if (a.type === 'video') return '<div class="forum-attachment-item"><video src="' + u + '" controls></video></div>';
+                        return '<div class="forum-attachment-item"><img src="' + u + '" alt="Attachment" loading="lazy"></div>';
+                    }).join('') + '</div>' : ''}
+                </div>
+                ${showEditComment ? '<div id="edit-form-' + post.id + '" class="hidden mt-4 p-4 bg-gray-100 rounded" data-attachments="' + (JSON.stringify(post.attachments || [])).replace(/"/g, '&quot;') + '"><textarea id="edit-msg-' + post.id + '" class="w-full p-2 mb-2 border rounded" rows="3" placeholder="Use :smile: for emoticons."></textarea><div class="flex gap-2 mb-2"><button type="button" class="forum-edit-add-media text-sm px-2 py-1 border rounded hover:bg-gray-200" data-post-id="' + post.id + '" data-type="image">Add image</button><button type="button" class="forum-edit-add-media text-sm px-2 py-1 border rounded hover:bg-gray-200" data-post-id="' + post.id + '" data-type="video">Add video</button><button type="button" class="forum-edit-add-gif text-sm px-2 py-1 border rounded hover:bg-gray-200" data-post-id="' + post.id + '">Add GIF</button><button type="button" class="forum-edit-emotes text-sm px-2 py-1 border rounded hover:bg-gray-200" data-post-id="' + post.id + '">Emoticons</button></div><div id="edit-comment-emote-picker-' + post.id + '" class="hidden mb-2"></div><div id="edit-comment-attachment-previews-' + post.id + '" class="flex flex-wrap gap-2 mb-2"></div><div class="flex gap-2"><button type="button" class="forum-edit-save-btn bg-blue-500 text-white px-3 py-1 rounded text-sm" data-post-id="' + post.id + '">Save</button><button type="button" class="forum-edit-cancel-btn px-3 py-1 border rounded text-sm" data-post-id="' + post.id + '">Cancel</button>' + (showDeleteComment ? '<button type="button" class="forum-edit-delete-btn text-red-600 hover:underline px-3 py-1 border border-red-300 rounded text-sm ml-auto" data-post-id="' + post.id + '">Delete comment</button>' : '') + '</div></div>' : ''}
+                <div id="reply-form-${post.id}" class="forum-reply-form-box hidden mt-4 p-4 bg-gray-100 rounded">
+                    <textarea id="reply-message-${post.id}" placeholder="Your reply. Use :smile: for emoticons." class="w-full p-2 mb-2 border rounded" rows="3"></textarea>
+                    <div class="flex gap-2 mb-2">
+                        <button type="button" class="forum-reply-add-media text-sm px-2 py-1 border rounded hover:bg-gray-200" data-post-id="${post.id}" data-type="image">Add image</button>
+                        <button type="button" class="forum-reply-add-media text-sm px-2 py-1 border rounded hover:bg-gray-200" data-post-id="${post.id}" data-type="video">Add video</button>
+                        <button type="button" class="forum-reply-add-gif text-sm px-2 py-1 border rounded hover:bg-gray-200" data-post-id="${post.id}">Add GIF</button>
+                        <button type="button" class="forum-reply-emotes text-sm px-2 py-1 border rounded hover:bg-gray-200" data-post-id="${post.id}">Emoticons</button>
+                    </div>
+                    <div id="reply-emote-picker-wrap-${post.id}" class="hidden mb-2"></div>
+                    <div id="reply-attachment-previews-${post.id}" class="flex flex-wrap gap-2 mb-2"></div>
+                    <button onclick="postReply('${post.id}')" class="btn-primary px-4 py-2 rounded">Submit Reply</button>
+                </div>
+            `;
+
+            if (showEditComment) {
+                var editMsgEl = contentBox.querySelector('#edit-msg-' + post.id);
+                if (editMsgEl) editMsgEl.value = post.message || '';
+            }
+            contentBox.querySelectorAll('.forum-report-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var postId = btn.dataset.postId;
+                    var topicIdVal = btn.dataset.topicId;
+                    window._reportPending = { targetType: 'forum_post', targetId: postId, topicId: topicIdVal || null };
+                    var modal = document.getElementById('report-modal');
+                    if (modal) {
+                        document.getElementById('report-category').value = '';
+                        document.getElementById('report-details').value = '';
+                        modal.style.display = 'flex';
+                        modal.setAttribute('aria-hidden', 'false');
+                    }
+                });
+            });
+            contentBox.querySelectorAll('.forum-edit-post-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var postId = btn.dataset.postId;
+                    var editForm = document.getElementById('edit-form-' + postId);
+                    var msgEl = document.getElementById('post-msg-' + postId);
+                    if (editForm && msgEl) {
+                        try {
+                            var attStr = editForm.getAttribute('data-attachments');
+                            window._editCommentAttachments[postId] = (attStr ? JSON.parse(attStr.replace(/&quot;/g, '"')) : []) || [];
+                        } catch (e) { window._editCommentAttachments[postId] = []; }
+                        renderEditCommentAttachmentPreviews(postId);
+                        editForm.classList.remove('hidden');
+                        msgEl.style.display = 'none';
+                    }
+                });
+            });
+            contentBox.querySelectorAll('.forum-edit-add-media').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var postId = btn.getAttribute('data-post-id');
+                    var type = btn.getAttribute('data-type');
+                    if (postId) {
+                        window._forumUploadTarget = 'edit-comment-' + postId;
+                        var inp = document.getElementById('forum-media-input');
+                        if (inp) { inp.accept = type === 'video' ? 'video/*' : 'image/*'; inp.click(); }
+                    }
+                });
+            });
+            contentBox.querySelectorAll('.forum-edit-add-gif').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var postId = btn.getAttribute('data-post-id');
+                    if (postId && window.openForumGifPicker) window.openForumGifPicker('edit-comment-' + postId);
+                });
+            });
+            contentBox.querySelectorAll('.forum-edit-emotes').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var postId = btn.getAttribute('data-post-id');
+                    if (!postId) return;
+                    window._forumCurrentMessageEl = document.getElementById('edit-msg-' + postId);
+                    var wrap = document.getElementById('edit-comment-emote-picker-' + postId);
+                    if (!wrap) return;
+                    if (wrap.classList.contains('hidden')) {
+                        loadForumEmotes(function() {
+                            wrap.classList.remove('hidden');
+                            wrap.innerHTML = '';
+                            var panel = document.createElement('div');
+                            panel.className = 'forum-emote-picker';
+                            var builtin = window._forumEmotes.builtin || {};
+                            Object.keys(builtin).forEach(function(sc) {
+                                var s = document.createElement('span');
+                                s.textContent = builtin[sc];
+                                s.title = sc;
+                                s.onclick = function() { insertForumEmoteAtCursor(sc); };
+                                panel.appendChild(s);
+                            });
+                            if (canUseCustomEmotes()) {
+                                (window._forumEmotes.custom || []).forEach(function(c) {
+                                    var img = document.createElement('img');
+                                    img.className = 'forum-picker-emote';
+                                    img.src = c.url;
+                                    img.alt = c.shortcode;
+                                    img.title = c.shortcode;
+                                    img.onclick = function() { insertForumEmoteAtCursor(c.shortcode); };
+                                    panel.appendChild(img);
+                                });
+                            }
+                            (window._forumGifs || []).forEach(function(g) {
+                                var img = document.createElement('img');
+                                img.className = 'forum-picker-gif';
+                                img.src = g.url;
+                                img.alt = g.shortcode;
+                                img.title = g.shortcode;
+                                img.onclick = function() { insertForumEmoteAtCursor(g.shortcode); };
+                                panel.appendChild(img);
+                            });
+                            wrap.appendChild(panel);
+                        });
+                    } else { wrap.classList.add('hidden'); wrap.innerHTML = ''; }
+                });
+            });
+
+            contentBox.querySelectorAll('.forum-reply-add-media').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var postId = btn.getAttribute('data-post-id');
+                    var type = btn.getAttribute('data-type');
+                    if (postId) {
+                        window._forumUploadTarget = postId;
+                        var inp = document.getElementById('forum-media-input');
+                        if (inp) { inp.accept = type === 'video' ? 'video/*' : 'image/*'; inp.click(); }
+                    }
+                });
+            });
+            contentBox.querySelectorAll('.forum-reply-add-gif').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var postId = btn.getAttribute('data-post-id');
+                    if (postId && window.openForumGifPicker) window.openForumGifPicker('reply-' + postId);
+                });
+            });
+            contentBox.querySelectorAll('.forum-reply-emotes').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var postId = btn.getAttribute('data-post-id');
+                    if (!postId) return;
+                    window._forumCurrentMessageEl = document.getElementById('reply-message-' + postId);
+                    var wrap = document.getElementById('reply-emote-picker-wrap-' + postId);
+                    if (!wrap) return;
+                    if (wrap.classList.contains('hidden')) {
+                        loadForumEmotes(function() {
+                            wrap.classList.remove('hidden');
+                            wrap.innerHTML = '';
+                            var panel = document.createElement('div');
+                            panel.className = 'forum-emote-picker';
+                            var builtin = window._forumEmotes.builtin || {};
+                            Object.keys(builtin).forEach(function(sc) {
+                                var s = document.createElement('span');
+                                s.textContent = builtin[sc];
+                                s.title = sc;
+                                s.onclick = function() { insertForumEmoteAtCursor(sc); };
+                                panel.appendChild(s);
+                            });
+                            if (canUseCustomEmotes()) {
+                                (window._forumEmotes.custom || []).forEach(function(c) {
+                                    var img = document.createElement('img');
+                                    img.className = 'forum-picker-emote';
+                                    img.src = c.url;
+                                    img.alt = c.shortcode;
+                                    img.title = c.shortcode;
+                                    img.onclick = function() { insertForumEmoteAtCursor(c.shortcode); };
+                                    panel.appendChild(img);
+                                });
+                            }
+                            (window._forumGifs || []).forEach(function(g) {
+                                var img = document.createElement('img');
+                                img.className = 'forum-picker-gif';
+                                img.src = g.url;
+                                img.alt = g.shortcode;
+                                img.title = g.shortcode;
+                                img.onclick = function() { insertForumEmoteAtCursor(g.shortcode); };
+                                panel.appendChild(img);
+                            });
+                            wrap.appendChild(panel);
+                        });
+                    } else { wrap.classList.add('hidden'); wrap.innerHTML = ''; }
+                });
+            });
+
+            if (authorCustom && authorCustom.forumPostHeader) {
+                var customHeaderEl = document.createElement('div');
+                customHeaderEl.className = 'forum-custom-header';
+                customHeaderEl.textContent = String(authorCustom.forumPostHeader);
+                postElement.appendChild(customHeaderEl);
+            }
+            postElement.appendChild(headerDiv);
+            const cardInner = document.createElement('div');
+            cardInner.className = 'forum-post-card-inner';
+            cardInner.appendChild(avatarWrap);
+            cardInner.appendChild(contentBox);
+            postElement.appendChild(cardInner);
+            if (blinkiesHtml) {
+                const footerDiv = document.createElement('div');
+                footerDiv.className = 'forum-post-footer';
+                footerDiv.innerHTML = blinkiesHtml;
+                postElement.appendChild(footerDiv);
+            }
+            var usernameHover = postElement.querySelector('.forum-username-hover');
+            if (usernameHover) {
+                usernameHover.addEventListener('mouseenter', function() { showCard(usernameHover); });
+                usernameHover.addEventListener('mouseleave', hideCard);
+            }
+
+            return postElement;
+        }
+
+        function postReply(postId) {
+            const message = document.getElementById(`reply-message-${postId}`).value.trim();
+            const topicId = getTopicId();
+            const attachments = (window._replyAttachments && window._replyAttachments[postId]) ? window._replyAttachments[postId].slice() : [];
+
+            if (!message) {
+                alert('Please enter a message.');
+                return;
+            }
+
+fetch('/api/outfits', { credentials: 'same-origin' })
+                    .then(r => r.ok ? r.json() : null)
+                    .catch(() => null)
+                    .then(outfits => {
+                        let outfitItems = null;
+                        if (Array.isArray(outfits) && outfits.length > 0) {
+                            const last = outfits[outfits.length - 1];
+                            if (last && last.items && typeof last.items === 'object') {
+                                const slots = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
+                                const all = [];
+                                slots.forEach(slotId => {
+                                    const arr = last.items[slotId];
+                                    if (Array.isArray(arr)) arr.forEach(item => all.push({ ...item, slotId }));
+                                });
+                                all.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+                                outfitItems = all;
+                            }
+                        }
+                        return fetch('/api/forum/posts', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ topicId, parentId: null, message, banner: '', bannerText: '', outfitItems, attachments })
+                        });
+                    })
+                    .then(r => r.json().then(data => {
+                        if (!r.ok) throw new Error(data.error || r.statusText || 'Failed to post reply');
+                        return data;
+                    }))
+                    .then(() => {
+                        document.getElementById(`reply-message-${postId}`).value = '';
+                        window._replyAttachments[postId] = [];
+                        renderReplyAttachmentPreviews(postId);
+                        document.getElementById(`reply-form-${postId}`).classList.add('hidden');
+                        loadPosts();
+                    })
+                    .catch(err => alert(err.message || 'Could not post reply. Please try again.'));
+        }
+    </script>
+    <script src="/js/toast.js" defer></script>
+    <script src="/js/header.js" defer></script>
+</body>
+</html>

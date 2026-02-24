@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saved Outfits - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 900px; margin: 0 auto; padding: 24px; }
+    h1 { margin: 0 0 8px 0; font-size: 1.5rem; }
+    .saved-outfits-toolbar { margin-bottom: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+    .saved-outfits-toolbar a { color: #ec4899; font-weight: 600; text-decoration: none; }
+    .saved-outfits-toolbar a:hover { text-decoration: underline; }
+    .outfits-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+    .outfit-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+    .outfit-card-preview { width: 100%; aspect-ratio: 1; background: #f3f4f6; display: flex; align-items: center; justify-content: center; }
+    .outfit-card-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .outfit-card-body { padding: 12px; }
+    .outfit-card-name { font-weight: 600; margin-bottom: 8px; word-break: break-word; }
+    .outfit-card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .outfit-card-actions a, .outfit-card-actions button { font-size: 13px; padding: 6px 12px; border-radius: 6px; text-decoration: none; border: none; cursor: pointer; }
+    .outfit-load { background: var(--btn-pink-gradient); color: #fff; border: var(--btn-pink-border); box-shadow: var(--btn-pink-shadow); }
+    .outfit-load:hover { filter: brightness(1.1); }
+    .outfit-delete { background: #fef2f2; color: #b91c1c; }
+    .outfit-delete:hover { background: #fee2e2; }
+    .saved-outfits-login { padding: 24px; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
+    .saved-outfits-login a { color: #ec4899; font-weight: 600; }
+    .saved-outfits-empty { padding: 48px 24px; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; color: #6b7280; }
+    .saved-outfits-error { color: #b91c1c; padding: 12px; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <h1>Saved Outfits</h1>
+    <div id="saved-outfits-root">
+      <p>Loading…</p>
+    </div>
+  </div>
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+  <script>
+    (function () {
+      const root = document.getElementById('saved-outfits-root');
+      function esc(s) { return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+
+      function renderLoginRequired() {
+        root.innerHTML = '<div class="saved-outfits-login">' +
+          '<p>Log in to view and manage your saved outfits.</p>' +
+          '<p><a href="/login">Log in</a></p>' +
+          '</div>';
+      }
+
+      function deleteOutfit(name, cardEl) {
+        if (!name || !confirm('Delete outfit "' + name + '"?')) return;
+        fetch('/api/outfits?name=' + encodeURIComponent(name), { method: 'DELETE', credentials: 'same-origin' })
+          .then(function (r) {
+            if (r.ok) {
+              if (cardEl && cardEl.parentNode) cardEl.parentNode.removeChild(cardEl);
+              if (typeof showToast === 'function') showToast('Outfit deleted');
+              return;
+            }
+            return r.json().then(function (d) { throw new Error(d.error || 'Failed to delete'); });
+          })
+          .catch(function (err) {
+            if (typeof showToast === 'function') showToast(err.message || 'Failed to delete outfit');
+            else alert(err.message || 'Failed to delete outfit');
+          });
+      }
+
+      function renderList(outfits) {
+        if (!outfits || outfits.length === 0) {
+          root.innerHTML = '<div class="saved-outfits-toolbar">' +
+            '<a href="/wardrobe">Save new outfit in Wardrobe</a>' +
+            '</div>' +
+            '<div class="saved-outfits-empty">You have no saved outfits yet. Go to the Wardrobe to create an outfit and save it.</div>';
+          return;
+        }
+        const cards = outfits.map(function (o) {
+          const name = (o && o.name != null) ? String(o.name) : 'Unnamed';
+          const imgUrl = (o && o.mergedImageUrl) ? o.mergedImageUrl : '';
+          const loadHref = '/wardrobe?load=' + encodeURIComponent(name);
+          const previewHtml = imgUrl
+            ? '<img src="' + esc(imgUrl) + '" alt="" />'
+            : '<span style="color:#9ca3af;">No preview</span>';
+          return '<div class="outfit-card" data-outfit-name="' + esc(name) + '">' +
+            '<div class="outfit-card-preview">' + previewHtml + '</div>' +
+            '<div class="outfit-card-body">' +
+            '<div class="outfit-card-name">' + esc(name) + '</div>' +
+            '<div class="outfit-card-actions">' +
+            '<a href="' + esc(loadHref) + '" class="outfit-load">Load in Wardrobe</a>' +
+            '<button type="button" class="outfit-delete" data-name="' + esc(name) + '">Delete</button>' +
+            '</div></div></div>';
+        }).join('');
+        root.innerHTML = '<div class="saved-outfits-toolbar">' +
+          '<a href="/wardrobe">Save new outfit in Wardrobe</a>' +
+          '</div>' +
+          '<div class="outfits-grid">' + cards + '</div>';
+
+        root.querySelectorAll('.outfit-delete').forEach(function (btn) {
+          const name = btn.getAttribute('data-name');
+          const card = btn.closest('.outfit-card');
+          btn.addEventListener('click', function () { deleteOutfit(name, card); });
+        });
+      }
+
+      fetch('/api/me', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : {}; })
+        .catch(function () { return {}; })
+        .then(function (me) {
+          if (!me || me.userId == null) {
+            renderLoginRequired();
+            return;
+          }
+          return fetch('/api/outfits', { credentials: 'same-origin' })
+            .then(function (r) {
+              if (!r.ok) throw new Error('Failed to load outfits');
+              return r.json();
+            })
+            .then(function (list) {
+              renderList(Array.isArray(list) ? list : []);
+            })
+            .catch(function () {
+              root.innerHTML = '<p class="saved-outfits-error">Could not load saved outfits.</p>';
+            });
+        });
+    })();
+  </script>
+</body>
+</html>

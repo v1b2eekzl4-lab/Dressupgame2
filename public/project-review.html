@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project review - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', 'Nunito', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 900px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h1 { margin: 0 0 8px 0; font-size: 1.5rem; }
+    .back-link { display: inline-block; margin-bottom: 16px; font-size: 14px; color: #ec4899; text-decoration: none; }
+    .back-link:hover { text-decoration: underline; }
+    .review-layout { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+    .preview-box { flex-shrink: 0; width: 250px; height: 350px; border: 2px solid #888; border-radius: 8px; background: #fff; position: relative; overflow: hidden; }
+    .preview-box img.base { position: absolute; width: 250px; height: 350px; top: 50%; left: 50%; transform: translate(-50%, -50%); image-rendering: pixelated; object-fit: none; z-index: 0; pointer-events: none; }
+    .preview-box img.item-layer { position: absolute; top: 50%; left: 50%; width: 250px; height: 350px; transform: translate(-50%, -50%); image-rendering: pixelated; object-fit: none; max-width: 250px; max-height: 350px; z-index: 1; pointer-events: none; }
+    .preview-box img.bg-layer { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); image-rendering: pixelated; object-fit: none; max-width: 250px; max-height: 350px; z-index: 0; pointer-events: none; }
+    .items-section { flex: 1; min-width: 280px; }
+    .items-section h2 { margin: 0 0 12px 0; font-size: 1.1rem; color: #374151; }
+    .item-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .item-table th, .item-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+    .item-table th { background: #f9fafb; font-weight: 600; color: #6b7280; font-size: 12px; text-transform: uppercase; }
+    .item-table tr:hover { background: #f9fafb; }
+    .item-table .thumb { width: 36px; height: 36px; object-fit: contain; image-rendering: pixelated; border-radius: 4px; border: 1px solid #e5e7eb; vertical-align: middle; }
+    .item-table tr.body-item .thumb { object-fit: cover; object-position: top center; }
+    .slot-label { font-size: 12px; color: #6b7280; }
+    .empty-state { color: #6b7280; padding: 24px; text-align: center; }
+    .open-edit { display: inline-block; margin-top: 16px; padding: 10px 20px; background: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; }
+    .open-edit:hover { background: var(--btn-pink-gradient); color: white; }
+    .badge { display: inline-block; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+    .badge.draft { background: #fce4ec; color: #be185d; }
+    .badge.released { background: #a7f3d0; color: #065f46; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <a href="/projects" class="back-link">← Back to Upload Items</a>
+    <div id="review-content">
+      <p class="empty-state">Loading project…</p>
+    </div>
+  </div>
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/slots.js"></script>
+  <script>
+(function () {
+  const SLOT_LABELS = {
+    'body-slot': 'Body', 'shirt-slot': 'Shirt', 'pants-slot': 'Pants', 'skirt-slot': 'Skirt',
+    'dress-slot': 'Dress', 'jacket-slot': 'Jacket', 'shoes-slot': 'Shoes', 'socks-slot': 'Socks',
+    'hat-slot': 'Hat', 'jewelry-slot': 'Jewelry', 'other-slot': 'Other', 'hair-slot': 'Hair'
+  };
+  const urlParams = new URLSearchParams(window.location.search);
+  const projectId = urlParams.get('projectId');
+  const content = document.getElementById('review-content');
+
+  if (!projectId) {
+    content.innerHTML = '<p class="empty-state">No project selected. <a href="/projects">Back to Upload Items</a></p>';
+    return;
+  }
+
+  function slotOrder() {
+    const order = window.SLOT_LAYER_ORDER || {
+      'body-slot': 0, 'pants-slot': 1, 'skirt-slot': 2, 'dress-slot': 3, 'shirt-slot': 4,
+      'jacket-slot': 5, 'socks-slot': 6, 'shoes-slot': 7, 'hat-slot': 8, 'jewelry-slot': 9,
+      'hair-slot': 10, 'other-slot': 11
+    };
+    return Object.keys(order).sort((a, b) => (order[a] ?? 0) - (order[b] ?? 0));
+  }
+
+  function buildOrderedItems(project) {
+    const items = Array.isArray(project.items) ? project.items : [];
+    const order = slotOrder();
+    const bySlot = {};
+    items.forEach(it => {
+      const slot = it.slotId || 'other-slot';
+      if (!bySlot[slot]) bySlot[slot] = [];
+      bySlot[slot].push(it);
+    });
+    const flat = [];
+    order.forEach(slotId => {
+      (bySlot[slotId] || []).forEach((it, idx) => flat.push({ ...it, slotId, index: idx }));
+    });
+    return flat.sort((a, b) => {
+      const la = order.indexOf(a.slotId);
+      const lb = order.indexOf(b.slotId);
+      if (la !== lb) return la - lb;
+      return (a.index || 0) - (b.index || 0);
+    });
+  }
+
+  fetch('/api/projects/' + encodeURIComponent(projectId), { credentials: 'same-origin' })
+    .then(r => {
+      if (!r.ok) throw new Error('Project not found');
+      return r.json();
+    })
+    .then(project => {
+      const items = buildOrderedItems(project);
+      const name = project.name || 'Unnamed project';
+      const released = !!project.released;
+
+      const previewBox = document.createElement('div');
+      previewBox.className = 'preview-box';
+      const backgrounds = [];
+      items.forEach(item => {
+        if (item.background && item.background.filename) {
+          const z = item.background.defaultZ != null ? item.background.defaultZ : 0;
+          backgrounds.push({ filename: item.background.filename, defaultX: item.background.defaultX != null ? item.background.defaultX : 0, defaultY: item.background.defaultY != null ? item.background.defaultY : 0, defaultZ: z });
+        }
+      });
+      backgrounds.sort((a, b) => (a.defaultZ || 0) - (b.defaultZ || 0));
+      backgrounds.forEach(bg => {
+        const img = document.createElement('img');
+        img.className = 'bg-layer';
+        img.src = '/Uploads/' + bg.filename;
+        img.alt = '';
+        img.style.transform = 'translate(-50%, -50%) translate(' + (bg.defaultX || 0) + 'px, ' + (bg.defaultY || 0) + 'px)';
+        img.onerror = () => { img.style.display = 'none'; };
+        previewBox.appendChild(img);
+      });
+      const baseImg = document.createElement('img');
+      baseImg.className = 'base';
+      baseImg.src = '/Uploads/character.png';
+      baseImg.alt = 'Character base';
+      previewBox.appendChild(baseImg);
+
+      items.forEach(item => {
+        const img = document.createElement('img');
+        img.className = 'item-layer';
+        const src = '/Uploads/' + (item.filename || '');
+        img.src = src;
+        img.alt = item.name || item.filename || '';
+        img.dataset.src = src;
+        const x = item.defaultX != null ? item.defaultX : 0;
+        const y = item.defaultY != null ? item.defaultY : 0;
+        img.style.transform = 'translate(-50%, -50%) translate(' + x + 'px, ' + y + 'px)';
+        img.onerror = () => {
+          img.style.display = 'block';
+          img.style.background = '#fee';
+          img.style.border = '2px solid red';
+          img.style.minWidth = '40px';
+          img.style.minHeight = '40px';
+          img.dataset.failed = '1';
+          console.warn('Project review: failed to load item image', src);
+        };
+        img.onload = () => { console.log('Project review: loaded item', src, 'at', x, y); };
+        previewBox.appendChild(img);
+      });
+
+      const itemsSection = document.createElement('div');
+      itemsSection.className = 'items-section';
+      itemsSection.innerHTML = '<h2>Project items</h2>';
+      const table = document.createElement('table');
+      table.className = 'item-table';
+      const thead = document.createElement('thead');
+      thead.innerHTML = '<tr><th>Preview</th><th>Name</th><th>Category</th><th>X</th><th>Y</th><th>Z</th></tr>';
+      table.appendChild(thead);
+      const tbody = document.createElement('tbody');
+      if (items.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="6" class="empty-state">No items in this project.</td>';
+        tbody.appendChild(tr);
+      } else {
+        items.forEach(item => {
+          const tr = document.createElement('tr');
+          if (item.slotId === 'body-slot') tr.classList.add('body-item');
+          const thumb = document.createElement('img');
+          thumb.className = 'thumb';
+          thumb.src = '/Uploads/' + (item.filename || '');
+          thumb.alt = '';
+          thumb.onerror = () => { thumb.src = 'https://via.placeholder.com/36?text=?'; };
+          const nameCell = document.createElement('td');
+          nameCell.appendChild(thumb);
+          tr.appendChild(nameCell);
+          tr.appendChild(document.createElement('td')).textContent = item.name || item.filename || '—';
+          tr.appendChild(document.createElement('td')).innerHTML = '<span class="slot-label">' + (SLOT_LABELS[item.slotId] || item.slotId || '—') + '</span>';
+          tr.appendChild(document.createElement('td')).textContent = item.defaultX != null ? item.defaultX : 0;
+          tr.appendChild(document.createElement('td')).textContent = item.defaultY != null ? item.defaultY : 0;
+          tr.appendChild(document.createElement('td')).textContent = item.defaultZ != null ? item.defaultZ : 0;
+          tbody.appendChild(tr);
+        });
+      }
+      table.appendChild(tbody);
+      itemsSection.appendChild(table);
+
+      const openEdit = document.createElement('a');
+      openEdit.href = './adjust.html?projectId=' + encodeURIComponent(projectId);
+      openEdit.className = 'open-edit';
+      openEdit.textContent = 'Open to edit';
+      itemsSection.appendChild(openEdit);
+
+      const layout = document.createElement('div');
+      layout.className = 'review-layout';
+      layout.appendChild(previewBox);
+      layout.appendChild(itemsSection);
+
+      const title = document.createElement('h1');
+      title.textContent = name;
+      const badge = document.createElement('span');
+      badge.className = 'badge ' + (released ? 'released' : 'draft');
+      badge.textContent = released ? 'Released' : 'Draft';
+      title.appendChild(badge);
+
+      content.innerHTML = '';
+      content.appendChild(title);
+      content.appendChild(layout);
+    })
+    .catch(err => {
+      content.innerHTML = '<p class="empty-state">Could not load project: ' + (err.message || 'error') + '. <a href="/projects">Back to Upload Items</a></p>';
+    });
+})();
+  </script>
+</body>
+</html>

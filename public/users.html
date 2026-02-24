@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Users - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', 'Nunito', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f3f4f6; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 560px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h1 { margin: 0 0 8px 0; font-size: 1.5rem; }
+    .sub { color: #6b7280; font-size: 14px; margin-bottom: 20px; }
+    .back { display: inline-block; margin-bottom: 16px; color: #ec4899; text-decoration: none; font-size: 14px; }
+    .back:hover { text-decoration: underline; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; }
+    .tabs button { padding: 10px 16px; border: none; background: none; font-size: 14px; font-weight: 500; color: #6b7280; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .tabs button:hover { color: #374151; }
+    .tabs button.active { color: #ec4899; border-bottom-color: #ec4899; }
+    .user-list { list-style: none; margin: 0; padding: 0; }
+    .user-list li { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; }
+    .user-list li:last-child { border-bottom: none; }
+    .user-list a { color: #ec4899; text-decoration: none; }
+    .user-list a:hover { text-decoration: underline; }
+    .user-list .user-id { font-size: 12px; color: #9ca3af; margin-left: 8px; }
+    .pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 20px; }
+    .pager button { padding: 8px 14px; border: 1px solid #d1d5db; background: #fff; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .pager button:hover:not(:disabled) { background: #f3f4f6; }
+    .pager button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .pager span { font-size: 14px; color: #6b7280; }
+    .empty-msg { color: #9ca3af; padding: 24px; text-align: center; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <a href="./home.html" class="back">← Back to Home</a>
+    <h1>Users</h1>
+    <p class="sub">See who is online or browse all registered users.</p>
+    <div class="tabs">
+      <button type="button" id="tab-online" class="active">Online</button>
+      <button type="button" id="tab-all">All users</button>
+    </div>
+    <div id="panel-online">
+      <ul id="online-list" class="user-list"></ul>
+      <p id="online-empty" class="empty-msg hidden">No one else online right now.</p>
+    </div>
+    <div id="panel-all" class="hidden">
+      <ul id="all-list" class="user-list"></ul>
+      <p id="all-empty" class="empty-msg hidden">No users found.</p>
+      <div id="pager" class="pager hidden">
+        <button type="button" id="prev-page">Previous</button>
+        <span id="page-info">Page 1</span>
+        <button type="button" id="next-page">Next</button>
+      </div>
+    </div>
+  </div>
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+  <script>
+(function () {
+  const PER_PAGE = 20;
+  let allUsers = [];
+  let currentPage = 1;
+
+  const tabOnline = document.getElementById('tab-online');
+  const tabAll = document.getElementById('tab-all');
+  const panelOnline = document.getElementById('panel-online');
+  const panelAll = document.getElementById('panel-all');
+  const onlineList = document.getElementById('online-list');
+  const onlineEmpty = document.getElementById('online-empty');
+  const allList = document.getElementById('all-list');
+  const allEmpty = document.getElementById('all-empty');
+  const pager = document.getElementById('pager');
+  const prevBtn = document.getElementById('prev-page');
+  const nextBtn = document.getElementById('next-page');
+  const pageInfo = document.getElementById('page-info');
+
+  function showPanel(which) {
+    if (which === 'online') {
+      panelOnline.classList.remove('hidden');
+      panelAll.classList.add('hidden');
+      tabOnline.classList.add('active');
+      tabAll.classList.remove('active');
+      loadOnline();
+    } else {
+      panelOnline.classList.add('hidden');
+      panelAll.classList.remove('hidden');
+      tabOnline.classList.remove('active');
+      tabAll.classList.add('active');
+      loadAll();
+    }
+  }
+
+  function loadOnline() {
+    onlineList.innerHTML = '';
+    onlineEmpty.classList.add('hidden');
+    fetch('/api/users/online', { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : { users: [] }; })
+      .then(function (data) {
+        var users = (data && data.users) ? data.users : [];
+        if (users.length === 0) {
+          onlineEmpty.classList.remove('hidden');
+        } else {
+          users.forEach(function (u) {
+            var li = document.createElement('li');
+            li.innerHTML = '<a href="/profile?user=' + encodeURIComponent(u.id) + '">' + (u.username || '').replace(/</g, '&lt;') + '</a><span class="user-id">(ID ' + u.id + ')</span>';
+            onlineList.appendChild(li);
+          });
+        }
+      })
+      .catch(function () {
+        onlineEmpty.textContent = 'Could not load online users.';
+        onlineEmpty.classList.remove('hidden');
+      });
+  }
+
+  function loadAll() {
+    allList.innerHTML = '';
+    allEmpty.classList.add('hidden');
+    pager.classList.add('hidden');
+    fetch('/api/users/list', { credentials: 'same-origin' })
+      .then(function (r) {
+        if (!r.ok) throw new Error();
+        return r.json();
+      })
+      .then(function (list) {
+        allUsers = Array.isArray(list) ? list : [];
+        if (allUsers.length === 0) {
+          allEmpty.classList.remove('hidden');
+        } else {
+          currentPage = 1;
+          renderAllPage();
+          var totalPages = Math.max(1, Math.ceil(allUsers.length / PER_PAGE));
+          if (totalPages > 1) {
+            pager.classList.remove('hidden');
+          }
+        }
+      })
+      .catch(function () {
+        allEmpty.textContent = 'Could not load users.';
+        allEmpty.classList.remove('hidden');
+      });
+  }
+
+  function renderAllPage() {
+    allList.innerHTML = '';
+    var start = (currentPage - 1) * PER_PAGE;
+    var slice = allUsers.slice(start, start + PER_PAGE);
+    slice.forEach(function (u) {
+      var li = document.createElement('li');
+      li.innerHTML = '<a href="/profile?user=' + encodeURIComponent(u.id) + '">' + (u.username || '').replace(/</g, '&lt;') + '</a><span class="user-id">(ID ' + u.id + ')</span>';
+      allList.appendChild(li);
+    });
+    var totalPages = Math.max(1, Math.ceil(allUsers.length / PER_PAGE));
+    pageInfo.textContent = 'Page ' + currentPage + ' of ' + totalPages;
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+  }
+
+  tabOnline.addEventListener('click', function () { showPanel('online'); });
+  tabAll.addEventListener('click', function () { showPanel('all'); });
+  prevBtn.addEventListener('click', function () {
+    if (currentPage > 1) { currentPage--; renderAllPage(); }
+  });
+  nextBtn.addEventListener('click', function () {
+    var totalPages = Math.max(1, Math.ceil(allUsers.length / PER_PAGE));
+    if (currentPage < totalPages) { currentPage++; renderAllPage(); }
+  });
+
+  showPanel('online');
+})();
+  </script>
+</body>
+</html>

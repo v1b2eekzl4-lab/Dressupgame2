@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body {
+      font-family: 'Comfortaa', 'Quicksand', 'Nunito', Verdana, "Trebuchet MS", Tahoma, sans-serif;
+      background: linear-gradient(180deg, #fdf2f8 0%, #fce7f3 30%, #fbcfe8 70%, #f9a8d4 100%);
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .page-header {
+      background: var(--btn-pink-gradient);
+      border: var(--btn-pink-border);
+      box-shadow: var(--btn-pink-shadow);
+      margin: 24px 32px 16px 32px;
+      padding: 16px 24px;
+      border-radius: 10px;
+      min-height: 20px;
+    }
+    .page-content {
+      flex: 1;
+      padding: 24px 32px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+    }
+    .container {
+      text-align: center;
+      padding: 24px;
+      background: var(--btn-pink-gradient);
+      border: var(--btn-pink-border);
+      border-radius: 10px;
+      box-shadow: var(--btn-pink-shadow);
+      width: 340px;
+    }
+    h1 {
+      margin: 0 0 20px 0;
+      font-size: 1.5rem;
+      color: white;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: left;
+    }
+    .form-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .form-row label {
+      flex-shrink: 0;
+      min-width: 80px;
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+    }
+    .form-row input {
+      flex: 1;
+      min-width: 0;
+    }
+    label {
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+    }
+    input {
+      padding: 12px 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 9999px;
+      font-size: 14px;
+      background: white;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    input:focus {
+      outline: none;
+      border-color: #ec4899;
+      box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.25);
+    }
+    .hint {
+      font-size: 12px;
+      color: rgba(255,255,255,0.9);
+      margin-top: -4px;
+    }
+    button {
+      padding: 12px 16px;
+      background: var(--btn-pink-gradient);
+      color: white;
+      border: var(--btn-pink-border);
+      border-radius: 9999px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: var(--btn-pink-shadow);
+      width: 100%;
+      margin-top: 4px;
+    }
+    button:hover {
+      background: var(--btn-pink-gradient-hover);
+      filter: brightness(1.02);
+      box-shadow: 0 3px 8px rgba(244,143,177,0.45), inset 0 1px 0 rgba(255,255,255,0.6);
+    }
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    .error {
+      color: #fecaca;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 16px;
+      font-size: 14px;
+      color: white;
+      text-decoration: underline;
+    }
+    .back-link:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <header class="page-header"></header>
+  <main class="page-content">
+  <div class="container">
+    <h1>Create account</h1>
+    <div class="error" id="error-message" role="alert"></div>
+    <form action="/register" method="POST" id="create-form">
+      <div class="form-row">
+        <label for="create-username">Username</label>
+        <input type="text" id="create-username" name="username" placeholder="3–30 characters" required minlength="3" maxlength="30" autocomplete="username" pattern="[a-zA-Z0-9_]+" title="Letters, numbers, and underscore only">
+      </div>
+      <span class="hint">Letters, numbers, and underscore only.</span>
+      <div class="form-row">
+        <label for="create-password">Password</label>
+        <input type="password" id="create-password" name="password" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password">
+      </div>
+      <span class="hint">At least 6 characters.</span>
+      <div class="form-row">
+        <label for="create-confirm">Confirm</label>
+        <input type="password" id="create-confirm" name="confirm" placeholder="Re-enter password" required minlength="6" autocomplete="new-password">
+      </div>
+      <button type="submit" id="create-submit">Create account</button>
+    </form>
+    <a href="/login" class="back-link">Already have an account? Log in</a>
+  </div>
+  </main>
+  <script>
+    (function () {
+      var USERNAME_MIN = 3;
+      var USERNAME_MAX = 30;
+      var USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
+      var PASSWORD_MIN = 6;
+
+      var urlParams = new URLSearchParams(window.location.search);
+      var errorEl = document.getElementById('error-message');
+      var err = urlParams.get('error');
+      if (err === 'missing') errorEl.textContent = 'Please enter a username and password.';
+      else if (err === 'nomatch') errorEl.textContent = 'Passwords do not match.';
+      else if (err === 'taken') errorEl.textContent = 'That username is already taken.';
+      else if (err === 'username-length') errorEl.textContent = 'Username must be 3–30 characters.';
+      else if (err === 'username-chars') errorEl.textContent = 'Username can only use letters, numbers, and underscore.';
+      else if (err === 'password-length') errorEl.textContent = 'Password must be at least 6 characters.';
+      else if (err === 'password-long') errorEl.textContent = 'Password is too long.';
+      else if (err === 'rate') errorEl.textContent = 'Too many attempts. Please try again in 15 minutes.';
+
+      document.getElementById('create-form').addEventListener('submit', function (e) {
+        var username = (document.getElementById('create-username').value || '').trim();
+        var pwd = document.getElementById('create-password').value;
+        var confirmVal = document.getElementById('create-confirm').value;
+        var submitBtn = document.getElementById('create-submit');
+
+        errorEl.textContent = '';
+        if (username.length < USERNAME_MIN || username.length > USERNAME_MAX) {
+          e.preventDefault();
+          errorEl.textContent = 'Username must be 3–30 characters.';
+          return false;
+        }
+        if (!USERNAME_REGEX.test(username)) {
+          e.preventDefault();
+          errorEl.textContent = 'Username can only use letters, numbers, and underscore.';
+          return false;
+        }
+        if (pwd.length < PASSWORD_MIN) {
+          e.preventDefault();
+          errorEl.textContent = 'Password must be at least 6 characters.';
+          return false;
+        }
+        if (pwd !== confirmVal) {
+          e.preventDefault();
+          errorEl.textContent = 'Passwords do not match.';
+          return false;
+        }
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Creating account…';
+      });
+    })();
+  </script>
+  <script src="/js/toast.js"></script>
+</body>
+</html>

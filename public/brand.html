@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brand - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 520px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h1 { margin: 0 0 8px 0; font-size: 1.5rem; }
+    .back-link { display: inline-block; margin-bottom: 16px; color: #ec4899; text-decoration: none; font-size: 14px; }
+    .back-link:hover { text-decoration: underline; }
+    .no-label-box { margin: 24px 0; padding: 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; font-size: 14px; color: #374151; }
+    .no-label-box a { color: #dc2626; font-weight: 600; text-decoration: none; }
+    .no-label-box a:hover { text-decoration: underline; }
+    .page-actions { margin: 24px 0 0 0; }
+    .edit-page-btn, .save-page-btn { display: inline-block; margin: 0; padding: 4px 10px; background: #059669; color: white; font-weight: 600; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; }
+    .edit-page-btn:hover, .save-page-btn:hover { background: #047857; color: white; }
+    .brand-label-preview { margin: 24px 0; display: block; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; image-rendering: pixelated; image-rendering: crisp-edges; max-width: 100%; }
+    .not-found { color: #6b7280; padding: 24px 0; }
+    .edit-form { margin-top: 16px; }
+    .edit-form label { display: block; font-size: 12px; color: #6b7280; margin-bottom: 4px; }
+    .edit-form textarea { width: 100%; min-height: 200px; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; font-family: inherit; box-sizing: border-box; resize: vertical; }
+    .no-label-msg { margin: 24px 0 0 0; font-size: 14px; color: #6b7280; }
+    .brand-page-body { margin: 24px 0 0 0; font-size: 14px; color: #374151; line-height: 1.5; white-space: pre-wrap; }
+    .brand-social { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .brand-social .like-wrap { display: inline-flex; align-items: center; gap: 6px; }
+    .brand-social .like-btn { padding: 6px 10px; background: transparent; color: #dc2626; border: none; font-size: 20px; line-height: 1; cursor: pointer; }
+    .brand-social .like-btn:hover { opacity: 0.85; }
+    .brand-social .like-btn.liked { cursor: default; }
+    .brand-social .like-count { font-size: 14px; color: #374151; font-weight: 500; }
+    .brand-social .follow-btn { padding: 6px 10px; background: transparent; color: #ec4899; border: none; font-size: 20px; line-height: 1; cursor: pointer; }
+    .brand-social .follow-btn:hover { opacity: 0.85; }
+    .brand-social .follow-btn.following { color: #be185d; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <a href="./brands.html" class="back-link">← My brands</a>
+    <div id="brand-content"></div>
+  </div>
+  <script src="/js/header.js"></script>
+  <script>
+    (function () {
+      var BRANDS_KEY = 'userBrands';
+      var LIKES_KEY = 'userBrandLikes';
+      var FOLLOWS_KEY = 'userBrandFollows';
+      function getBrands() {
+        try {
+          var raw = localStorage.getItem(BRANDS_KEY);
+          return raw ? JSON.parse(raw) : [];
+        } catch (e) { return []; }
+      }
+      function getBrandId() {
+        var params = new URLSearchParams(window.location.search);
+        return params.get('id') || params.get('brand') || '';
+      }
+      function getLikes() {
+        try { var raw = localStorage.getItem(LIKES_KEY); return raw ? JSON.parse(raw) : {}; } catch (e) { return {}; }
+      }
+      function setLikes(obj) {
+        try { localStorage.setItem(LIKES_KEY, JSON.stringify(obj)); } catch (e) {}
+      }
+      function getFollows() {
+        try { var raw = localStorage.getItem(FOLLOWS_KEY); return raw ? JSON.parse(raw) : {}; } catch (e) { return {}; }
+      }
+      function setFollows(obj) {
+        try { localStorage.setItem(FOLLOWS_KEY, JSON.stringify(obj)); } catch (e) {}
+      }
+      var brandId = getBrandId();
+      var list = getBrands();
+      var brand = list.filter(function (b) { return b.id === brandId; })[0];
+      var content = document.getElementById('brand-content');
+      if (!brand) {
+        content.innerHTML = '<p class="not-found">Brand not found. <a href="./brands.html">Back to My brands</a>.</p>';
+        if (document.title) document.title = 'Brand not found - Dress-Up Game';
+      } else {
+        document.title = (brand.name || 'Brand') + ' - Dress-Up Game';
+        if (brand.likeCount == null) brand.likeCount = 0;
+        var labelProjectId = brand.labelProjectId;
+        var W = 200, H = 70;
+        function setBrands(list) {
+          try { localStorage.setItem(BRANDS_KEY, JSON.stringify(list)); } catch (e) {}
+        }
+        function getLabelProjectData(id) {
+          try {
+            var raw = localStorage.getItem('brandLabelProject-' + id);
+            return raw ? JSON.parse(raw) : null;
+          } catch (e) { return null; }
+        }
+        function drawLayerToPreview(ctx, layer) {
+          if (!layer) return;
+          ctx.fillStyle = layer.bgColor || '#ffffff';
+          ctx.fillRect(0, 0, W, H);
+          var bw = layer.borderWidth != null ? layer.borderWidth : 2;
+          if (bw > 0) {
+            ctx.strokeStyle = layer.borderColor || '#000000';
+            ctx.lineWidth = bw;
+            ctx.strokeRect(bw/2, bw/2, W - bw, H - bw);
+          }
+          if (layer.pixel && layer.pixel.data) {
+            var id = ctx.createImageData(W, H);
+            var src = layer.pixel.data;
+            if (src && src.length) id.data.set(Array.isArray(src) ? src : src.subarray ? src.subarray(0, id.data.length) : []);
+            ctx.putImageData(id, 0, 0);
+          }
+          (layer.symbols || []).forEach(function (p) {
+            var sz = Math.max(8, Math.min(48, p.size || 24));
+            ctx.font = sz + 'px Arial, sans-serif';
+            ctx.fillStyle = p.color || '#000';
+            ctx.textBaseline = 'middle';
+            ctx.textAlign = 'center';
+            ctx.fillText(p.symbol, Math.floor(p.x) + 0.5, Math.floor(p.y) + 0.5);
+          });
+          ctx.textAlign = 'left';
+          (layer.text || []).forEach(function (p) {
+            var sz = Math.max(8, Math.min(48, p.size || 24));
+            ctx.font = sz + 'px Arial, sans-serif';
+            ctx.fillStyle = p.color || '#000';
+            ctx.fillText(p.text, Math.floor(p.x) + 0.5, Math.floor(p.y) + 0.5);
+          });
+        }
+        function renderLabelPreview(data) {
+          if (!data || !data.frames || !data.frames.length) return null;
+          var firstFrame = data.frames[0];
+          var layers = firstFrame.layers || [];
+          var tmp = document.createElement('canvas');
+          tmp.width = W;
+          tmp.height = H;
+          var ctx = tmp.getContext('2d');
+          for (var i = layers.length - 1; i >= 0; i--) {
+            if (layers[i].visible !== false) drawLayerToPreview(ctx, layers[i]);
+          }
+          return tmp.toDataURL('image/png');
+        }
+        function renderView() {
+          var name = (brand.name || 'Untitled').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          var html = '<h1>' + name + '</h1>';
+          if (labelProjectId) {
+            var projectData = getLabelProjectData(labelProjectId);
+            var previewUrl = projectData ? renderLabelPreview(projectData) : null;
+            if (previewUrl) {
+              html += '<img src="' + previewUrl + '" alt="" class="brand-label-preview" width="' + W + '" height="' + H + '">';
+            }
+          } else {
+            html += '<p class="no-label-msg">There is no label currently.</p>';
+          }
+          var pageBody = (brand.pageContent || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          if (pageBody) html += '<div class="brand-page-body">' + pageBody + '</div>';
+          html += '<div class="page-actions"><button type="button" class="edit-page-btn" id="edit-page-btn">Edit page</button></div>';
+          var likes = getLikes();
+          var follows = getFollows();
+          var hasLiked = !!likes[brand.id];
+          var likeCount = Math.max(0, (brand.likeCount || 0));
+          var isFollowing = !!follows[brand.id];
+          html += '<div class="brand-social"><div class="like-wrap"><button type="button" class="like-btn' + (hasLiked ? ' liked' : '') + '" id="like-brand-btn" aria-label="' + (hasLiked ? 'Liked' : 'Like brand') + '">' + (hasLiked ? '♥' : '♡') + '</button><span class="like-count" id="like-count">' + likeCount + '</span></div>';
+          html += '<button type="button" class="follow-btn' + (isFollowing ? ' following' : '') + '" id="follow-brand-btn" aria-label="' + (isFollowing ? 'Following' : 'Follow brand') + '" title="' + (isFollowing ? 'Following – click to unfollow' : 'Follow – get notified when this brand releases a collection') + '">' + (isFollowing ? '★' : '☆') + '</button></div>';
+          html += '<div id="brand-edit-area" style="display:none;"></div>';
+          content.innerHTML = html;
+          document.getElementById('like-brand-btn').addEventListener('click', function () {
+            var list = getBrands();
+            var idx = list.findIndex(function (b) { return b.id === brand.id; });
+            if (likes[brand.id]) {
+              likes[brand.id] = false;
+              delete likes[brand.id];
+              setLikes(likes);
+              if (idx !== -1 && (list[idx].likeCount || 0) > 0) {
+                list[idx].likeCount = Math.max(0, (list[idx].likeCount || 0) - 1);
+                setBrands(list);
+                brand.likeCount = list[idx].likeCount;
+              }
+            } else {
+              likes[brand.id] = true;
+              setLikes(likes);
+              if (idx !== -1) {
+                list[idx].likeCount = (list[idx].likeCount || 0) + 1;
+                setBrands(list);
+                brand.likeCount = list[idx].likeCount;
+              }
+            }
+            renderView();
+          });
+          document.getElementById('follow-brand-btn').addEventListener('click', function () {
+            follows[brand.id] = !follows[brand.id];
+            setFollows(follows);
+            renderView();
+          });
+          document.getElementById('edit-page-btn').addEventListener('click', function () {
+            content.querySelector('h1').style.display = 'none';
+            if (content.querySelector('.brand-label-preview')) content.querySelector('.brand-label-preview').style.display = 'none';
+            if (content.querySelector('.no-label-msg')) content.querySelector('.no-label-msg').style.display = 'none';
+            if (content.querySelector('.brand-page-body')) content.querySelector('.brand-page-body').style.display = 'none';
+            content.querySelector('.page-actions').style.display = 'none';
+            var editArea = document.getElementById('brand-edit-area');
+            editArea.style.display = 'block';
+            var safeContent = (brand.pageContent || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            editArea.innerHTML = '<div class="edit-form"><label for="brand-page-edit">Page content</label><textarea id="brand-page-edit" placeholder="Write what you want on this brand page...">' + safeContent + '</textarea><div class="page-actions" style="margin-top:12px;"><button type="button" class="save-page-btn" id="save-page-btn">Save page</button></div></div>';
+            document.getElementById('brand-page-edit').focus();
+            document.getElementById('save-page-btn').addEventListener('click', function () {
+              var newContent = document.getElementById('brand-page-edit').value || '';
+              var list = getBrands();
+              var idx = list.findIndex(function (b) { return b.id === brand.id; });
+              if (idx !== -1) {
+                list[idx].pageContent = newContent;
+                setBrands(list);
+                brand.pageContent = newContent;
+              }
+              renderView();
+            });
+          });
+        }
+        renderView();
+      }
+    })();
+  </script>
+</body>
+</html>

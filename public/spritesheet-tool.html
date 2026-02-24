@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprite Sheet Generator</title>
+    <style>
+        body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        label { display: block; margin-top: 15px; font-weight: bold; }
+        input, button { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; }
+        button { margin-top: 20px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+        #previewCanvas { border: 1px solid #000; margin-top: 20px; }
+        #dragContainer { width: 250px; height: 350px; position: relative; overflow: hidden; border: 1px solid #000; margin-top: 20px; background-repeat: no-repeat; background-position: center; }
+        #frameList { display: flex; flex-wrap: wrap; margin-top: 20px; }
+        .frame-item { width: 100px; height: 100px; margin: 5px; border: 1px solid #ccc; cursor: move; position: relative; }
+        .frame-item img { width: 100%; height: 100%; object-fit: contain; }
+        .frame-item.dragging { opacity: 0.5; }
+    </style>
+</head>
+<body>
+    <h1>Sprite Sheet Generator</h1>
+    <p style="margin-top:8px;"><a href="/create">← Back to Create</a> · <a href="/walking-spritesheet-creator.html">Walking Sprite Sheet Creator</a> – build 4-direction walking sheets from front/back/left/right sprites.</p>
+    <label for="frameFiles">Upload Individual Frames (multiple allowed):</label>
+    <input type="file" id="frameFiles" multiple accept="image/*">
+   
+    <label for="padding">Padding Between Frames (pixels):</label>
+    <input type="number" id="padding" value="0" min="0">
+
+    <label for="fps">Animation FPS:</label>
+    <input type="number" id="fps" value="10" min="1">
+
+    <label for="backgroundImage">Upload Background Image for the Box (optional):</label>
+    <input type="file" id="backgroundImage" accept="image/*">
+   
+    <button id="generateBtn">Generate Sprite Sheet</button>
+   
+    <h2>Reorder Frames (Drag to reorder)</h2>
+    <div id="frameList"></div>
+
+    <canvas id="previewCanvas" style="display: none;"></canvas>
+
+    <h2>Draggable Animation Preview</h2>
+    <div id="dragContainer"></div>
+   
+    <script>
+        const fileInput = document.getElementById('frameFiles');
+        const paddingInput = document.getElementById('padding');
+        const fpsInput = document.getElementById('fps');
+        const backgroundInput = document.getElementById('backgroundImage');
+        const generateBtn = document.getElementById('generateBtn');
+        const frameList = document.getElementById('frameList');
+        const canvas = document.getElementById('previewCanvas');
+        const ctx = canvas.getContext('2d');
+        const dragContainer = document.getElementById('dragContainer');
+        const animationCanvas = document.createElement('canvas');
+        const animCtx = animationCanvas.getContext('2d');
+
+        let animationInterval = null;
+        let loadedImages = [];
+
+        function loadImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function loadBackground(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Display and make reorderable
+        fileInput.addEventListener('change', async () => {
+            const files = fileInput.files;
+            if (files.length === 0) return;
+
+            loadedImages = await Promise.all(Array.from(files).map(loadImage));
+            frameList.innerHTML = ''; // Clear previous
+
+            loadedImages.forEach((img, index) => {
+                const item = document.createElement('div');
+                item.classList.add('frame-item');
+                item.draggable = true;
+                item.dataset.index = index;
+
+                const thumbnail = new Image();
+                thumbnail.src = img.src;
+                item.appendChild(thumbnail);
+
+                frameList.appendChild(item);
+            });
+
+            // Enable drag-and-drop reordering
+            let dragItem = null;
+            frameList.addEventListener('dragstart', (e) => {
+                dragItem = e.target.closest('.frame-item');
+                dragItem.classList.add('dragging');
+            });
+
+            frameList.addEventListener('dragend', (e) => {
+                if (!dragItem) return;
+                dragItem.classList.remove('dragging');
+                const items = Array.from(frameList.querySelectorAll('.frame-item'));
+                loadedImages = items.map(item => loadedImages[parseInt(item.dataset.originalIndex, 10)]);
+                items.forEach((item, i) => {
+                    item.dataset.originalIndex = i;
+                    item.dataset.index = i;
+                });
+                dragItem = null;
+            });
+
+            frameList.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(frameList, e.clientX);
+                if (afterElement == null) {
+                    frameList.appendChild(dragItem);
+                } else {
+                    frameList.insertBefore(dragItem, afterElement);
+                }
+            });
+
+            function getDragAfterElement(container, x) {
+                const draggableElements = [...container.querySelectorAll('.frame-item:not(.dragging)')];
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = x - box.left - box.width / 2;
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+
+            // Set original indices
+            Array.from(frameList.querySelectorAll('.frame-item')).forEach((item, i) => {
+                item.dataset.originalIndex = i;
+                item.dataset.index = i;
+            });
+        });
+
+        async function generateSpriteSheet() {
+            if (loadedImages.length === 0) {
+                alert('Upload at least one frame.');
+                return;
+            }
+
+            // loadedImages is kept in sync with DOM order after each drag
+            const reorderedImages = loadedImages.slice();
+
+            const padding = parseInt(paddingInput.value, 10);
+
+            // Assume all frames same size
+            const frameWidth = reorderedImages[0].width;
+            const frameHeight = reorderedImages[0].height;
+            if (reorderedImages.some(img => img.width !== frameWidth || img.height !== frameHeight)) {
+                alert('All frames must be the same size.');
+                return;
+            }
+
+            // Set canvas to horizontal strip
+            canvas.width = (frameWidth + padding) * reorderedImages.length - padding;
+            canvas.height = frameHeight;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw each frame
+            reorderedImages.forEach((img, index) => {
+                ctx.drawImage(img, index * (frameWidth + padding), 0);
+            });
+
+            // Download option
+            const dataURL = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = dataURL;
+            link.download = 'sprite_sheet.png';
+            link.click();
+
+            // Set background if uploaded
+            if (backgroundInput.files.length > 0) {
+                const bgURL = await loadBackground(backgroundInput.files[0]);
+                dragContainer.style.backgroundImage = `url(${bgURL})`;
+                dragContainer.style.backgroundSize = 'cover';
+            } else {
+                dragContainer.style.backgroundImage = '';
+            }
+
+            // Set up animation preview inside drag container
+            dragContainer.innerHTML = ''; // Clear previous
+            animationCanvas.width = frameWidth;
+            animationCanvas.height = frameHeight;
+            animationCanvas.style.position = 'absolute';
+            animationCanvas.style.left = '0px';
+            animationCanvas.style.top = '0px';
+            animationCanvas.style.cursor = 'grab';
+            dragContainer.appendChild(animationCanvas);
+
+            const numFrames = reorderedImages.length;
+            const fps = parseInt(fpsInput.value, 10);
+            const delay = 1000 / fps;
+            let currentFrame = 0;
+
+            // Stop any existing animation
+            if (animationInterval) {
+                clearInterval(animationInterval);
+            }
+
+            // Start animation
+            animationInterval = setInterval(() => {
+                animCtx.clearRect(0, 0, animationCanvas.width, animationCanvas.height);
+                animCtx.drawImage(
+                    canvas,
+                    currentFrame * (frameWidth + padding),
+                    0,
+                    frameWidth,
+                    frameHeight,
+                    0,
+                    0,
+                    frameWidth,
+                    frameHeight
+                );
+                currentFrame = (currentFrame + 1) % numFrames;
+            }, delay);
+
+            // Add drag functionality to animationCanvas
+            let isDragging = false;
+            let startX, startY, startLeft, startTop;
+
+            animationCanvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                startLeft = parseInt(animationCanvas.style.left, 10) || 0;
+                startTop = parseInt(animationCanvas.style.top, 10) || 0;
+                animationCanvas.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                animationCanvas.style.left = `${startLeft + dx}px`;
+                animationCanvas.style.top = `${startTop + dy}px`;
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                animationCanvas.style.cursor = 'grab';
+            });
+        }
+        generateBtn.addEventListener('click', generateSpriteSheet);
+    </script>
+</body>
+</html>

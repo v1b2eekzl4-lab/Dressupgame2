@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slide image gallery - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { padding-top: 76px; min-height: 100vh; background: #f3f4f6; }
+    .container { max-width: 720px; margin: 0 auto; padding: 24px; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h1 { margin: 0 0 8px 0; font-size: 1.5rem; }
+    .sub { margin: 0 0 20px 0; color: #374151; font-size: 14px; }
+    .back-link { display: inline-block; margin-bottom: 16px; font-size: 14px; color: #2563eb; text-decoration: none; }
+    .back-link:hover { text-decoration: underline; }
+    .upload-section { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #e5e7eb; }
+    .upload-section label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+    .upload-section input[type="file"] { margin-bottom: 10px; font-size: 14px; }
+    .btn { padding: 10px 20px; background: #3b82f6; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .btn:hover { background: #2563eb; }
+    .btn:disabled { background: #9ca3af; cursor: not-allowed; }
+    .btn-danger { background: #dc2626; }
+    .btn-danger:hover { background: #b91c1c; }
+    .msg { margin-top: 8px; font-size: 13px; }
+    .msg.error { color: #dc2626; }
+    .msg.success { color: #059669; }
+    .gallery-title { font-size: 1.1rem; color: #374151; margin: 0 0 12px 0; }
+    .gallery-grid { display: flex; flex-wrap: wrap; gap: 16px; }
+    .gallery-item { width: 140px; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; }
+    .gallery-item .gallery-preview { display: block; width: 120px; height: 80px; object-fit: contain; background: #111; border-radius: 4px; margin: 0 auto 8px; border: 1px solid #e5e7eb; }
+    .gallery-item .gallery-preview.video-preview { background: #1f2937; }
+    .gallery-item .url-wrap { margin-bottom: 8px; }
+    .gallery-item .url-wrap input { width: 100%; padding: 4px 6px; font-size: 11px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box; }
+    .gallery-item .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .gallery-item .btn-small { padding: 4px 10px; font-size: 12px; border-radius: 4px; }
+    .gallery-item .tags-wrap { margin-bottom: 8px; font-size: 12px; color: #6b7280; }
+    .gallery-item .tags-wrap .tag { display: inline-block; margin: 2px 4px 2px 0; padding: 2px 8px; background: #e5e7eb; border-radius: 4px; }
+    .gallery-item .tags-edit { margin-top: 4px; }
+    .gallery-item .tags-edit input { width: 100%; padding: 4px 6px; font-size: 11px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box; margin-bottom: 4px; }
+    .gallery-item .tags-edit .btn-small { margin-top: 4px; }
+    .search-row { margin-bottom: 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .search-row input { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; width: 200px; }
+    .search-row label { font-size: 14px; color: #374151; }
+    .gallery-empty { color: #6b7280; font-size: 14px; padding: 24px 0; }
+    .access-denied { color: #dc2626; padding: 16px; background: #fef2f2; border-radius: 8px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <a href="./create.html" class="back-link">← Back to Create</a>
+    <h1>Slide media gallery</h1>
+    <p class="sub">Upload images (PNG, JPG, GIF, WebP) and videos (MP4, WebM, OGG) for use when creating dashboard slides. Use "Pick from gallery" in the slide editor to insert these. Admin and moderator only.</p>
+    <div id="access-denied" class="access-denied" style="display: none;">You need admin or moderator access to use this page.</div>
+    <div id="main-content">
+      <div class="upload-section">
+        <label for="file-input">Upload image or video (PNG, JPG, GIF, WebP, MP4, WebM, OGG)</label>
+        <input type="file" id="file-input" accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/webm,video/ogg">
+        <label for="upload-tags" style="margin-top:10px;display:block;">Tags (comma-separated, optional)</label>
+        <input type="text" id="upload-tags" placeholder="e.g. background, logo, banner" style="width:100%;max-width:320px;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;box-sizing:border-box;">
+        <button type="button" id="upload-btn" class="btn" disabled style="margin-top:8px;">Upload</button>
+        <p id="msg" class="msg"></p>
+      </div>
+      <h2 class="gallery-title">Gallery media</h2>
+      <div class="search-row">
+        <label for="search-tag">Search by tag:</label>
+        <input type="text" id="search-tag" placeholder="Type a tag and press Enter">
+        <button type="button" id="clear-search" class="btn btn-small" style="display:none;">Clear filter</button>
+      </div>
+      <div id="gallery-list" class="gallery-grid"></div>
+    </div>
+  </div>
+  <script src="/js/header.js"></script>
+  <script src="/js/toast.js"></script>
+  <script>
+(function () {
+  var fileInput = document.getElementById('file-input');
+  var uploadBtn = document.getElementById('upload-btn');
+  var uploadTagsInput = document.getElementById('upload-tags');
+  var msgEl = document.getElementById('msg');
+  var galleryList = document.getElementById('gallery-list');
+  var accessDenied = document.getElementById('access-denied');
+  var mainContent = document.getElementById('main-content');
+  var searchTagInput = document.getElementById('search-tag');
+  var clearSearchBtn = document.getElementById('clear-search');
+  var currentTagFilter = '';
+
+  function loadGallery(tagFilter) {
+    var url = '/api/slide-gallery';
+    if (tagFilter && tagFilter.trim()) {
+      url += '?tag=' + encodeURIComponent(tagFilter.trim());
+    }
+    fetch(url, { credentials: 'same-origin' })
+      .then(function (r) {
+        if (r.status === 403) {
+          accessDenied.style.display = 'block';
+          mainContent.style.display = 'none';
+          return { images: [] };
+        }
+        if (!r.ok) return { images: [] };
+        return r.json();
+      })
+      .catch(function () { return { images: [] }; })
+      .then(function (data) {
+        if (accessDenied.style.display === 'block') return;
+        var images = (data && data.images) || [];
+        galleryList.innerHTML = '';
+        if (images.length === 0) {
+          galleryList.innerHTML = '<p class="gallery-empty">' + (currentTagFilter ? 'No media with this tag. <a href="#" id="clear-filter-link">Show all</a>' : 'No media yet. Upload an image or video above.') + '</p>';
+          var clearLink = document.getElementById('clear-filter-link');
+          if (clearLink) clearLink.addEventListener('click', function (e) { e.preventDefault(); currentTagFilter = ''; searchTagInput.value = ''; clearSearchBtn.style.display = 'none'; loadGallery(); });
+          return;
+        }
+        images.forEach(function (img) {
+          var item = document.createElement('div');
+          item.className = 'gallery-item';
+          var thumbWrap = document.createElement('div');
+          thumbWrap.className = 'gallery-item-preview';
+          thumbWrap.style.cssText = 'width:120px;height:80px;object-fit:contain;background:#fff;border-radius:4px;margin:0 auto 8px;border:1px solid #e5e7eb;overflow:hidden;display:flex;align-items:center;justify-content:center;';
+          var isVideo = (img.type === 'video') || /\.(mp4|webm|og[gv])$/i.test(img.url || '');
+          if (isVideo) {
+            var vid = document.createElement('video');
+            vid.src = img.url;
+            vid.style.width = '100%';
+            vid.style.height = '100%';
+            vid.style.objectFit = 'contain';
+            vid.muted = true;
+            vid.playsInline = true;
+            vid.preload = 'metadata';
+            thumbWrap.appendChild(vid);
+          } else {
+            var thumb = document.createElement('img');
+            thumb.src = img.url;
+            thumb.alt = img.name || 'Gallery image';
+            thumb.style.width = '100%';
+            thumb.style.height = '100%';
+            thumb.style.objectFit = 'contain';
+            thumb.onerror = function () { thumb.style.background = '#f3f4f6'; thumb.alt = 'Failed to load'; };
+            thumbWrap.appendChild(thumb);
+          }
+          var tagsWrap = document.createElement('div');
+          tagsWrap.className = 'tags-wrap';
+          var tagsList = (img.tags || []);
+          if (tagsList.length > 0) {
+            tagsList.forEach(function (t) {
+              var span = document.createElement('span');
+              span.className = 'tag';
+              span.textContent = t;
+              tagsWrap.appendChild(span);
+            });
+          } else {
+            tagsWrap.innerHTML = '<span style="color:#9ca3af;">No tags</span>';
+          }
+          var tagsEditWrap = document.createElement('div');
+          tagsEditWrap.className = 'tags-edit';
+          var tagsEditInput = document.createElement('input');
+          tagsEditInput.type = 'text';
+          tagsEditInput.placeholder = 'Tags (comma-separated)';
+          tagsEditInput.value = tagsList.join(', ');
+          var saveTagsBtn = document.createElement('button');
+          saveTagsBtn.type = 'button';
+          saveTagsBtn.className = 'btn btn-small';
+          saveTagsBtn.textContent = 'Save tags';
+          saveTagsBtn.addEventListener('click', function () {
+            var raw = (tagsEditInput.value || '').trim();
+            var tags = raw ? raw.split(/\s*,\s*/).map(function (t) { return t.trim(); }).filter(Boolean) : [];
+            var name = (img.url || '').split('/').pop();
+            if (!name) return;
+            fetch('/api/slide-gallery/' + encodeURIComponent(name), {
+              method: 'PATCH',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ tags: tags })
+            })
+              .then(function (r) {
+                if (r.ok) { loadGallery(currentTagFilter); if (typeof showToast === 'function') showToast('Tags saved'); }
+                else if (typeof showToast === 'function') showToast('Could not save tags', true);
+              })
+              .catch(function () { if (typeof showToast === 'function') showToast('Could not save tags', true); });
+          });
+          tagsEditWrap.appendChild(tagsEditInput);
+          tagsEditWrap.appendChild(saveTagsBtn);
+          var urlWrap = document.createElement('div');
+          urlWrap.className = 'url-wrap';
+          var urlInput = document.createElement('input');
+          urlInput.type = 'text';
+          urlInput.value = img.url;
+          urlInput.readOnly = true;
+          urlInput.title = 'Copy this URL';
+          var actions = document.createElement('div');
+          actions.className = 'actions';
+          var copyBtn = document.createElement('button');
+          copyBtn.type = 'button';
+          copyBtn.className = 'btn btn-small';
+          copyBtn.textContent = 'Copy URL';
+          copyBtn.addEventListener('click', function () {
+            urlInput.select();
+            try {
+              document.execCommand('copy');
+              if (typeof showToast === 'function') showToast('URL copied');
+              else copyBtn.textContent = 'Copied!';
+              setTimeout(function () { copyBtn.textContent = 'Copy URL'; }, 1500);
+            } catch (e) {}
+          });
+          var delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.className = 'btn btn-small btn-danger';
+          delBtn.textContent = 'Delete';
+          delBtn.addEventListener('click', function () {
+            if (!confirm('Delete this ' + (isVideo ? 'video' : 'image') + ' from the gallery?')) return;
+            var name = (img.url || '').split('/').pop();
+            if (!name) return;
+            fetch('/api/slide-gallery/' + encodeURIComponent(name), { method: 'DELETE', credentials: 'same-origin' })
+              .then(function (r) {
+                if (r.ok) loadGallery(currentTagFilter);
+                else if (typeof showToast === 'function') showToast('Could not delete', true);
+              })
+              .catch(function () { if (typeof showToast === 'function') showToast('Could not delete', true); });
+          });
+          actions.appendChild(copyBtn);
+          actions.appendChild(delBtn);
+          urlWrap.appendChild(urlInput);
+          item.appendChild(thumbWrap);
+          item.appendChild(tagsWrap);
+          item.appendChild(tagsEditWrap);
+          item.appendChild(urlWrap);
+          item.appendChild(actions);
+          galleryList.appendChild(item);
+        });
+      });
+  }
+
+  if (searchTagInput) {
+    searchTagInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        currentTagFilter = (searchTagInput.value || '').trim();
+        clearSearchBtn.style.display = currentTagFilter ? 'inline-block' : 'none';
+        loadGallery(currentTagFilter);
+      }
+    });
+  }
+  if (clearSearchBtn) {
+    clearSearchBtn.addEventListener('click', function () {
+      currentTagFilter = '';
+      searchTagInput.value = '';
+      clearSearchBtn.style.display = 'none';
+      loadGallery();
+    });
+  }
+
+  fileInput.addEventListener('change', function () {
+    uploadBtn.disabled = !(fileInput.files && fileInput.files[0]);
+    msgEl.textContent = '';
+    msgEl.className = 'msg';
+  });
+
+  uploadBtn.addEventListener('click', function () {
+    if (!fileInput.files || !fileInput.files[0]) return;
+    msgEl.textContent = 'Uploading…';
+    msgEl.className = 'msg';
+    uploadBtn.disabled = true;
+    var form = new FormData();
+    form.append('image', fileInput.files[0]);
+    if (uploadTagsInput && uploadTagsInput.value && uploadTagsInput.value.trim()) {
+      form.append('tags', uploadTagsInput.value.trim());
+    }
+    fetch('/api/slide-gallery/upload', { method: 'POST', credentials: 'same-origin', body: form })
+      .then(function (r) {
+        if (r.status === 403) throw new Error('Admin or moderator required');
+        if (!r.ok) throw new Error(r.statusText || 'Upload failed');
+        return r.json();
+      })
+      .then(function (data) {
+        if (data && data.url) {
+          msgEl.textContent = 'Uploaded. Media added to gallery.';
+          msgEl.className = 'msg success';
+          fileInput.value = '';
+          if (uploadTagsInput) uploadTagsInput.value = '';
+          loadGallery(currentTagFilter);
+        } else {
+          msgEl.textContent = 'Upload failed: no URL returned.';
+          msgEl.className = 'msg error';
+        }
+      })
+      .catch(function (err) {
+        msgEl.textContent = 'Upload failed: ' + (err.message || 'error');
+        msgEl.className = 'msg error';
+      })
+      .finally(function () {
+        uploadBtn.disabled = !(fileInput.files && fileInput.files[0]);
+      });
+  });
+
+  loadGallery();
+})();
+  </script>
+</body>
+</html>

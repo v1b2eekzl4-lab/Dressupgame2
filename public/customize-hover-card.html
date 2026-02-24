@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customize hover card - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; overflow: hidden; height: 100vh; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; height: calc(100vh - 76px); display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
+    .hover-customize-layout { display: flex; gap: 28px; align-items: flex-start; flex: 1; min-height: 0; margin-top: 8px; }
+    .hover-customize-preview-col { flex: 0 0 360px; position: sticky; top: 92px; z-index: 1; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 20px; }
+    .hover-customize-form-col { flex: 1; min-width: 320px; min-height: 0; max-height: 100%; overflow-y: auto; overflow-x: hidden; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 24px; }
+    .hover-customize-form-col::-webkit-scrollbar { width: 10px; }
+    .hover-customize-form-col::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+    .hover-customize-form-col::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .hover-customize-form-col::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    h1 { margin: 0 0 8px 0; font-size: 1.5rem; }
+    p.desc { margin: 0 0 20px 0; color: #374151; font-size: 14px; }
+    a.back { color: #ec4899; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 16px; }
+    a.back:hover { text-decoration: underline; }
+    label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 14px; }
+    input[type="number"] { width: 80px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; margin-bottom: 12px; }
+    .field-row { margin-bottom: 16px; }
+    .field-row label { margin-bottom: 6px; }
+    .field-row .hint { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    .btn { padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; font-size: 14px; }
+.btn-primary { background: var(--btn-pink-gradient); color: white; border: var(--btn-pink-border); box-shadow: var(--btn-pink-shadow); }
+.btn-primary:hover { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); }
+    .btn-secondary { background: #e5e7eb; color: #374151; margin-left: 8px; }
+    .btn-secondary:hover { background: #d1d5db; }
+    .message { margin-top: 12px; padding: 10px 12px; border-radius: 6px; font-size: 14px; display: none; }
+    .message.success { background: #d1fae5; color: #065f46; display: block; }
+    .message.error { background: #fee2e2; color: #991b1b; display: block; }
+    .section { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #e5e7eb; }
+    .section:last-of-type { border-bottom: none; }
+    /* Preview: same size as forum hover card (500×328) for accurate sticker alignment */
+    .hover-preview-wrap { margin: 16px 0; padding: 24px; background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: auto; }
+    .hover-preview-scale-wrap { transform: scale(0.65); transform-origin: top center; display: inline-block; }
+    .hover-preview-card-outer { position: relative; width: 500px; min-height: 328px; margin: 0 auto; }
+    .hover-preview-card-outer #hover-preview-card {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      gap: 24px;
+      padding: 24px 28px;
+      width: 500px;
+      min-height: 328px;
+      box-sizing: border-box;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.5);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.6);
+      font-size: 16px;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+    #hover-preview-card .hover-preview-avatar {
+      width: 200px;
+      min-width: 200px;
+      min-height: 280px;
+      flex-shrink: 0;
+      align-self: center;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    #hover-preview-card .hover-preview-avatar span { color: #6b7280; font-size: 14px; }
+    #hover-preview-card .hover-preview-left { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+    #hover-preview-card .hover-preview-name { font-weight: 600; margin-bottom: 8px; font-size: 1.25rem; }
+    #hover-preview-card .hover-preview-bio { color: #6b7280; font-size: 15px; line-height: 1.45; }
+    .holo-foil-btn { margin-top: 8px; padding: 8px 14px; background: linear-gradient(180deg, #c4b5fd 0%, #a78bfa 100%); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
+    .holo-foil-btn:hover { filter: brightness(1.05); }
+    #holo-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+    #holo-overlay.visible { display: flex; }
+    #holo-overlay .holo-card { background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-width: 420px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 20px; }
+    #holo-overlay .holo-card h2 { margin: 0 0 16px 0; font-size: 1.25rem; }
+    #holo-overlay .holo-preview-wrap { position: relative; width: 200px; height: 200px; margin: 0 auto 16px; border-radius: 12px; overflow: hidden; background: #1a1a2e; display: flex; align-items: center; justify-content: center; }
+    #holo-overlay .holo-preview { width: 100%; height: 100%; border-radius: inherit; position: relative; }
+    #holo-overlay .holo-mask-wrap { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; }
+    #holo-overlay .holo-mask-wrap.mask-none { -webkit-mask-image: none; mask-image: none; }
+    #holo-overlay .holo-mask-wrap.mask-radial { -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, black 40%, transparent 70%); mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, black 40%, transparent 70%); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+    #holo-overlay .holo-mask-wrap.mask-linear-v { -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 80%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 80%, transparent 100%); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+    #holo-overlay .holo-mask-wrap.mask-linear-h { -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 25%, black 75%, transparent 100%); mask-image: linear-gradient(90deg, transparent 0%, black 25%, black 75%, transparent 100%); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+    #holo-overlay .holo-layer { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
+    #holo-overlay .holo-grad-1 { background: conic-gradient(from 0deg at 50% 50%, #ff0080, #ff8c00, #40e0d0, #9d4edd, #ff0080); mix-blend-mode: overlay; animation: holo-spin 8s linear infinite; }
+    #holo-overlay .holo-grad-2 { background: linear-gradient(135deg, #fbbf24 0%, #a78bfa 50%, #06b6d4 100%); mix-blend-mode: overlay; opacity: 0.8; }
+    #holo-overlay .holo-grad-3 { background: radial-gradient(ellipse 80% 80% at 50% 50%, #f472b6, transparent 60%); mix-blend-mode: overlay; opacity: 0.6; }
+    #holo-overlay .holo-pattern-1 { background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.12) 8px, rgba(255,255,255,0.12) 16px); mix-blend-mode: overlay; opacity: 0.7; }
+    #holo-overlay .holo-pattern-2 { background: radial-gradient(circle at center, rgba(255,255,255,0.2) 1px, transparent 1px); background-size: 12px 12px; mix-blend-mode: overlay; opacity: 0.6; }
+    #holo-overlay .holo-pattern-3 { background: repeating-linear-gradient(0deg, transparent 0, transparent 6px, rgba(255,255,255,0.08) 6px, rgba(255,255,255,0.08) 12px), repeating-linear-gradient(90deg, transparent 0, transparent 6px, rgba(255,255,255,0.08) 6px, rgba(255,255,255,0.08) 12px); mix-blend-mode: overlay; opacity: 0.5; }
+    #holo-overlay .holo-reflect { position: absolute; inset: 0; border-radius: inherit; mix-blend-mode: overlay; pointer-events: none; -webkit-mask-size: 32px 32px; mask-size: 32px 32px; -webkit-mask-repeat: repeat; mask-repeat: repeat; -webkit-mask-position: 0 0; mask-position: 0 0; }
+    #holo-overlay .holo-reflect-hearts { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E"); }
+    #holo-overlay .holo-reflect-stars { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E"); }
+    #holo-overlay .holo-reflect-prisms { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2L2 12l10 10 10-10L12 2z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2L2 12l10 10 10-10L12 2z'/%3E%3C/svg%3E"); }
+    #holo-overlay .holo-reflect-hearts { background: conic-gradient(from 0deg at 50% 50%, #ff0080, #ff8c00, #40e0d0, #9d4edd, #ff0080); opacity: 0.8; }
+    #holo-overlay .holo-reflect-stars { background: conic-gradient(from 120deg at 50% 50%, #ff0080, #ff8c00, #40e0d0, #9d4edd, #ff0080); opacity: 0.8; }
+    #holo-overlay .holo-reflect-prisms { background: conic-gradient(from 240deg at 50% 50%, #ff0080, #ff8c00, #40e0d0, #9d4edd, #ff0080); opacity: 0.8; }
+    #holo-overlay .holo-foil-shimmer { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.2) 30%, rgba(255,255,255,0.45) 45%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.45) 55%, rgba(255,255,255,0.2) 70%, transparent 100%); background-size: 200% 200%; animation: holo-shimmer 4s ease-in-out infinite; pointer-events: none; }
+    @keyframes holo-spin { to { transform: rotate(360deg); } }
+    @keyframes holo-shimmer { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+    #holo-overlay .holo-controls { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+    #holo-overlay .holo-controls label { font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
+    #holo-overlay .holo-controls .holo-control-row { width: 100%; margin-top: 4px; }
+    #holo-overlay .holo-close { margin-top: 16px; padding: 8px 16px; background: #e5e7eb; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    #holo-overlay .holo-close:hover { background: #d1d5db; }
+    /* Foil on the hover card preview – back layer; card + avatar sit on top */
+    .hover-preview-foil { position: absolute; inset: 0; z-index: 0; border-radius: 12px; overflow: hidden; pointer-events: none; }
+    .hover-preview-foil .holo-mask-wrap { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; }
+    .hover-preview-foil .holo-mask-wrap.mask-none { -webkit-mask-image: none; mask-image: none; }
+    .hover-preview-foil .holo-mask-wrap.mask-radial { -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, black 40%, transparent 70%); mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, black 40%, transparent 70%); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+    .hover-preview-foil .holo-mask-wrap.mask-linear-v { -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 80%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 80%, transparent 100%); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+    .hover-preview-foil .holo-mask-wrap.mask-linear-h { -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 25%, black 75%, transparent 100%); mask-image: linear-gradient(90deg, transparent 0%, black 25%, black 75%, transparent 100%); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+    .hover-preview-foil .holo-layer { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
+    .hover-preview-foil .holo-grad-1 { background: conic-gradient(from 0deg at 50% 50%, #ff0080, #ff8c00, #40e0d0, #9d4edd, #ff0080); mix-blend-mode: overlay; }
+    .hover-preview-foil .holo-grad-2 { background: linear-gradient(135deg, #fbbf24 0%, #a78bfa 50%, #06b6d4 100%); mix-blend-mode: overlay; }
+    .hover-preview-foil .holo-grad-3 { background: radial-gradient(ellipse 80% 80% at 50% 50%, #f472b6, transparent 60%); mix-blend-mode: overlay; }
+    .hover-preview-foil .holo-pattern-1 { background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.12) 8px, rgba(255,255,255,0.12) 16px); mix-blend-mode: overlay; }
+    .hover-preview-foil .holo-pattern-2 { background: radial-gradient(circle at center, rgba(255,255,255,0.2) 1px, transparent 1px); background-size: 12px 12px; mix-blend-mode: overlay; }
+    .hover-preview-foil .holo-pattern-3 { background: repeating-linear-gradient(0deg, transparent 0, transparent 6px, rgba(255,255,255,0.08) 6px, rgba(255,255,255,0.08) 12px), repeating-linear-gradient(90deg, transparent 0, transparent 6px, rgba(255,255,255,0.08) 6px, rgba(255,255,255,0.08) 12px); mix-blend-mode: overlay; }
+    .hover-preview-foil .holo-reflect { position: absolute; inset: 0; border-radius: inherit; mix-blend-mode: overlay; pointer-events: none; -webkit-mask-size: 32px 32px; mask-size: 32px 32px; -webkit-mask-repeat: repeat; mask-repeat: repeat; }
+    .hover-preview-foil .holo-reflect-hearts { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E"); }
+    .hover-preview-foil .holo-reflect-stars { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E"); }
+    .hover-preview-foil .holo-reflect-prisms { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2L2 12l10 10 10-10L12 2z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2L2 12l10 10 10-10L12 2z'/%3E%3C/svg%3E"); }
+    .hover-preview-foil .holo-foil-shimmer { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.2) 30%, rgba(255,255,255,0.45) 45%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.45) 55%, rgba(255,255,255,0.2) 70%, transparent 100%); background-size: 200% 200%; animation: holo-shimmer 4s ease-in-out infinite; pointer-events: none; }
+    .hover-preview-signature { position: absolute; left: 0; right: 0; bottom: 12px; z-index: 2; text-align: right; padding: 0 20px; pointer-events: none; font-size: 12px; color: rgba(55,65,81,0.9); font-style: italic; display: flex; align-items: flex-end; justify-content: flex-end; }
+    .hover-preview-signature img { max-height: 48px; width: auto; image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; }
+    #signature-canvas-wrap { margin-top: 8px; }
+    #signature-canvas { display: block; border: 1px solid #d1d5db; border-radius: 6px; cursor: crosshair; background: #fff; image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; }
+    .signature-toolbar .control-group { display: inline-flex; flex-direction: column; gap: 4px; margin-right: 12px; }
+    .signature-toolbar .control-group label { font-size: 12px; color: #6b7280; font-weight: 600; margin: 0; }
+    .signature-toolbar input[type="color"] { width: 44px; height: 28px; padding: 2px; border: 1px solid #d1d5db; border-radius: 4px; cursor: pointer; }
+    .signature-toolbar input[type="number"] { width: 56px; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; }
+    .signature-toolbar { margin-top: 8px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .hover-preview-stickers { position: absolute; inset: 0; z-index: 2; pointer-events: none; border-radius: 12px; overflow: hidden; }
+    .hover-preview-stickers .sticker-on-card { pointer-events: auto; position: absolute; cursor: move; max-width: 56px; max-height: 56px; object-fit: contain; transform-origin: center center; }
+    .sticker-controls-wrap { margin-top: 12px; padding: 12px; background: #f3f4f6; border-radius: 8px; display: none; }
+    .sticker-controls-wrap.visible { display: block; }
+    .sticker-controls-wrap label { font-size: 13px; margin-right: 8px; }
+    .sticker-controls-wrap .sticker-control-row { margin-bottom: 10px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .sticker-controls-wrap .sticker-control-row:last-child { margin-bottom: 0; }
+    .sticker-controls-wrap input[type="range"] { width: 100px; vertical-align: middle; }
+    .sticker-controls-wrap input[type="number"] { width: 64px; padding: 6px 8px; margin: 0; font-size: 13px; }
+    .sticker-controls-wrap .btn-flip { padding: 6px 12px; font-size: 12px; background: #e5e7eb; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; }
+    .sticker-controls-wrap .btn-flip:hover { background: #d1d5db; }
+    .sticker-controls-wrap .btn-flip.active { background: #a78bfa; color: #fff; border-color: #9333ea; }
+    .sticker-search-wrap { margin-bottom: 8px; }
+    .sticker-search-wrap input { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; width: 100%; max-width: 280px; box-sizing: border-box; }
+    .sticker-search-wrap input::placeholder { color: #9ca3af; }
+    .sticker-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .sticker-picker .sticker-thumb { width: 48px; height: 48px; object-fit: contain; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; padding: 4px; box-sizing: border-box; background: #fff; }
+    .sticker-picker .sticker-thumb:hover { border-color: #a78bfa; }
+    .sticker-preview-layer { position: absolute; inset: 0; z-index: 2; pointer-events: auto; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <a href="./create.html" class="back">← Back to Create</a>
+    <h1>Customize hover card</h1>
+    <p class="desc">Change how your profile hover card looks on the forum (the card that appears when someone hovers over your name). Requires membership.</p>
+
+    <div id="message" class="message" role="alert"></div>
+
+    <div class="hover-customize-layout">
+      <div class="hover-customize-preview-col">
+    <div class="section">
+      <h2 style="font-size: 1.1rem; margin: 0 0 10px 0; color: #374151;">Preview</h2>
+      <div class="hover-preview-wrap">
+        <div class="hover-preview-scale-wrap">
+        <div class="hover-preview-card-outer">
+          <div id="hover-preview-card">
+            <div id="hover-preview-avatar" class="hover-preview-avatar"><span>Avatar</span></div>
+            <div class="hover-preview-left">
+              <div class="hover-preview-name">Your name</div>
+              <div class="hover-preview-bio">This is how your hover card will look with your current settings.</div>
+            </div>
+          </div>
+          <div id="hover-preview-foil" class="hover-preview-foil" aria-hidden="true" style="display: none;">
+            <div class="holo-mask-wrap mask-none" id="preview-foil-mask">
+              <div class="holo-layer holo-grad-1" id="preview-foil-g1"></div>
+              <div class="holo-layer holo-grad-2" id="preview-foil-g2"></div>
+              <div class="holo-layer holo-grad-3" id="preview-foil-g3"></div>
+              <div class="holo-layer holo-pattern-1" id="preview-foil-p1"></div>
+              <div class="holo-layer holo-pattern-2" id="preview-foil-p2"></div>
+              <div class="holo-layer holo-pattern-3" id="preview-foil-p3"></div>
+              <div class="holo-layer holo-reflect holo-reflect-hearts" id="preview-foil-rh"></div>
+              <div class="holo-layer holo-reflect holo-reflect-stars" id="preview-foil-rs"></div>
+              <div class="holo-layer holo-reflect holo-reflect-prisms" id="preview-foil-rp"></div>
+            </div>
+            <div class="holo-foil-shimmer" id="preview-foil-shimmer"></div>
+          </div>
+          <div id="hover-preview-stickers" class="hover-preview-stickers" aria-hidden="true"></div>
+          <div id="hover-preview-signature" class="hover-preview-signature" aria-hidden="true" style="display: none;"></div>
+        </div>
+        </div>
+      </div>
+      <div class="field-row" style="margin-top: 12px;">
+        <label class="toolbar-coords-toggle" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0;">
+          <input type="checkbox" id="foil-enabled" aria-label="Enable holographic foil on hover card">
+          Enable holographic foil
+        </label>
+        <button type="button" class="holo-foil-btn" id="holo-overlay-btn" style="margin-left: 12px;">✨ Customize foil</button>
+      </div>
+      <div class="field-row" style="margin-top: 8px;">
+        <label for="foil-preset">Foil preset</label>
+        <select id="foil-preset" aria-label="Apply a pre-made foil style" style="padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;">
+          <option value="">None (customize manually)</option>
+          <option value="freyon">Freyon's foil</option>
+        </select>
+        <p class="hint">Apply another user's foil style as a starting point. You can still edit after applying.</p>
+      </div>
+      <div class="field-row" style="margin-top: 20px;">
+        <button type="submit" form="customize-form" class="btn btn-primary">Save</button>
+        <a href="./create.html" class="btn btn-secondary">Cancel</a>
+      </div>
+    </div>
+      </div>
+
+      <div class="hover-customize-form-col">
+    <form id="customize-form">
+      <div class="section">
+        <h2 style="font-size: 1.1rem; margin: 0 0 12px 0; color: #374151;">Signature</h2>
+        <div class="field-row">
+          <label>Hand-drawn signature (pixel brush, shown over the card)</label>
+          <div id="signature-canvas-wrap">
+            <canvas id="signature-canvas" width="240" height="80" aria-label="Draw your signature"></canvas>
+          </div>
+          <div class="signature-toolbar" style="display:flex; flex-wrap:wrap; align-items:flex-end; gap:8px; margin-top:8px;">
+            <div class="control-group">
+              <label for="signature-brush-color">Color</label>
+              <input type="color" id="signature-brush-color" value="#374151" aria-label="Brush color">
+            </div>
+            <div class="control-group">
+              <label for="signature-brush-size">Brush size</label>
+              <input type="number" id="signature-brush-size" min="1" max="8" value="1" aria-label="Brush size (1–8)">
+            </div>
+            <button type="button" id="signature-clear" class="btn btn-secondary" style="margin-left:0;">Clear</button>
+          </div>
+          <p class="hint">Draw your signature with the pixel brush (same as Brand label). Displayed at the bottom-right of the hover card.</p>
+        </div>
+      </div>
+      <div class="section">
+        <h2 style="font-size: 1.1rem; margin: 0 0 12px 0; color: #374151;">Stickers</h2>
+        <div class="field-row">
+          <label>Add stickers (drag on preview to place)</label>
+          <p class="hint">Click a sticker below to add it to the card, then drag it on the preview to position. Stickers appear over the foil.</p>
+          <div class="sticker-search-wrap">
+            <input type="text" id="sticker-search" placeholder="Search by filename or tag…" autocomplete="off">
+          </div>
+          <div id="sticker-picker" class="sticker-picker"></div>
+          <div id="sticker-controls-wrap" class="sticker-controls-wrap" aria-live="polite">
+            <p style="margin:0 0 10px 0;font-size:13px;font-weight:600;">Selected sticker</p>
+            <div class="sticker-control-row">
+              <label for="sticker-rotate">Rotate (°)</label>
+              <input type="number" id="sticker-rotate" min="-180" max="180" value="0" step="15" aria-label="Sticker rotation degrees">
+            </div>
+            <div class="sticker-control-row">
+              <label for="sticker-size">Size</label>
+              <input type="range" id="sticker-size" min="0.25" max="2" step="0.1" value="1" aria-label="Sticker size">
+              <span id="sticker-size-value">1</span>
+            </div>
+            <div class="sticker-control-row">
+              <button type="button" id="sticker-flip-h" class="btn-flip" aria-pressed="false">Flip horizontal</button>
+              <button type="button" id="sticker-flip-v" class="btn-flip" aria-pressed="false">Flip vertical</button>
+            </div>
+          </div>
+          <p class="hint" style="margin-top:8px;">To remove a sticker, drag it off the card or select and press Delete. Max 12 stickers.</p>
+        </div>
+      </div>
+      <div class="section">
+        <h2 style="font-size: 1.1rem; margin: 0 0 12px 0; color: #374151;">Card glass effect</h2>
+        <div class="field-row">
+          <label for="card-bg-opacity">Card background opacity (0–1)</label>
+          <input type="number" id="card-bg-opacity" min="0" max="1" step="0.05" value="0.55">
+          <p class="hint">Higher = more solid. 0.55 is default glass.</p>
+        </div>
+        <div class="field-row">
+          <label for="card-blur">Card blur (px)</label>
+          <input type="number" id="card-blur" min="0" max="40" step="1" value="14">
+          <p class="hint">Backdrop blur strength. 14 is default.</p>
+        </div>
+        <div class="field-row">
+          <label for="card-border-opacity">Card border opacity (0–1)</label>
+          <input type="number" id="card-border-opacity" min="0" max="1" step="0.05" value="0.5">
+        </div>
+      </div>
+      <div class="section">
+        <h2 style="font-size: 1.1rem; margin: 0 0 12px 0; color: #374151;">Avatar box (inside card)</h2>
+        <div class="field-row">
+          <label for="avatar-bg-opacity">Avatar box background opacity (0–1)</label>
+          <input type="number" id="avatar-bg-opacity" min="0" max="1" step="0.05" value="0.4">
+        </div>
+        <div class="field-row">
+          <label for="avatar-blur">Avatar box blur (px)</label>
+          <input type="number" id="avatar-blur" min="0" max="30" step="1" value="8">
+        </div>
+      </div>
+    </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="holo-overlay" aria-hidden="true">
+    <div class="holo-card" role="dialog" aria-labelledby="holo-overlay-title">
+      <h2 id="holo-overlay-title">Holographic foil experiment</h2>
+      <div class="holo-preview-wrap">
+        <div class="holo-preview">
+          <div class="holo-mask-wrap mask-none" id="holo-mask-wrap">
+            <div class="holo-layer holo-grad-1" id="holo-grad-1"></div>
+            <div class="holo-layer holo-grad-2" id="holo-grad-2"></div>
+            <div class="holo-layer holo-grad-3" id="holo-grad-3"></div>
+            <div class="holo-layer holo-pattern-1" id="holo-pattern-1"></div>
+            <div class="holo-layer holo-pattern-2" id="holo-pattern-2"></div>
+            <div class="holo-layer holo-pattern-3" id="holo-pattern-3"></div>
+            <div class="holo-layer holo-reflect holo-reflect-hearts" id="holo-reflect-hearts"></div>
+            <div class="holo-layer holo-reflect holo-reflect-stars" id="holo-reflect-stars"></div>
+            <div class="holo-layer holo-reflect holo-reflect-prisms" id="holo-reflect-prisms"></div>
+          </div>
+          <div class="holo-foil-shimmer" id="holo-foil-shimmer"></div>
+        </div>
+      </div>
+      <div class="holo-controls">
+        <div class="holo-control-row">
+          <label>Mask</label>
+          <select id="holo-mask" aria-label="Layer mask">
+            <option value="none">None</option>
+            <option value="radial">Radial (center)</option>
+            <option value="linear-v">Linear vertical</option>
+            <option value="linear-h">Linear horizontal</option>
+          </select>
+        </div>
+        <div class="holo-control-row"><strong>Gradients</strong></div>
+        <label><input type="checkbox" id="holo-g1-on" checked> G1</label>
+        <label>G1 op. <input type="range" id="holo-g1-op" min="0" max="100" value="70" style="width:60px;"></label>
+        <label><input type="checkbox" id="holo-spin" checked> Spin G1</label>
+        <label><input type="checkbox" id="holo-g2-on" checked> G2</label>
+        <label>G2 op. <input type="range" id="holo-g2-op" min="0" max="100" value="80" style="width:60px;"></label>
+        <label><input type="checkbox" id="holo-g3-on" checked> G3</label>
+        <label>G3 op. <input type="range" id="holo-g3-op" min="0" max="100" value="60" style="width:60px;"></label>
+        <div class="holo-control-row"><strong>Patterns</strong></div>
+        <label><input type="checkbox" id="holo-p1-on" checked> Stripes</label>
+        <label>P1 op. <input type="range" id="holo-p1-op" min="0" max="100" value="70" style="width:60px;"></label>
+        <label><input type="checkbox" id="holo-p2-on"> Dots</label>
+        <label>P2 op. <input type="range" id="holo-p2-op" min="0" max="100" value="60" style="width:60px;"></label>
+        <label><input type="checkbox" id="holo-p3-on"> Grid</label>
+        <label>P3 op. <input type="range" id="holo-p3-op" min="0" max="100" value="50" style="width:60px;"></label>
+        <div class="holo-control-row"><strong>Reflection shapes</strong></div>
+        <label><input type="checkbox" id="holo-rh-on" checked> Hearts</label>
+        <label>op. <input type="range" id="holo-rh-op" min="0" max="100" value="80" style="width:50px;"></label>
+        <label>angle <input type="range" id="holo-rh-angle" min="0" max="360" value="0" style="width:60px;"></label>
+        <label><input type="checkbox" id="holo-rs-on" checked> Stars</label>
+        <label>op. <input type="range" id="holo-rs-op" min="0" max="100" value="80" style="width:50px;"></label>
+        <label>angle <input type="range" id="holo-rs-angle" min="0" max="360" value="120" style="width:60px;"></label>
+        <label><input type="checkbox" id="holo-rp-on" checked> Prisms</label>
+        <label>op. <input type="range" id="holo-rp-op" min="0" max="100" value="80" style="width:50px;"></label>
+        <label>angle <input type="range" id="holo-rp-angle" min="0" max="360" value="240" style="width:60px;"></label>
+        <div class="holo-control-row"><strong>Top</strong></div>
+        <label><input type="checkbox" id="holo-shimmer" checked> Shimmer</label>
+        <label>Master op. <input type="range" id="holo-opacity" min="20" max="100" value="90" style="width:70px;"></label>
+      </div>
+      <button type="button" class="holo-close" id="holo-overlay-close">Close</button>
+    </div>
+  </div>
+
+  <script src="/js/header.js"></script>
+  <script>
+    (function () {
+      var form = document.getElementById('customize-form');
+      var messageEl = document.getElementById('message');
+      var previewCard = document.getElementById('hover-preview-card');
+      var previewAvatar = document.getElementById('hover-preview-avatar');
+      var foilConfig = null;
+      var signatureImageDataURL = '';
+      var SIG_CANVAS_W = 240;
+      var SIG_CANVAS_H = 80;
+      var stickerCatalog = [];
+      var cardStickers = [];
+      var selectedStickerIndex = -1;
+      var dragStickerIndex = -1;
+      var dragOffsetX = 0;
+      var dragOffsetY = 0;
+      var PREVIEW_CARD_W = 500;
+      var PREVIEW_CARD_H = 328;
+
+      function getFoilConfig() {
+        var g = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
+        var c = function (id) { var el = document.getElementById(id); return el ? el.checked : false; };
+        return {
+          enabled: document.getElementById('foil-enabled') ? document.getElementById('foil-enabled').checked : false,
+          mask: g('holo-mask') || 'none',
+          masterOp: parseInt(g('holo-opacity'), 10) || 90,
+          g1On: c('holo-g1-on'), g1Op: parseInt(g('holo-g1-op'), 10) || 70, spin: c('holo-spin'),
+          g2On: c('holo-g2-on'), g2Op: parseInt(g('holo-g2-op'), 10) || 80,
+          g3On: c('holo-g3-on'), g3Op: parseInt(g('holo-g3-op'), 10) || 60,
+          p1On: c('holo-p1-on'), p1Op: parseInt(g('holo-p1-op'), 10) || 70,
+          p2On: c('holo-p2-on'), p2Op: parseInt(g('holo-p2-op'), 10) || 60,
+          p3On: c('holo-p3-on'), p3Op: parseInt(g('holo-p3-op'), 10) || 50,
+          rhOn: c('holo-rh-on'), rhOp: parseInt(g('holo-rh-op'), 10) || 80, rhAngle: parseInt(g('holo-rh-angle'), 10) || 0,
+          rsOn: c('holo-rs-on'), rsOp: parseInt(g('holo-rs-op'), 10) || 80, rsAngle: parseInt(g('holo-rs-angle'), 10) || 120,
+          rpOn: c('holo-rp-on'), rpOp: parseInt(g('holo-rp-op'), 10) || 80, rpAngle: parseInt(g('holo-rp-angle'), 10) || 240,
+          shimmer: c('holo-shimmer')
+        };
+      }
+
+      function setFoilConfigFromOverlay(cfg) {
+        if (!cfg) return;
+        var s = function (id, val) { var el = document.getElementById(id); if (el) el.value = String(val); };
+        var c = function (id, val) { var el = document.getElementById(id); if (el) el.checked = !!val; };
+        c('foil-enabled', cfg.enabled);
+        var maskVal = (cfg.mask && ['none','radial','linear-v','linear-h'].indexOf(cfg.mask) !== -1) ? cfg.mask : 'none';
+        var maskEl = document.getElementById('holo-mask'); if (maskEl) maskEl.value = maskVal;
+        var maskWrap = document.getElementById('holo-mask-wrap'); if (maskWrap) maskWrap.className = 'holo-mask-wrap mask-' + maskVal;
+        s('holo-opacity', cfg.masterOp);
+        c('holo-g1-on', cfg.g1On); s('holo-g1-op', cfg.g1Op); c('holo-spin', cfg.spin);
+        c('holo-g2-on', cfg.g2On); s('holo-g2-op', cfg.g2Op);
+        c('holo-g3-on', cfg.g3On); s('holo-g3-op', cfg.g3Op);
+        c('holo-p1-on', cfg.p1On); s('holo-p1-op', cfg.p1Op);
+        c('holo-p2-on', cfg.p2On); s('holo-p2-op', cfg.p2Op);
+        c('holo-p3-on', cfg.p3On); s('holo-p3-op', cfg.p3Op);
+        c('holo-rh-on', cfg.rhOn); s('holo-rh-op', cfg.rhOp); s('holo-rh-angle', cfg.rhAngle);
+        c('holo-rs-on', cfg.rsOn); s('holo-rs-op', cfg.rsOp); s('holo-rs-angle', cfg.rsAngle);
+        c('holo-rp-on', cfg.rpOn); s('holo-rp-op', cfg.rpOp); s('holo-rp-angle', cfg.rpAngle);
+        c('holo-shimmer', cfg.shimmer);
+      }
+
+      function applyFoilToPreview() {
+        var wrap = document.getElementById('hover-preview-foil');
+        var mask = document.getElementById('preview-foil-mask');
+        var conicColors = '#ff0080, #ff8c00, #40e0d0, #9d4edd, #ff0080';
+        var setOp = function (el, pct) { if (el) el.style.opacity = String(Math.max(0, Math.min(1, (pct || 0) / 100))); };
+        var setVis = function (el, on) { if (el) el.style.display = on ? '' : 'none'; };
+        if (!wrap || !foilConfig || !foilConfig.enabled) {
+          if (wrap) wrap.style.display = 'none';
+          return;
+        }
+        wrap.style.display = '';
+        if (mask) mask.className = 'holo-mask-wrap mask-' + (foilConfig.mask || 'none');
+        setOp(mask, foilConfig.masterOp);
+        setVis(document.getElementById('preview-foil-g1'), foilConfig.g1On); setOp(document.getElementById('preview-foil-g1'), foilConfig.g1Op);
+        var g1 = document.getElementById('preview-foil-g1'); if (g1) g1.style.animation = foilConfig.spin ? 'holo-spin 8s linear infinite' : 'none';
+        setVis(document.getElementById('preview-foil-g2'), foilConfig.g2On); setOp(document.getElementById('preview-foil-g2'), foilConfig.g2Op);
+        setVis(document.getElementById('preview-foil-g3'), foilConfig.g3On); setOp(document.getElementById('preview-foil-g3'), foilConfig.g3Op);
+        setVis(document.getElementById('preview-foil-p1'), foilConfig.p1On); setOp(document.getElementById('preview-foil-p1'), foilConfig.p1Op);
+        setVis(document.getElementById('preview-foil-p2'), foilConfig.p2On); setOp(document.getElementById('preview-foil-p2'), foilConfig.p2Op);
+        setVis(document.getElementById('preview-foil-p3'), foilConfig.p3On); setOp(document.getElementById('preview-foil-p3'), foilConfig.p3Op);
+        setVis(document.getElementById('preview-foil-rh'), foilConfig.rhOn); setOp(document.getElementById('preview-foil-rh'), foilConfig.rhOp);
+        var rh = document.getElementById('preview-foil-rh'); if (rh) rh.style.background = 'conic-gradient(from ' + (foilConfig.rhAngle || 0) + 'deg at 50% 50%, ' + conicColors + ')';
+        setVis(document.getElementById('preview-foil-rs'), foilConfig.rsOn); setOp(document.getElementById('preview-foil-rs'), foilConfig.rsOp);
+        var rs = document.getElementById('preview-foil-rs'); if (rs) rs.style.background = 'conic-gradient(from ' + (foilConfig.rsAngle || 120) + 'deg at 50% 50%, ' + conicColors + ')';
+        setVis(document.getElementById('preview-foil-rp'), foilConfig.rpOn); setOp(document.getElementById('preview-foil-rp'), foilConfig.rpOp);
+        var rp = document.getElementById('preview-foil-rp'); if (rp) rp.style.background = 'conic-gradient(from ' + (foilConfig.rpAngle || 240) + 'deg at 50% 50%, ' + conicColors + ')';
+        var sh = document.getElementById('preview-foil-shimmer'); if (sh) sh.style.animation = foilConfig.shimmer ? 'holo-shimmer 4s ease-in-out infinite' : 'none';
+      }
+
+      function clampNum(val, min, max) {
+        var n = parseFloat(val);
+        if (isNaN(n)) return min;
+        return Math.max(min, Math.min(max, n));
+      }
+
+      function updatePreview() {
+        var bgOpacity = clampNum(document.getElementById('card-bg-opacity').value, 0, 1);
+        var blur = Math.max(0, parseInt(document.getElementById('card-blur').value, 10) || 14);
+        var borderOpacity = clampNum(document.getElementById('card-border-opacity').value, 0, 1);
+        var avatarBgOpacity = clampNum(document.getElementById('avatar-bg-opacity').value, 0, 1);
+        var avatarBlur = Math.max(0, parseInt(document.getElementById('avatar-blur').value, 10) || 8);
+
+        previewCard.style.background = 'rgba(255, 255, 255, ' + bgOpacity + ')';
+        previewCard.style.backdropFilter = 'blur(' + blur + 'px)';
+        previewCard.style.webkitBackdropFilter = 'blur(' + blur + 'px)';
+        previewCard.style.borderColor = 'rgba(255, 255, 255, ' + borderOpacity + ')';
+
+        previewAvatar.style.background = 'rgba(255, 255, 255, ' + avatarBgOpacity + ')';
+        previewAvatar.style.backdropFilter = 'blur(' + avatarBlur + 'px)';
+        previewAvatar.style.webkitBackdropFilter = 'blur(' + avatarBlur + 'px)';
+
+        var sigEl = document.getElementById('hover-preview-signature');
+        var dataUrl = getSignatureDataURL();
+        if (sigEl) {
+          if (dataUrl) {
+            sigEl.innerHTML = '';
+            var img = document.createElement('img');
+            img.src = dataUrl;
+            img.alt = 'Signature';
+            img.setAttribute('draggable', 'false');
+            sigEl.appendChild(img);
+            sigEl.style.display = 'flex';
+            sigEl.setAttribute('aria-hidden', 'false');
+          } else {
+            sigEl.innerHTML = '';
+            sigEl.style.display = 'none';
+            sigEl.setAttribute('aria-hidden', 'true');
+          }
+        }
+        renderStickersOnPreview();
+      }
+
+      function renderStickersOnPreview() {
+        var wrap = document.getElementById('hover-preview-stickers');
+        if (!wrap) return;
+        wrap.innerHTML = '';
+        wrap.style.pointerEvents = 'auto';
+        cardStickers.forEach(function (s, idx) {
+          var img = document.createElement('img');
+          img.className = 'sticker-on-card' + (idx === selectedStickerIndex ? ' selected' : '');
+          img.src = s.url;
+          img.alt = 'Sticker';
+          img.draggable = false;
+          img.dataset.index = String(idx);
+          var scale = s.scale != null ? s.scale : 1;
+          var rot = s.rotation != null ? s.rotation : 0;
+          var fh = s.flipH ? -1 : 1, fv = s.flipV ? -1 : 1;
+          img.style.left = Math.round(s.x) + 'px';
+          img.style.top = Math.round(s.y) + 'px';
+          img.style.transformOrigin = 'center center';
+          img.style.transform = 'translate(-50%,-50%) scale(' + scale + ') rotate(' + rot + 'deg) scale(' + fh + ',' + fv + ')';
+          img.style.outline = idx === selectedStickerIndex ? '2px solid #6366f1' : 'none';
+          img.addEventListener('mousedown', function (e) { e.preventDefault(); startStickerDrag(e, idx); });
+          img.addEventListener('click', function (e) { e.stopPropagation(); selectedStickerIndex = idx; renderStickersOnPreview(); updateStickerControls(); });
+          wrap.appendChild(img);
+        });
+        updateStickerControls();
+      }
+
+      function getSignatureDataURL() {
+        var c = document.getElementById('signature-canvas');
+        if (!c || !c.getContext) return signatureImageDataURL || '';
+        var ctx = c.getContext('2d');
+        var id = ctx.getImageData(0, 0, c.width, c.height);
+        var d = id.data;
+        var hasPixel = false;
+        for (var i = 3; i < d.length; i += 4) { if (d[i] > 0) { hasPixel = true; break; } }
+        return hasPixel ? c.toDataURL('image/png') : '';
+      }
+
+      function showMessage(text, isError) {
+        messageEl.textContent = text;
+        messageEl.className = 'message ' + (isError ? 'error' : 'success');
+        messageEl.style.display = 'block';
+      }
+
+      ['card-bg-opacity', 'card-blur', 'card-border-opacity', 'avatar-bg-opacity', 'avatar-blur'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('input', updatePreview);
+      });
+
+      (function initSignatureCanvas() {
+        var canvas = document.getElementById('signature-canvas');
+        if (!canvas) return;
+        var ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        var drawing = false;
+        var sigW = canvas.width;
+        var sigH = canvas.height;
+        var signaturePixelData = null;
+
+        function getBrushSize() {
+          var el = document.getElementById('signature-brush-size');
+          var n = el ? parseInt(el.value, 10) : 1;
+          return Math.max(1, Math.min(8, isNaN(n) ? 1 : n));
+        }
+        function getBrushColor() {
+          var el = document.getElementById('signature-brush-color');
+          return (el && el.value) ? el.value : '#374151';
+        }
+        function getCanvasCoords(e) {
+          var r = canvas.getBoundingClientRect();
+          var scaleX = canvas.width / r.width;
+          var scaleY = canvas.height / r.height;
+          var clientX = e.clientX != null ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+          var clientY = e.clientY != null ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+          return {
+            x: Math.floor((clientX - r.left) * scaleX),
+            y: Math.floor((clientY - r.top) * scaleY)
+          };
+        }
+        function ensurePixelData() {
+          if (!signaturePixelData) {
+            signaturePixelData = ctx.getImageData(0, 0, sigW, sigH);
+          }
+          return signaturePixelData;
+        }
+        function paintPixel(x, y) {
+          ensurePixelData();
+          var d = signaturePixelData.data;
+          var brush = getBrushSize();
+          var hex = getBrushColor();
+          var r = parseInt(hex.slice(1, 3), 16);
+          var g = parseInt(hex.slice(3, 5), 16);
+          var b = parseInt(hex.slice(5, 7), 16);
+          for (var dy = -brush; dy <= brush; dy++) {
+            for (var dx = -brush; dx <= brush; dx++) {
+              var px = x + dx;
+              var py = y + dy;
+              if (px >= 0 && px < sigW && py >= 0 && py < sigH) {
+                var i = (py * sigW + px) * 4;
+                d[i] = r;
+                d[i + 1] = g;
+                d[i + 2] = b;
+                d[i + 3] = 255;
+              }
+            }
+          }
+          ctx.putImageData(signaturePixelData, 0, 0);
+        }
+        function startDraw(e) {
+          e.preventDefault();
+          var pos = getCanvasCoords(e);
+          if (pos.x < 0 || pos.x >= sigW || pos.y < 0 || pos.y >= sigH) return;
+          drawing = true;
+          paintPixel(pos.x, pos.y);
+          updatePreview();
+        }
+        function moveDraw(e) {
+          e.preventDefault();
+          if (!drawing) return;
+          var pos = getCanvasCoords(e);
+          if (pos.x >= 0 && pos.x < sigW && pos.y >= 0 && pos.y < sigH) {
+            paintPixel(pos.x, pos.y);
+            updatePreview();
+          }
+        }
+        function endDraw(e) {
+          e.preventDefault();
+          drawing = false;
+          signatureImageDataURL = getSignatureDataURL();
+        }
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', moveDraw);
+        canvas.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('mouseleave', endDraw);
+        canvas.addEventListener('touchstart', startDraw, { passive: false });
+        canvas.addEventListener('touchmove', moveDraw, { passive: false });
+        canvas.addEventListener('touchend', endDraw, { passive: false });
+        document.getElementById('signature-clear').addEventListener('click', function () {
+          ctx.clearRect(0, 0, sigW, sigH);
+          signaturePixelData = ctx.getImageData(0, 0, sigW, sigH);
+          for (var i = 3; i < signaturePixelData.data.length; i += 4) signaturePixelData.data[i] = 0;
+          ctx.putImageData(signaturePixelData, 0, 0);
+          signatureImageDataURL = '';
+          updatePreview();
+        });
+      })();
+
+      function clientToPreview(clientX, clientY) {
+        var wrap = document.getElementById('hover-preview-stickers');
+        if (!wrap) return { x: 0, y: 0 };
+        var r = wrap.getBoundingClientRect();
+        var x = (clientX - r.left) * (PREVIEW_CARD_W / r.width);
+        var y = (clientY - r.top) * (PREVIEW_CARD_H / r.height);
+        return { x: x, y: y };
+      }
+      function startStickerDrag(e, idx) {
+        e.preventDefault();
+        var s = cardStickers[idx];
+        if (!s) return;
+        selectedStickerIndex = idx;
+        var pt = clientToPreview(e.clientX, e.clientY);
+        dragStickerIndex = idx;
+        dragOffsetX = pt.x - s.x;
+        dragOffsetY = pt.y - s.y;
+      }
+      function onStickerDragMove(e) {
+        if (dragStickerIndex < 0) return;
+        var pt = clientToPreview(e.clientX, e.clientY);
+        if (cardStickers[dragStickerIndex]) {
+          cardStickers[dragStickerIndex].x = Math.round(pt.x - dragOffsetX);
+          cardStickers[dragStickerIndex].y = Math.round(pt.y - dragOffsetY);
+          renderStickersOnPreview();
+        }
+      }
+      function onStickerDragEnd(e) {
+        if (dragStickerIndex < 0) return;
+        var s = cardStickers[dragStickerIndex];
+        if (s) {
+          var margin = 30;
+          if (s.x < -margin || s.y < -margin || s.x > PREVIEW_CARD_W + margin || s.y > PREVIEW_CARD_H + margin) {
+            cardStickers.splice(dragStickerIndex, 1);
+            selectedStickerIndex = -1;
+          }
+        }
+        dragStickerIndex = -1;
+        document.removeEventListener('mousemove', onStickerDragMove);
+        document.removeEventListener('mouseup', onStickerDragEnd);
+        renderStickersOnPreview();
+      }
+      function updateStickerControls() {
+        var wrap = document.getElementById('sticker-controls-wrap');
+        var rotEl = document.getElementById('sticker-rotate');
+        var sizeEl = document.getElementById('sticker-size');
+        var sizeVal = document.getElementById('sticker-size-value');
+        var flipHBtn = document.getElementById('sticker-flip-h');
+        var flipVBtn = document.getElementById('sticker-flip-v');
+        if (!wrap) return;
+        if (selectedStickerIndex < 0 || selectedStickerIndex >= cardStickers.length) {
+          wrap.classList.remove('visible');
+          return;
+        }
+        var s = cardStickers[selectedStickerIndex];
+        wrap.classList.add('visible');
+        if (rotEl) rotEl.value = String(s.rotation != null ? s.rotation : 0);
+        if (sizeEl) sizeEl.value = String(s.scale != null ? s.scale : 1);
+        if (sizeVal) sizeVal.textContent = (s.scale != null ? s.scale : 1).toFixed(1);
+        if (flipHBtn) { flipHBtn.classList.toggle('active', !!s.flipH); flipHBtn.setAttribute('aria-pressed', !!s.flipH); }
+        if (flipVBtn) { flipVBtn.classList.toggle('active', !!s.flipV); flipVBtn.setAttribute('aria-pressed', !!s.flipV); }
+      }
+      document.addEventListener('mousedown', function (e) {
+        if (dragStickerIndex >= 0) return;
+        if (e.target.closest('#hover-preview-stickers .sticker-on-card')) return;
+        if (e.target.closest('#sticker-controls-wrap')) return;
+        selectedStickerIndex = -1;
+        renderStickersOnPreview();
+      });
+      document.addEventListener('mousemove', function (e) {
+        if (e.buttons === 1 && dragStickerIndex >= 0) {
+          e.preventDefault();
+          onStickerDragMove(e);
+        }
+      });
+      document.addEventListener('mouseup', function (e) {
+        if (dragStickerIndex >= 0) {
+          onStickerDragEnd(e);
+        }
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          if (selectedStickerIndex >= 0 && selectedStickerIndex < cardStickers.length) {
+            cardStickers.splice(selectedStickerIndex, 1);
+            selectedStickerIndex = -1;
+            renderStickersOnPreview();
+            e.preventDefault();
+          }
+        }
+      });
+
+      (function initStickerControls() {
+        var rotEl = document.getElementById('sticker-rotate');
+        var sizeEl = document.getElementById('sticker-size');
+        var sizeVal = document.getElementById('sticker-size-value');
+        var flipHBtn = document.getElementById('sticker-flip-h');
+        var flipVBtn = document.getElementById('sticker-flip-v');
+        function applyToSelected(fn) {
+          if (selectedStickerIndex < 0 || selectedStickerIndex >= cardStickers.length) return;
+          fn(cardStickers[selectedStickerIndex]);
+          renderStickersOnPreview();
+        }
+        if (rotEl) rotEl.addEventListener('input', function () {
+          applyToSelected(function (s) { s.rotation = clampNum(rotEl.value, -180, 180); });
+        });
+        if (sizeEl) {
+          sizeEl.addEventListener('input', function () {
+            applyToSelected(function (s) { s.scale = clampNum(sizeEl.value, 0.25, 2); });
+            if (sizeVal) sizeVal.textContent = (cardStickers[selectedStickerIndex] && cardStickers[selectedStickerIndex].scale != null ? cardStickers[selectedStickerIndex].scale : 1).toFixed(1);
+          });
+        }
+        if (flipHBtn) flipHBtn.addEventListener('click', function () {
+          applyToSelected(function (s) { s.flipH = !s.flipH; });
+          updateStickerControls();
+        });
+        if (flipVBtn) flipVBtn.addEventListener('click', function () {
+          applyToSelected(function (s) { s.flipV = !s.flipV; });
+          updateStickerControls();
+        });
+      })();
+
+      function filterStickersBySearch(list, query) {
+        var q = (query || '').trim().toLowerCase();
+        if (!q) return list;
+        return list.filter(function (s) {
+          var id = (s.id || '').toLowerCase();
+          var filename = (s.filename || s.id || '').toLowerCase();
+          var tags = s.tags || [];
+          var tagStr = tags.join(' ').toLowerCase();
+          return id.indexOf(q) !== -1 || filename.indexOf(q) !== -1 || tagStr.indexOf(q) !== -1;
+        });
+      }
+
+      function renderStickerPicker() {
+        var picker = document.getElementById('sticker-picker');
+        var searchEl = document.getElementById('sticker-search');
+        if (!picker) return;
+        var query = searchEl ? (searchEl.value || '').trim() : '';
+        var list = filterStickersBySearch(stickerCatalog, query);
+        picker.innerHTML = '';
+        list.forEach(function (sticker) {
+          var thumb = document.createElement('img');
+          thumb.className = 'sticker-thumb';
+          thumb.src = sticker.url || ('/Uploads/hover-card-stickers/' + (sticker.filename || sticker.id));
+          thumb.alt = sticker.id;
+          thumb.title = 'Add ' + sticker.id;
+          thumb.addEventListener('click', function () {
+            if (cardStickers.length >= 12) return;
+            cardStickers.push({ id: sticker.id, url: thumb.src, x: 24, y: 24, scale: 1, rotation: 0, flipH: false, flipV: false });
+            renderStickersOnPreview();
+          });
+          picker.appendChild(thumb);
+        });
+      }
+
+      var stickerSearchTimeout = null;
+      function fetchStickersAndRenderPicker() {
+        return fetch('/api/hover-card-stickers', { credentials: 'same-origin' })
+          .then(function (r) { return r.json(); })
+          .then(function (list) {
+            stickerCatalog = Array.isArray(list) ? list : [];
+            renderStickerPicker();
+          })
+          .catch(function () {});
+      }
+
+      function load() {
+        fetch('/api/hover-card-customization', { credentials: 'same-origin' })
+          .then(function (r) {
+            if (r.status === 401) throw new Error('Please log in.');
+            if (r.status === 403) throw new Error('Exclusive membership required.');
+            return r.json();
+          })
+          .then(function (data) {
+            if (data.error) throw new Error(data.error);
+            if (data.cardBgOpacity != null) document.getElementById('card-bg-opacity').value = clampNum(data.cardBgOpacity, 0, 1);
+            if (data.cardBlurPx != null) document.getElementById('card-blur').value = Math.max(0, parseInt(data.cardBlurPx, 10));
+            if (data.cardBorderOpacity != null) document.getElementById('card-border-opacity').value = clampNum(data.cardBorderOpacity, 0, 1);
+            if (data.avatarBgOpacity != null) document.getElementById('avatar-bg-opacity').value = clampNum(data.avatarBgOpacity, 0, 1);
+            if (data.avatarBlurPx != null) document.getElementById('avatar-blur').value = Math.max(0, parseInt(data.avatarBlurPx, 10));
+            if (data.hoverCardFoil != null) {
+              try { foilConfig = typeof data.hoverCardFoil === 'object' ? data.hoverCardFoil : (typeof data.hoverCardFoil === 'string' ? JSON.parse(data.hoverCardFoil) : null); } catch (e) { foilConfig = null; }
+              if (foilConfig && typeof foilConfig === 'object') { setFoilConfigFromOverlay(foilConfig); applyFoilToPreview(); }
+            }
+            if (typeof data.hoverCardSignatureImage === 'string' && data.hoverCardSignatureImage.indexOf('data:image/') === 0) {
+              signatureImageDataURL = data.hoverCardSignatureImage;
+              var canvas = document.getElementById('signature-canvas');
+              if (canvas) {
+                var ctx = canvas.getContext('2d');
+                var img = new Image();
+                img.onload = function () {
+                  ctx.clearRect(0, 0, canvas.width, canvas.height);
+                  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                  updatePreview();
+                };
+                img.src = data.hoverCardSignatureImage;
+              }
+            } else {
+              signatureImageDataURL = '';
+              var canvas = document.getElementById('signature-canvas');
+              if (canvas) {
+                var ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+              }
+              updatePreview();
+            }
+            if (Array.isArray(data.hoverCardStickers) && data.hoverCardStickers.length > 0) {
+              cardStickers = data.hoverCardStickers.map(function (s) {
+                var url = (stickerCatalog.find(function (c) { return c.id === s.id; }) || {}).url || ('/Uploads/hover-card-stickers/' + s.id);
+                var sx = Number(s.x) || 0, sy = Number(s.y) || 0;
+                var px, py;
+                if (sx >= 0 && sx <= 1 && sy >= 0 && sy <= 1) {
+                  px = sx * PREVIEW_CARD_W;
+                  py = sy * PREVIEW_CARD_H;
+                } else {
+                  px = sx * (PREVIEW_CARD_W / 320);
+                  py = sy * (PREVIEW_CARD_H / 180);
+                }
+                return {
+                  id: s.id,
+                  url: url,
+                  x: Math.round(px),
+                  y: Math.round(py),
+                  scale: typeof s.scale === 'number' ? s.scale : 1,
+                  rotation: typeof s.rotation === 'number' ? s.rotation : 0,
+                  flipH: !!s.flipH,
+                  flipV: !!s.flipV
+                };
+              }).slice(0, 12);
+            } else {
+              cardStickers = [];
+            }
+            selectedStickerIndex = -1;
+            renderStickersOnPreview();
+          })
+          .catch(function (err) {
+            showMessage(err.message || 'Could not load settings.', true);
+          });
+      }
+
+      fetchStickersAndRenderPicker().then(function () {
+        load();
+      });
+      (function setupStickerSearch() {
+        var searchEl = document.getElementById('sticker-search');
+        if (!searchEl) return;
+        searchEl.addEventListener('input', function () {
+          if (stickerSearchTimeout) clearTimeout(stickerSearchTimeout);
+          stickerSearchTimeout = setTimeout(renderStickerPicker, 200);
+        });
+        searchEl.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            if (stickerSearchTimeout) clearTimeout(stickerSearchTimeout);
+            renderStickerPicker();
+          }
+        });
+      })();
+      updatePreview();
+
+      document.getElementById('foil-enabled').addEventListener('change', function () {
+        foilConfig = getFoilConfig();
+        applyFoilToPreview();
+      });
+
+      document.getElementById('foil-preset').addEventListener('change', function () {
+        var preset = (this.value || '').trim().toLowerCase();
+        if (!preset) return;
+        var presetUrl = (window.location.origin || '') + '/api/hover-card-foil-preset/' + encodeURIComponent(preset);
+        fetch(presetUrl, { credentials: 'same-origin' })
+          .then(function (r) {
+            if (!r.ok) throw new Error(r.status === 404 ? 'Preset not found or user has no foil saved.' : 'Failed to load preset');
+            return r.json();
+          })
+          .then(function (data) {
+            var cfg = data && data.hoverCardFoil;
+            if (!cfg || typeof cfg !== 'object') throw new Error('Invalid preset');
+            cfg.enabled = true;
+            setFoilConfigFromOverlay(cfg);
+            foilConfig = cfg;
+            var foilCheck = document.getElementById('foil-enabled');
+            if (foilCheck) foilCheck.checked = true;
+            applyFoilToPreview();
+            document.getElementById('foil-preset').value = '';
+          })
+          .catch(function (err) {
+            alert(err.message || 'Could not load preset');
+            document.getElementById('foil-preset').value = '';
+          });
+      });
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var foil = getFoilConfig();
+        if (!foil || typeof foil !== 'object') foil = { enabled: false };
+        var sigImage = getSignatureDataURL();
+        var payload = {
+          cardBgOpacity: clampNum(document.getElementById('card-bg-opacity').value, 0, 1),
+          cardBlurPx: Math.max(0, parseInt(document.getElementById('card-blur').value, 10)),
+          cardBorderOpacity: clampNum(document.getElementById('card-border-opacity').value, 0, 1),
+          avatarBgOpacity: clampNum(document.getElementById('avatar-bg-opacity').value, 0, 1),
+          avatarBlurPx: Math.max(0, parseInt(document.getElementById('avatar-blur').value, 10)),
+          hoverCardFoil: foil,
+          hoverCardSignature: '',
+          hoverCardSignatureImage: sigImage || '',
+          hoverCardStickers: cardStickers.slice(0, 12).map(function (s) {
+          return {
+            id: s.id,
+            x: s.x / PREVIEW_CARD_W,
+            y: s.y / PREVIEW_CARD_H,
+            scale: s.scale != null ? s.scale : 1,
+            rotation: s.rotation != null ? s.rotation : 0,
+            flipH: !!s.flipH,
+            flipV: !!s.flipV
+          };
+        })
+        };
+
+        function parseJsonResponse(r) {
+          return r.text().then(function (text) {
+            var d = null;
+            try { d = text ? JSON.parse(text) : null; } catch (e) { d = null; }
+            return { ok: r.ok, status: r.status, data: d, text: text };
+          });
+        }
+        fetch('/api/hover-card-customization', {
+          method: 'PUT',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(parseJsonResponse)
+          .then(function (result) {
+            if (!result.ok) {
+              var msg = (result.data && result.data.error) ? result.data.error : ('Request failed (' + result.status + ').');
+              showMessage(msg, true);
+              return;
+            }
+            var savedFoil = result.data && result.data.hoverCardFoil;
+            return fetch('/api/hover-card-customization', {
+              method: 'PATCH',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ hoverCardFoil: foil })
+            })
+              .then(parseJsonResponse)
+              .then(function (patchResult) {
+                if (patchResult.ok && patchResult.data && patchResult.data.hoverCardFoil != null && typeof patchResult.data.hoverCardFoil === 'object') {
+                  savedFoil = patchResult.data.hoverCardFoil;
+                }
+                foilConfig = savedFoil || foil;
+                try { setFoilConfigFromOverlay(foilConfig); applyFoilToPreview(); } catch (e) {}
+                showMessage('Hover card customization saved.');
+              })
+              .catch(function (patchErr) {
+                foilConfig = savedFoil || foil;
+                try { setFoilConfigFromOverlay(foilConfig); applyFoilToPreview(); } catch (e) {}
+                showMessage('Hover card customization saved.');
+              });
+          })
+          .catch(function (err) {
+            var msg = (err && err.message) ? err.message : 'Failed to save.';
+            showMessage(msg, true);
+          });
+      });
+
+      (function initHoloOverlay() {
+        var holoOverlay = document.getElementById('holo-overlay');
+        var holoMaskWrap = document.getElementById('holo-mask-wrap');
+        var holoGrad1 = document.getElementById('holo-grad-1');
+        var holoGrad2 = document.getElementById('holo-grad-2');
+        var holoGrad3 = document.getElementById('holo-grad-3');
+        var holoPattern1 = document.getElementById('holo-pattern-1');
+        var holoPattern2 = document.getElementById('holo-pattern-2');
+        var holoPattern3 = document.getElementById('holo-pattern-3');
+        var holoFoilShimmer = document.getElementById('holo-foil-shimmer');
+        var holoReflectHearts = document.getElementById('holo-reflect-hearts');
+        var holoReflectStars = document.getElementById('holo-reflect-stars');
+        var holoReflectPrisms = document.getElementById('holo-reflect-prisms');
+        var conicColors = '#ff0080, #ff8c00, #40e0d0, #9d4edd, #ff0080';
+        function setReflectAngle(el, deg) {
+          if (!el) return;
+          el.style.background = 'conic-gradient(from ' + deg + 'deg at 50% 50%, ' + conicColors + ')';
+        }
+        function setOpacity(el, pct) { if (el) el.style.opacity = String(Math.max(0, Math.min(1, pct / 100))); }
+        function setVisible(el, on) { if (el) el.style.display = on ? '' : 'none'; }
+
+        document.getElementById('holo-overlay-btn').addEventListener('click', function () {
+          if (foilConfig) setFoilConfigFromOverlay(foilConfig);
+          applyOverlayControlsToLayers();
+          if (holoOverlay) { holoOverlay.classList.add('visible'); holoOverlay.setAttribute('aria-hidden', 'false'); }
+        });
+        function applyOverlayControlsToLayers() {
+          var v = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
+          var c = function (id) { var el = document.getElementById(id); return el ? el.checked : false; };
+          setOpacity(holoMaskWrap, parseInt(v('holo-opacity'), 10));
+          setVisible(holoGrad1, c('holo-g1-on')); setOpacity(holoGrad1, parseInt(v('holo-g1-op'), 10));
+          if (holoGrad1) holoGrad1.style.animation = c('holo-spin') ? 'holo-spin 8s linear infinite' : 'none';
+          setVisible(holoGrad2, c('holo-g2-on')); setOpacity(holoGrad2, parseInt(v('holo-g2-op'), 10));
+          setVisible(holoGrad3, c('holo-g3-on')); setOpacity(holoGrad3, parseInt(v('holo-g3-op'), 10));
+          setVisible(holoPattern1, c('holo-p1-on')); setOpacity(holoPattern1, parseInt(v('holo-p1-op'), 10));
+          setVisible(holoPattern2, c('holo-p2-on')); setOpacity(holoPattern2, parseInt(v('holo-p2-op'), 10));
+          setVisible(holoPattern3, c('holo-p3-on')); setOpacity(holoPattern3, parseInt(v('holo-p3-op'), 10));
+          setVisible(holoReflectHearts, c('holo-rh-on')); setOpacity(holoReflectHearts, parseInt(v('holo-rh-op'), 10)); setReflectAngle(holoReflectHearts, parseInt(v('holo-rh-angle'), 10));
+          setVisible(holoReflectStars, c('holo-rs-on')); setOpacity(holoReflectStars, parseInt(v('holo-rs-op'), 10)); setReflectAngle(holoReflectStars, parseInt(v('holo-rs-angle'), 10));
+          setVisible(holoReflectPrisms, c('holo-rp-on')); setOpacity(holoReflectPrisms, parseInt(v('holo-rp-op'), 10)); setReflectAngle(holoReflectPrisms, parseInt(v('holo-rp-angle'), 10));
+          if (holoFoilShimmer) holoFoilShimmer.style.animation = c('holo-shimmer') ? 'holo-shimmer 4s ease-in-out infinite' : 'none';
+          if (holoMaskWrap) holoMaskWrap.className = 'holo-mask-wrap mask-' + (v('holo-mask') || 'none');
+        }
+        document.getElementById('holo-overlay-close').addEventListener('click', function () {
+          if (holoOverlay) { holoOverlay.classList.remove('visible'); holoOverlay.setAttribute('aria-hidden', 'true'); }
+          foilConfig = getFoilConfig();
+          applyFoilToPreview();
+        });
+        if (holoOverlay) holoOverlay.addEventListener('click', function (e) {
+          if (e.target === holoOverlay) {
+            holoOverlay.classList.remove('visible');
+            holoOverlay.setAttribute('aria-hidden', 'true');
+            foilConfig = getFoilConfig();
+            applyFoilToPreview();
+          }
+        });
+        document.getElementById('holo-mask').addEventListener('change', function () {
+          if (holoMaskWrap) holoMaskWrap.className = 'holo-mask-wrap mask-' + this.value;
+        });
+        document.getElementById('holo-opacity').addEventListener('input', function () { setOpacity(holoMaskWrap, parseInt(this.value, 10)); });
+        document.getElementById('holo-g1-on').addEventListener('change', function () { setVisible(holoGrad1, this.checked); });
+        document.getElementById('holo-g1-op').addEventListener('input', function () { setOpacity(holoGrad1, parseInt(this.value, 10)); });
+        document.getElementById('holo-spin').addEventListener('change', function () {
+          if (holoGrad1) holoGrad1.style.animation = this.checked ? 'holo-spin 8s linear infinite' : 'none';
+        });
+        document.getElementById('holo-g2-on').addEventListener('change', function () { setVisible(holoGrad2, this.checked); });
+        document.getElementById('holo-g2-op').addEventListener('input', function () { setOpacity(holoGrad2, parseInt(this.value, 10)); });
+        document.getElementById('holo-g3-on').addEventListener('change', function () { setVisible(holoGrad3, this.checked); });
+        document.getElementById('holo-g3-op').addEventListener('input', function () { setOpacity(holoGrad3, parseInt(this.value, 10)); });
+        document.getElementById('holo-p1-on').addEventListener('change', function () { setVisible(holoPattern1, this.checked); });
+        document.getElementById('holo-p1-op').addEventListener('input', function () { setOpacity(holoPattern1, parseInt(this.value, 10)); });
+        document.getElementById('holo-p2-on').addEventListener('change', function () { setVisible(holoPattern2, this.checked); });
+        document.getElementById('holo-p2-op').addEventListener('input', function () { setOpacity(holoPattern2, parseInt(this.value, 10)); });
+        document.getElementById('holo-p3-on').addEventListener('change', function () { setVisible(holoPattern3, this.checked); });
+        document.getElementById('holo-p3-op').addEventListener('input', function () { setOpacity(holoPattern3, parseInt(this.value, 10)); });
+        document.getElementById('holo-rh-on').addEventListener('change', function () { setVisible(holoReflectHearts, this.checked); });
+        document.getElementById('holo-rh-op').addEventListener('input', function () { setOpacity(holoReflectHearts, parseInt(this.value, 10)); });
+        document.getElementById('holo-rh-angle').addEventListener('input', function () { setReflectAngle(holoReflectHearts, parseInt(this.value, 10)); });
+        document.getElementById('holo-rs-on').addEventListener('change', function () { setVisible(holoReflectStars, this.checked); });
+        document.getElementById('holo-rs-op').addEventListener('input', function () { setOpacity(holoReflectStars, parseInt(this.value, 10)); });
+        document.getElementById('holo-rs-angle').addEventListener('input', function () { setReflectAngle(holoReflectStars, parseInt(this.value, 10)); });
+        document.getElementById('holo-rp-on').addEventListener('change', function () { setVisible(holoReflectPrisms, this.checked); });
+        document.getElementById('holo-rp-op').addEventListener('input', function () { setOpacity(holoReflectPrisms, parseInt(this.value, 10)); });
+        document.getElementById('holo-rp-angle').addEventListener('input', function () { setReflectAngle(holoReflectPrisms, parseInt(this.value, 10)); });
+        document.getElementById('holo-shimmer').addEventListener('change', function () {
+          if (holoFoilShimmer) holoFoilShimmer.style.animation = this.checked ? 'holo-shimmer 4s ease-in-out infinite' : 'none';
+        });
+        setOpacity(holoMaskWrap, parseInt(document.getElementById('holo-opacity').value, 10));
+        setOpacity(holoGrad1, parseInt(document.getElementById('holo-g1-op').value, 10));
+        setOpacity(holoGrad2, parseInt(document.getElementById('holo-g2-op').value, 10));
+        setOpacity(holoGrad3, parseInt(document.getElementById('holo-g3-op').value, 10));
+        setOpacity(holoPattern1, parseInt(document.getElementById('holo-p1-op').value, 10));
+        setOpacity(holoPattern2, parseInt(document.getElementById('holo-p2-op').value, 10));
+        setOpacity(holoPattern3, parseInt(document.getElementById('holo-p3-op').value, 10));
+        setVisible(holoPattern2, false);
+        setVisible(holoPattern3, false);
+        setOpacity(holoReflectHearts, parseInt(document.getElementById('holo-rh-op').value, 10));
+        setOpacity(holoReflectStars, parseInt(document.getElementById('holo-rs-op').value, 10));
+        setOpacity(holoReflectPrisms, parseInt(document.getElementById('holo-rp-op').value, 10));
+        setReflectAngle(holoReflectHearts, parseInt(document.getElementById('holo-rh-angle').value, 10));
+        setReflectAngle(holoReflectStars, parseInt(document.getElementById('holo-rs-angle').value, 10));
+        setReflectAngle(holoReflectPrisms, parseInt(document.getElementById('holo-rp-angle').value, 10));
+      })();
+    })();
+  </script>
+</body>
+</html>

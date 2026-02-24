@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shopping - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 800px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h1 { margin: 0 0 16px 0; font-size: 1.5rem; }
+    p { margin: 0 0 12px 0; color: #374151; }
+    .store-thumb-grid { display: flex; flex-wrap: wrap; gap: 16px; margin: 16px 0; }
+    .store-thumb { display: block; width: 140px; height: 140px; border-radius: 8px; border: 2px solid #e5e7eb; background: linear-gradient(180deg, #e0e7ff 0%, #c7d2fe 100%); box-shadow: 0 2px 4px rgba(0,0,0,0.08); text-decoration: none; color: #1f2937; font-weight: 600; font-size: 14px; text-align: center; padding-top: 36px; box-sizing: border-box; transition: transform 0.2s, box-shadow 0.2s; }
+    .store-thumb:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.12); }
+    .store-thumb.shop-thumb { background: linear-gradient(180deg, #fce4ec 0%, #f9a8d4 100%); }
+    .store-thumb.designer-thumb { background: linear-gradient(180deg, #fce7f3 0%, #f9a8d4 100%); }
+    .store-thumb .icon { font-size: 36px; display: block; margin-bottom: 8px; line-height: 1; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <h1>Shopping</h1>
+    <p>Browse the shop or explore designer brands. Choose an option below.</p>
+
+    <div class="store-thumb-grid">
+      <a href="./store.html" class="store-thumb shop-thumb">
+        <span class="icon">&#128722;</span>
+        Shop
+      </a>
+      <a href="./vintage.html" class="store-thumb" style="background: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%);">
+        <span class="icon">&#128190;</span>
+        Vintage
+      </a>
+      <a href="./gacha.html" class="store-thumb" style="background: linear-gradient(180deg, #e9d5ff 0%, #c4b5fd 100%);">
+        <span class="icon">&#127920;</span>
+        Gacha Machine
+      </a>
+      <a href="./designer-brands.html" class="store-thumb designer-thumb">
+        <span class="icon">&#10024;</span>
+        Designer Brands
+      </a>
+    </div>
+  </div>
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+</body>
+</html>

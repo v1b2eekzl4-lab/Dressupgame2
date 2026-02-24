@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Vintage - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding-top: 76px; overflow: hidden; }
+    #game-area { width: 1100px; max-width: 100%; height: 560px; display: flex; gap: 20px; align-items: flex-start; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.2); margin: auto; overflow: hidden; }
+    #vintage-panel { flex: 1 1 600px; min-width: 0; height: 520px; display: flex; flex-direction: column; overflow: hidden; }
+    #vintage-panel h2 { margin: 0 0 10px; text-align: center; flex-shrink: 0; }
+    #vintage-message { text-align: center; padding: 8px; margin-bottom: 8px; border-radius: 6px; display: none; }
+    #vintage-message.success { background: #d1fae5; color: #065f46; display: block; }
+    #vintage-message.error { background: #fee2e2; color: #991b1b; display: block; }
+    #icon-menu { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+    .menu-icon { width: 44px; height: 44px; cursor: pointer; border: 1px solid #ccc; border-radius: 5px; object-fit: contain; flex-shrink: 0; }
+    .menu-icon:hover { border-color: #78716c; }
+    .menu-icon.selected { border: 2px solid #78716c; box-shadow: 0 0 0 2px rgba(120,113,108,0.3); }
+    .category { display: none; flex-wrap: wrap; gap: 10px; flex: 1 1 0; min-height: 0; overflow-y: auto; align-content: flex-start; }
+    .category.active { display: flex; }
+    .category::-webkit-scrollbar { width: 8px; }
+    .category::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+    .category-nav { display: flex; justify-content: center; gap: 10px; margin-top: 10px; flex-shrink: 0; }
+    .category-nav button { padding: 5px 10px; background: #78716c; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    .category-nav button:disabled { background: #ccc; cursor: not-allowed; }
+    .vintage-item-container { position: relative; display: flex; flex-direction: column; align-items: center; width: 90px; flex-shrink: 0; padding: 4px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fefce8; cursor: pointer; }
+    .vintage-item-container:hover { border-color: #78716c; }
+    .vintage-item-container img.item { width: 70px; height: 70px; object-fit: contain; border-radius: 5px; image-rendering: pixelated; pointer-events: none; }
+    .vintage-item-container.item-body img.item { object-fit: cover; object-position: top center; }
+    .vintage-item-seller { font-size: 10px; color: #78716c; margin-top: 2px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vintage-item-container .btn-get { margin-top: 4px; padding: 4px 10px; background: #78716c; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 11px; }
+    .vintage-item-container .btn-get:hover { background: #57534e; }
+    .vintage-loading, .vintage-empty { padding: 24px; text-align: center; color: #78716c; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div id="game-area">
+    <div id="vintage-panel">
+      <h2>Vintage</h2>
+      <p style="font-size: 12px; color: #78716c; margin: 0 0 8px; text-align: center;">Items sold by other players. Click Get to add to your wardrobe.</p>
+      <div id="vintage-message"></div>
+      <div id="icon-menu"></div>
+      <div id="all" class="category active"></div>
+      <div id="body" class="category"></div>
+      <div id="shirt" class="category"></div>
+      <div id="pants" class="category"></div>
+      <div id="skirt" class="category"></div>
+      <div id="dress" class="category"></div>
+      <div id="jacket" class="category"></div>
+      <div id="shoes" class="category"></div>
+      <div id="socks" class="category"></div>
+      <div id="hat" class="category"></div>
+      <div id="jewelry" class="category"></div>
+      <div id="other" class="category"></div>
+      <div id="hair" class="category"></div>
+    </div>
+  </div>
+  <script src="/js/slots.js"></script>
+  <script>
+    (function () {
+      const itemsPerPage = 24;
+      let vintageItems = [];
+      let currentPages = {};
+      const categories = ['all', 'body', 'shirt', 'pants', 'skirt', 'dress', 'jacket', 'shoes', 'socks', 'hat', 'jewelry', 'other', 'hair'];
+      const slotToCategory = {
+        'body-slot': 'body', 'shirt-slot': 'shirt', 'pants-slot': 'pants', 'skirt-slot': 'skirt', 'dress-slot': 'dress',
+        'jacket-slot': 'jacket', 'shoes-slot': 'shoes', 'socks-slot': 'socks', 'hat-slot': 'hat', 'jewelry-slot': 'jewelry',
+        'other-slot': 'other', 'hair-slot': 'hair'
+      };
+      const categoryLabels = { all: 'All', body: 'Body', shirt: 'Shirt', pants: 'Pants', skirt: 'Skirt', dress: 'Dress', jacket: 'Jacket', shoes: 'Shoes', socks: 'Socks', hat: 'Hat', jewelry: 'Jewelry', other: 'Other', hair: 'Hair' };
+
+      function showMsg(text, isError) {
+        const el = document.getElementById('vintage-message');
+        el.textContent = text;
+        el.className = isError ? 'error' : 'success';
+        el.style.display = 'block';
+      }
+      function normalizeSlot(slotId) {
+        if (!slotId) return 'other-slot';
+        return String(slotId).endsWith('-slot') ? slotId : slotId + '-slot';
+      }
+      const categoryIcons = { all: '/Uploads/other-icon.png', body: '/Uploads/body-icon.png', shirt: '/Uploads/shirt-icon.png', pants: '/Uploads/pants-icon.png', skirt: '/Uploads/skirt-icon.png', dress: '/Uploads/dress-icon.png', jacket: '/Uploads/jacket-icon.png', shoes: '/Uploads/shoes-icon.png', socks: '/Uploads/socks-icon.png', hat: '/Uploads/hat-icon.png', jewelry: '/Uploads/jewelry-icon.png', other: '/Uploads/other-icon.png', hair: '/Uploads/hair-icon.png' };
+      function buildIconMenu() {
+        const menu = document.getElementById('icon-menu');
+        if (!menu) return;
+        menu.innerHTML = '';
+        categories.forEach(cat => {
+          const btn = document.createElement('img');
+          btn.role = 'button';
+          btn.tabIndex = 0;
+          btn.className = 'menu-icon' + (cat === 'all' ? ' selected' : '');
+          btn.src = categoryIcons[cat] || '/Uploads/other-icon.png';
+          btn.alt = categoryLabels[cat] || cat;
+          btn.title = categoryLabels[cat] || cat;
+          btn.onerror = function () { this.style.display = 'none'; };
+          function go() {
+            menu.querySelectorAll('.menu-icon').forEach(m => m.classList.remove('selected'));
+            btn.classList.add('selected');
+            document.querySelectorAll('.category').forEach(c => c.classList.remove('active'));
+            const div = document.getElementById(cat);
+            if (div) div.classList.add('active');
+            currentPages[cat] = currentPages[cat] || 1;
+            renderCategory(cat);
+          }
+          btn.addEventListener('click', go);
+          btn.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+          menu.appendChild(btn);
+        });
+      }
+      function renderCategory(category) {
+        const div = document.getElementById(category);
+        if (!div) return;
+        const slotMatch = category === 'all' ? null : (item) => slotToCategory[normalizeSlot(item.slotId)] === category;
+        const raw = category === 'all' ? vintageItems : vintageItems.filter(slotMatch);
+        const page = currentPages[category] || 1;
+        const start = (page - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const chunk = raw.slice(start, end);
+        div.innerHTML = '';
+        if (raw.length === 0) {
+          div.innerHTML = '<div class="vintage-empty">' + (category === 'all' ? 'No items in Vintage yet. Sell items from your <a href="./wardrobe.html">Wardrobe</a> to list them here.' : 'No items in this category.') + '</div>';
+          return;
+        }
+        chunk.forEach(item => {
+          const container = document.createElement('div');
+          container.className = 'vintage-item-container';
+          if (normalizeSlot(item.slotId) === 'body-slot') container.classList.add('item-body');
+          const img = document.createElement('img');
+          img.className = 'item';
+          img.src = '/Uploads/' + item.filename;
+          img.alt = item.name || item.filename;
+          img.onerror = () => { img.src = 'https://via.placeholder.com/70?text=?'; };
+          container.appendChild(img);
+          if (item.sellerName) {
+            const seller = document.createElement('div');
+            seller.className = 'vintage-item-seller';
+            seller.textContent = 'by ' + item.sellerName;
+            seller.title = 'Sold by ' + item.sellerName;
+            container.appendChild(seller);
+          }
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn-get';
+          btn.textContent = 'Get';
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const listingId = item.listingId;
+            if (!listingId) return;
+            try {
+              const r = await fetch('/api/vintage/purchase/' + encodeURIComponent(listingId), { method: 'POST', credentials: 'same-origin' });
+              const data = await r.json().catch(() => ({}));
+              if (!r.ok) {
+                showMsg(data.error || 'Could not get item', true);
+                return;
+              }
+              showMsg('Added to your wardrobe!');
+              vintageItems = vintageItems.filter(i => i.listingId !== listingId);
+              categories.forEach(c => renderCategory(c));
+            } catch (err) {
+              showMsg('Error: ' + (err && err.message ? err.message : ''), true);
+            }
+          });
+          container.appendChild(btn);
+          div.appendChild(container);
+        });
+        if (raw.length > itemsPerPage) {
+          const nav = document.createElement('div');
+          nav.className = 'category-nav';
+          const prev = document.createElement('button');
+          prev.textContent = 'Previous';
+          prev.disabled = page === 1;
+          prev.addEventListener('click', () => { currentPages[category] = page - 1; renderCategory(category); });
+          const next = document.createElement('button');
+          next.textContent = 'Next';
+          next.disabled = end >= raw.length;
+          next.addEventListener('click', () => { currentPages[category] = page + 1; renderCategory(category); });
+          nav.appendChild(prev);
+          nav.appendChild(next);
+          div.appendChild(nav);
+        }
+      }
+      async function loadVintage() {
+        const allDiv = document.getElementById('all');
+        if (allDiv) allDiv.innerHTML = '<div class="vintage-loading">Loading Vintage…</div>';
+        try {
+          const r = await fetch('/api/vintage', { credentials: 'same-origin' });
+          if (!r.ok) throw new Error('Failed to load (status ' + r.status + ')');
+          vintageItems = await r.json();
+          if (!Array.isArray(vintageItems)) vintageItems = [];
+          categories.forEach(c => { currentPages[c] = 1; });
+          buildIconMenu();
+          categories.forEach(c => renderCategory(c));
+        } catch (e) {
+          if (allDiv) allDiv.innerHTML = '<div class="vintage-empty">Could not load Vintage. Open this page from the server (e.g. <strong>http://localhost:' + (window.location.port || '3000') + '/vintage.html</strong>) and ensure the server is running.</div>';
+        }
+      }
+      loadVintage();
+    })();
+  </script>
+  <script src="/js/header.js"></script>
+</body>
+</html>

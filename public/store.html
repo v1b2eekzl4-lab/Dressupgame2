@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Shopping - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding-top: 76px; overflow: hidden; }
+    #game-area { width: 1300px; height: 600px; display: flex; gap: 20px; align-items: flex-start; padding: 20px; background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.2); margin: auto; overflow: hidden; }
+    #character-area { display: flex; flex-direction: row; align-items: flex-start; gap: 8px; width: auto; max-width: 320px; flex-shrink: 0; margin-top: 94px; }
+    .character-controls-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+    #character { position: relative; width: 250px; height: 350px; border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 5px; background-color: rgba(255, 255, 255, 0.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); background-image: radial-gradient(circle, rgba(0, 0, 0, 0.06) 1px, transparent 1px); background-size: 10px 10px; overflow: hidden; transform: translateZ(0); backface-visibility: hidden; }
+    #fixed-base, #character-base { position: absolute; width: 250px; height: 350px; top: 50%; left: 50%; transform: translate(-50%, -50%); image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; image-rendering: pixelated; image-rendering: -webkit-optimize-contrast; object-fit: none; }
+    #fixed-base { z-index: 0; pointer-events: none; }
+    #character-base { z-index: 1; pointer-events: none; }
+    #character-backgrounds { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+    #character-backgrounds img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; image-rendering: pixelated; image-rendering: -webkit-optimize-contrast; object-fit: none; max-width: 250px; max-height: 350px; }
+    .slot img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; image-rendering: pixelated; image-rendering: -webkit-optimize-contrast; object-fit: none; max-width: 250px; max-height: 350px; }
+    #store-layering-controls { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px; width: 250px; justify-content: center; }
+    #store-layering-controls button { padding: 5px 10px; background: var(--btn-pink-gradient); color: #fff; border: var(--btn-pink-border); border-radius: 5px; cursor: pointer; font-size: 12px; box-shadow: var(--btn-pink-shadow); }
+    #store-layering-controls button:hover { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); box-shadow: 0 3px 8px rgba(244,143,177,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
+    .equipped-items-bar { width: 56px; max-height: 350px; padding: 8px; border: 2px solid #ccc; border-radius: 5px; background: #f9f9f9; display: flex; flex-direction: column; align-items: center; gap: 5px; overflow: hidden; flex-shrink: 0; }
+    .equipped-visibility-toggle { flex-shrink: 0; width: 28px; height: 28px; padding: 2px; border: none; background: transparent; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+    .equipped-visibility-toggle:hover { background: #e5e7eb; }
+    .equipped-visibility-toggle svg { width: 20px; height: 20px; }
+    #store-equipped-items { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    #character.equipped-items-hidden .slot { visibility: hidden; }
+    #store-equipped-items .equipped-item-container { position: relative; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; cursor: grab; }
+    #store-equipped-items .equipped-item-container .item-visibility-btn { position: absolute; top: 0; right: 0; width: 18px; height: 18px; padding: 0; border: none; background: rgba(255,255,255,0.9); border-radius: 3px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 2; box-shadow: 0 0 0 1px rgba(0,0,0,0.2); }
+    #store-equipped-items .equipped-item-container .item-visibility-btn:hover { background: #fff; }
+    #store-equipped-items .equipped-item-container .item-visibility-btn svg { width: 12px; height: 12px; }
+    #store-equipped-items .equipped-item-container:active { cursor: grabbing; }
+    #store-equipped-items .equipped-item-container.store-drag-over { opacity: 0.7; }
+    #store-equipped-items .equipped-item-container.store-drop-target { border: 2px dashed #16a34a; border-radius: 6px; }
+    #store-equipped-items img { max-width: 100%; max-height: 100%; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; image-rendering: pixelated; image-rendering: -webkit-optimize-contrast; border: 1px solid #ccc; border-radius: 5px; cursor: pointer; object-fit: contain; pointer-events: none; }
+    #store-equipped-items .equipped-item-container.body-slot img { object-fit: cover; object-position: top center; }
+    #store-equipped-items img.selected { border: 2px solid #6b7280; }
+    #store-panel { flex: 1 1 600px; min-width: 600px; height: 560px; max-height: 560px; display: flex; flex-direction: column; overflow: hidden; }
+    #store-panel h2 { margin: 0 0 10px; text-align: center; flex-shrink: 0; }
+    #store-panel #icon-menu { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: nowrap; flex-shrink: 0; overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; }
+    #store-panel #icon-menu::-webkit-scrollbar { height: 6px; }
+    #store-panel #icon-menu::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+    .menu-icon { width: 50px; height: 50px; cursor: pointer; border: 1px solid #ccc; border-radius: 5px; image-rendering: pixelated; }
+    .menu-icon:hover { border-color: #6b7280; }
+    .menu-icon.selected { border: 2px solid #ec4899; box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.3); }
+    .category { display: none; flex-wrap: wrap; gap: 10px; flex: 1 1 0; min-height: 0; overflow-y: auto; overflow-x: hidden; align-content: flex-start; }
+    .category.active { display: flex; }
+    .category::-webkit-scrollbar { width: 8px; }
+    .category::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+    .category::-webkit-scrollbar-track { background: #f0f0f0; }
+    .category-nav { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+    .category-nav button { padding: 5px 10px; background: var(--btn-pink-gradient); color: #fff; border: var(--btn-pink-border); border-radius: 5px; cursor: pointer; box-shadow: var(--btn-pink-shadow); }
+    .category-nav button:hover:not(:disabled) { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); box-shadow: 0 3px 8px rgba(244,143,177,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
+    .category-nav button:disabled { background: #ccc; cursor: not-allowed; border: 1px solid #d1d5db; box-shadow: none; }
+    .store-item-container { position: relative; display: flex; flex-direction: column; align-items: center; width: 90px; flex-shrink: 0; padding: 4px; border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 8px; background-color: rgba(255, 255, 255, 0.55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); background-image: radial-gradient(circle, rgba(0, 0, 0, 0.06) 1px, transparent 1px); background-size: 10px 10px; cursor: pointer; }
+    .store-heart-icon { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; cursor: pointer; image-rendering: pixelated; z-index: 10; }
+    .store-star-icon { position: absolute; top: 2px; left: 26px; width: 18px; height: 18px; cursor: pointer; z-index: 10; }
+    .store-item-container .item-info-btn { position: absolute; top: 2px; left: 2px; z-index: 10; }
+    .store-item-container:hover { border-color: #6b7280; }
+    .store-item-container img.item { width: 70px; height: 70px; object-fit: contain; border-radius: 5px; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; image-rendering: pixelated; image-rendering: -webkit-optimize-contrast; pointer-events: none; }
+    .store-item-container.item-body img.item { object-fit: cover; object-position: top center; }
+    .store-item-price { font-size: 12px; font-weight: 600; color: #374151; margin: 4px 0; }
+    .store-item-container .btn-buy { padding: 4px 10px; background: var(--btn-pink-gradient); color: #fff; border: var(--btn-pink-border); border-radius: 5px; cursor: pointer; font-size: 11px; box-shadow: var(--btn-pink-shadow); }
+    .store-item-container .btn-buy:hover:not(:disabled) { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); box-shadow: 0 3px 8px rgba(244,143,177,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
+    .store-item-container .btn-buy:disabled { background: #9ca3af; cursor: not-allowed; border: 1px solid #d1d5db; box-shadow: none; }
+    .store-item-container .owned { font-size: 11px; color: #059669; font-weight: 600; }
+    #store-message { text-align: center; padding: 8px; margin-bottom: 8px; border-radius: 6px; display: none; }
+    #store-message.success { background: #d1fae5; color: #065f46; display: block; }
+    #store-message.error { background: #fee2e2; color: #991b1b; display: block; }
+    .checkout-btn { padding: 8px 16px; background: var(--btn-pink-gradient); color: #fff; border: var(--btn-pink-border); border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 8px; box-shadow: var(--btn-pink-shadow); }
+    .checkout-btn:hover:not(:disabled) { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); box-shadow: 0 3px 8px rgba(244,143,177,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
+    .checkout-btn:disabled { background: #9ca3af; cursor: not-allowed; border: 1px solid #d1d5db; box-shadow: none; }
+    #checkout-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+    #checkout-modal.open { display: flex; }
+    .checkout-modal-inner { background: white; border-radius: 12px; max-width: 420px; width: 100%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+    .checkout-modal-inner h2 { margin: 0; padding: 16px; border-bottom: 1px solid #e5e7eb; font-size: 1.25rem; }
+    .checkout-list { padding: 12px; overflow-y: auto; flex: 1; }
+    .checkout-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
+    .checkout-row:last-child { border-bottom: none; }
+    .checkout-row input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+    .checkout-row img { width: 48px; height: 48px; object-fit: contain; image-rendering: pixelated; border-radius: 6px; border: 1px solid #e5e7eb; }
+    .checkout-row .name { flex: 1; font-size: 14px; }
+    .checkout-row .price { font-weight: 600; color: #374151; }
+    .checkout-total { padding: 12px 16px; border-top: 2px solid #e5e7eb; font-weight: 700; font-size: 1.1rem; display: flex; justify-content: space-between; }
+    .checkout-actions { padding: 12px 16px; display: flex; gap: 10px; justify-content: flex-end; }
+    .checkout-actions button { padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .checkout-actions .btn-cancel { background: #f3f4f6; border: 1px solid #d1d5db; }
+    .checkout-actions .btn-purchase { background: var(--btn-pink-gradient); color: #fff; border: var(--btn-pink-border); box-shadow: var(--btn-pink-shadow); }
+    .checkout-actions .btn-purchase:hover:not(:disabled) { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); box-shadow: 0 3px 8px rgba(244,143,177,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
+    .checkout-actions .btn-purchase:disabled { background: #9ca3af; cursor: not-allowed; border: 1px solid #d1d5db; box-shadow: none; }
+    .checkout-empty { padding: 24px; text-align: center; color: #6b7280; }
+    .store-loading, .store-empty { padding: 24px; text-align: center; color: #6b7280; font-size: 14px; }
+    .store-loading { font-style: italic; }
+    .store-swatch-dots { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 4px; opacity: 0.85; transition: opacity 0.15s ease; }
+    .store-item-container:hover .store-swatch-dots { opacity: 1; }
+    .store-swatch-dot { width: 12px; height: 12px; border-radius: 2px; border: 1px solid #666; cursor: pointer; flex-shrink: 0; transition: border-color 0.15s, box-shadow 0.15s; }
+.store-swatch-dot:hover { border-color: #ec4899; }
+.store-swatch-dot.selected { border: 2px solid #ec4899; box-shadow: 0 0 0 1px #fff; }
+    #store-debug-btn.active { background: #dc2626; border-color: #b91c1c; }
+    .store-debug-mode .store-item-container:not(.store-set-card) { width: 110px; min-width: 110px; }
+    .store-debug-panel { margin-top: 6px; padding: 6px; background: rgba(0,0,0,0.08); border-radius: 6px; font-size: 10px; display: flex; flex-direction: column; gap: 4px; }
+    .store-debug-panel select { font-size: 10px; padding: 2px 4px; width: 100%; max-width: 80px; }
+    .store-debug-panel .store-debug-coords { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+    .store-debug-panel .store-debug-coords input { width: 36px; font-size: 10px; padding: 2px 4px; }
+    .store-debug-panel .store-debug-save { padding: 2px 8px; font-size: 10px; background: #16a34a; color: #fff; border: 1px solid #15803d; border-radius: 4px; cursor: pointer; align-self: flex-start; }
+    .store-debug-panel .store-debug-save:hover { background: #15803d; }
+    .store-set-preview {
+      position: relative;
+      width: 100px;
+      height: 140px;
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 5px;
+    }
+    .store-set-preview .store-set-preview-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .store-set-preview .store-set-preview-bg img,
+    .store-set-preview .store-set-preview-base,
+    .store-set-preview .store-set-preview-layer {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100px;
+      height: 140px;
+      transform: translate(-50%, -50%);
+      image-rendering: pixelated;
+      object-fit: none;
+      object-position: center center;
+    }
+    .store-set-preview .store-set-preview-base { z-index: 1; pointer-events: none; }
+    .store-set-preview .store-set-preview-layers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+    .store-set-preview .store-set-preview-layer.body-slot { object-fit: cover; object-position: top center; }
+    .store-search-wrap { display: flex; align-items: center; margin-bottom: 10px; gap: 8px; flex-shrink: 0; min-height: 36px; cursor: pointer; position: relative; }
+    .store-search-glass { width: 36px; height: 36px; padding: 0; border: 1px solid #d1d5db; border-radius: 8px; background: rgba(255,255,255,0.85); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #4b5563; pointer-events: none; }
+    .store-search-wrap:hover .store-search-glass { background: rgba(255,255,255,1); border-color: #9ca3af; color: #111; }
+    .store-search-input { width: 0; max-width: 0; padding: 0; margin: 0; border: none; border-radius: 8px; font-size: 14px; opacity: 0; visibility: hidden; transition: width 0.2s ease, max-width 0.2s ease, padding 0.2s ease, opacity 0.2s ease, visibility 0.2s; overflow: hidden; }
+    .store-search-wrap.expanded .store-search-input { width: 100%; max-width: 220px; padding: 8px 12px; margin: 0; border: 1px solid #d1d5db; opacity: 1; visibility: visible; }
+    .store-search-wrap.expanded .store-search-glass { border-color: #f9a8d4; background: #fce4ec; color: #be185d; }
+    #full-set .store-item-container {
+      width: 90px;
+      min-width: 90px;
+    }
+    #full-set .store-item-container.store-set-card {
+      width: 100px;
+      min-width: 100px;
+    }
+    #full-set .store-set-card img.item {
+      width: 100px;
+      height: 140px;
+      object-fit: contain;
+      object-position: center center;
+    }
+    </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div id="item-info-tooltip" class="item-info-tooltip" aria-hidden="true"></div>
+  <div id="game-area">
+    <div id="character-area">
+      <div class="equipped-items-bar">
+        <button type="button" class="equipped-visibility-toggle" id="store-equipped-visibility-toggle" aria-label="Hide equipped items" title="Hide equipped items">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+        <div id="store-equipped-items"></div>
+      </div>
+      <div class="character-controls-wrap">
+        <div id="character">
+          <div id="character-backgrounds"></div>
+          <img src="/Uploads/character.png" id="fixed-base" alt="Character Base">
+          <img src="/Uploads/character.png" id="character-base" alt="Character Base">
+          <div id="body-slot" class="slot"></div>
+          <div id="shirt-slot" class="slot"></div>
+          <div id="pants-slot" class="slot"></div>
+          <div id="skirt-slot" class="slot"></div>
+          <div id="dress-slot" class="slot"></div>
+          <div id="jacket-slot" class="slot"></div>
+          <div id="shoes-slot" class="slot"></div>
+          <div id="hat-slot" class="slot"></div>
+          <div id="makeup-slot" class="slot"></div>
+          <div id="jewelry-slot" class="slot"></div>
+          <div id="other-slot" class="slot"></div>
+          <div id="hair-slot" class="slot"></div>
+          <div id="socks-slot" class="slot"></div>
+        </div>
+        <div id="store-layering-controls">
+          <button type="button" id="store-move-up">Up</button>
+          <button type="button" id="store-move-down">Down</button>
+          <button type="button" id="store-remove-item">Remove</button>
+          <button type="button" id="store-toggle-background-btn" style="display: none;">Background: On</button>
+          <button type="button" id="store-reset-outfit">Reset</button>
+        </div>
+        <button type="button" id="store-checkout-btn" class="checkout-btn">Check out</button>
+      </div>
+    </div>
+    <div id="store-panel">
+      <h2>Shopping</h2>
+      <div id="store-server-hint" style="display:none;margin-bottom:8px;padding:8px;background:#fef3c7;border-radius:6px;font-size:12px;color:#92400e;">
+        Open this page from the server so the catalog loads: <strong>http://localhost:3000/store.html</strong>
+      </div>
+      <div id="store-message"></div>
+      <div id="icon-menu">
+        <img src="/Uploads/body-icon.png" class="menu-icon" id="body-icon" alt="Body" role="button">
+        <img src="/Uploads/shirt-icon.png" class="menu-icon" data-categories="shirt" alt="Shirt" role="button">
+        <img src="/Uploads/pants-icon.png" class="menu-icon" data-categories="pants" alt="Pants" role="button">
+        <img src="/Uploads/skirt-icon.png" class="menu-icon" data-categories="skirt" alt="Skirt" role="button">
+        <img src="/Uploads/dress-icon.png" class="menu-icon" data-categories="dress" alt="Dress" role="button">
+        <img src="/Uploads/jacket-icon.png" class="menu-icon" data-categories="jacket" alt="Jacket" role="button">
+        <img src="/Uploads/shoes-icon.png" class="menu-icon" data-categories="shoes" alt="Shoes" role="button">
+        <img src="/Uploads/socks-icon.png" class="menu-icon" data-categories="socks" alt="Socks" role="button">
+        <img src="/Uploads/hat-icon.png" class="menu-icon" data-categories="hat" alt="Hat" role="button">
+        <img src="/Uploads/other-icon.png" class="menu-icon" id="other-icon" alt="Other" role="button">
+        <img src="/Uploads/hair-icon.png" class="menu-icon" data-categories="hair" alt="Hair" role="button">
+        <img src="/Uploads/makeup-icon.png" class="menu-icon" data-categories="makeup" alt="Makeup" role="button">
+        <img src="/Uploads/full-sets-icon.png" class="menu-icon" id="full-sets-icon" alt="Full Sets" role="button">
+        <img src="/Uploads/heart-icon.png" class="menu-icon" id="store-heart-icon" data-categories="favorites" alt="Favorites" role="button" aria-label="Favorites">
+      </div>
+      <div id="store-search-wrap" class="store-search-wrap" title="Hover to search by name or tags">
+        <span class="store-search-glass" aria-hidden="true">
+          <svg class="store-search-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </span>
+        <input type="text" id="store-search-input" class="store-search-input" placeholder="Search by name or tags…" aria-label="Search store by name or tags" autocomplete="off">
+      </div>
+      <div id="store-debug-bar" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-shrink:0;">
+        <button type="button" id="store-debug-btn" style="padding:4px 10px;background:#6b7280;color:#fff;border:1px solid #4b5563;border-radius:5px;cursor:pointer;font-size:12px;">Debug</button>
+      </div>
+      <div id="all" class="category"></div>
+      <div id="body" class="category"></div>
+      <div id="shirt" class="category"></div>
+      <div id="pants" class="category"></div>
+      <div id="skirt" class="category"></div>
+      <div id="dress" class="category"></div>
+      <div id="jacket" class="category"></div>
+      <div id="shoes" class="category"></div>
+      <div id="socks" class="category"></div>
+      <div id="hat" class="category"></div>
+      <div id="jewelry" class="category"></div>
+      <div id="other" class="category"></div>
+      <div id="hair" class="category"></div>
+      <div id="makeup" class="category"></div>
+      <div id="full-set" class="category"></div>
+      <div id="favorites" class="category"></div>
+    </div>
+  </div>
+
+  <!-- Checkout modal -->
+  <div id="checkout-modal">
+    <div class="checkout-modal-inner">
+      <h2>Check out</h2>
+      <div id="checkout-list" class="checkout-list"></div>
+      <div id="checkout-total" class="checkout-total" style="display: none;"></div>
+      <div id="checkout-actions" class="checkout-actions" style="display: none;">
+        <button type="button" class="btn-cancel" id="checkout-cancel">Cancel</button>
+        <button type="button" class="btn-purchase" id="checkout-purchase">Purchase selected</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/slots.js" defer></script>
+  <script>
+    const DEFAULT_PRICE = 100;
+    let storeItems = [];
+    let purchased = [];
+    let currency = 0;
+    let currency2 = 0;
+    let currency3 = 0;
+    let activeCategory = 'body';
+    const itemsPerPage = 20;
+    let currentPages = {};
+    const categories = ['all', 'favorites', 'full-set', 'body', 'shirt', 'pants', 'skirt', 'dress', 'jacket', 'shoes', 'socks', 'hat', 'jewelry', 'other', 'hair', 'makeup'];
+    let storeSearchQuery = '';
+    let storeDebugMode = false;
+    const STORE_DEBUG_SLOTS = [
+      { value: 'body-slot', label: 'Body' },
+      { value: 'shirt-slot', label: 'Shirt' },
+      { value: 'pants-slot', label: 'Pants' },
+      { value: 'skirt-slot', label: 'Skirt' },
+      { value: 'dress-slot', label: 'Dress' },
+      { value: 'jacket-slot', label: 'Jacket' },
+      { value: 'shoes-slot', label: 'Shoes' },
+      { value: 'socks-slot', label: 'Socks' },
+      { value: 'hat-slot', label: 'Hat' },
+      { value: 'makeup-slot', label: 'Makeup' },
+      { value: 'jewelry-slot', label: 'Jewelry' },
+      { value: 'other-slot', label: 'Other' },
+      { value: 'hair-slot', label: 'Hair' }
+    ];
+    function storeItemMatchesSearch(item, q) {
+      if (!q || !item) return true;
+      const lower = (q || '').toLowerCase();
+      const s = (v) => (v || '').toLowerCase();
+      if (s(item.id).includes(lower) || s(item.name).includes(lower) || s(item.designer).includes(lower) || s(item.filename).includes(lower)) return true;
+      if (Array.isArray(item.tags)) {
+        for (let i = 0; i < item.tags.length; i++) {
+          if (typeof item.tags[i] === 'string' && s(item.tags[i]).includes(lower)) return true;
+        }
+      }
+      return false;
+    }
+    let storePreviewItems = {};
+    let selectedStoreItemId = null;
+    let wishlistItems = [];
+    let wishlistSets = [];
+    /** Order of item ids in the strip (first = left = on top). Controls layering. */
+    let equippedOrder = [];
+    /** When true, strip order is user-defined (Up/Down/Drag); otherwise hierarchy + most recent on top. */
+    let userHasReordered = false;
+    /** When false, equipped items are hidden on the character (eye toggle). */
+    let storeEquippedItemsVisible = true;
+
+    function applyPixelPerfectSize(img, maxW, maxH) {
+      maxW = maxW || 250; maxH = maxH || 350;
+      var nw = img.naturalWidth, nh = img.naturalHeight;
+      if (!nw || !nh) return;
+      var scale = Math.min(1, maxW / nw, maxH / nh);
+      if (scale < 1) scale = 1 / Math.ceil(1 / scale);
+      var w = Math.round(nw * scale), h = Math.round(nh * scale);
+      if (w % 2 !== 0) w++; if (h % 2 !== 0) h++;
+      img.style.width = w + 'px';
+      img.style.height = h + 'px';
+    }
+    function hookPixelPerfect(img, maxW, maxH) {
+      img.addEventListener('load', function () { applyPixelPerfectSize(img, maxW, maxH); });
+      if (img.complete) applyPixelPerfectSize(img, maxW, maxH);
+    }
+    (function () {
+      var base = document.getElementById('character-base');
+      var fixed = document.getElementById('fixed-base');
+      if (base) hookPixelPerfect(base);
+      if (fixed) hookPixelPerfect(fixed);
+    })();
+
+    function showStoreMsg(text, isError) {
+      const el = document.getElementById('store-message');
+      el.textContent = text;
+      el.className = isError ? 'error' : 'success';
+      el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 3000);
+    }
+
+    function getItemPrice(item) {
+      if (item.price != null && !isNaN(Number(item.price))) return Number(item.price);
+      return DEFAULT_PRICE;
+    }
+
+    const selectedVariantByRoot = {};
+    function getSetId(item) {
+      if (!item || !Array.isArray(item.tags)) return null;
+      const tag = item.tags.find(t => typeof t === 'string' && t.startsWith('set-id:'));
+      return tag ? tag.replace('set-id:', '').trim() : null;
+    }
+    function getSetName(item) {
+      if (!item || !Array.isArray(item.tags)) return null;
+      const tag = item.tags.find(t => typeof t === 'string' && t.startsWith('set-name:'));
+      return tag ? tag.replace('set-name:', '').trim() : null;
+    }
+    function getSetGroupKey(item) {
+      const sid = getSetId(item);
+      if (sid && sid !== 'DefaultSet') return { id: sid, name: getSetName(item) || sid };
+      if (!item || !Array.isArray(item.tags)) return null;
+      const setTag = item.tags.find(t => typeof t === 'string' && t.startsWith('set:'));
+      if (setTag) {
+        const name = setTag.replace('set:', '').trim();
+        if (name === 'DefaultSet') return null;
+        return { id: 'tag_' + name, name: name };
+      }
+      return null;
+    }
+    function getBrandFromItem(item) {
+      if (!item || !Array.isArray(item.tags)) return '';
+      const t = item.tags.find(x => typeof x === 'string' && x.startsWith('set-brand:'));
+      return t ? t.replace('set-brand:', '').trim() : '';
+    }
+    function getSetItemsFromAll(allItems, setKey) {
+      if (!setKey || !Array.isArray(allItems)) return [];
+      return allItems.filter(i => { const k = getSetGroupKey(i); return k && k.id === setKey.id; });
+    }
+    function getSetsFromStore() {
+      const bySet = {};
+      storeItems.forEach(item => {
+        const key = getSetGroupKey(item);
+        if (key) {
+          if (!bySet[key.id]) bySet[key.id] = { id: key.id, name: key.name, items: [] };
+          bySet[key.id].items.push(item);
+        }
+      });
+      return Object.values(bySet).filter(s => s.items.length >= 2);
+    }
+    function hasSetPreviewHidden(item) {
+      if (!item || !Array.isArray(item.tags)) return false;
+      return item.tags.some(function(t) { return t === 'set-preview-hidden'; });
+    }
+    function getSetPreviewZ(item) {
+      if (!item || !Array.isArray(item.tags)) return null;
+      var tag = item.tags.find(function(t) { return typeof t === 'string' && t.indexOf('set-preview-z:') === 0; });
+      if (!tag) return null;
+      var n = parseInt(tag.replace('set-preview-z:', '').trim(), 10);
+      return isNaN(n) ? null : n;
+    }
+    function getFlatItemsFromSet(setItems) {
+      const SLOT_LAYER_ORDER = window.SLOT_LAYER_ORDER || { 'body-slot': 0, 'pants-slot': 1, 'skirt-slot': 2, 'dress-slot': 3, 'shirt-slot': 4, 'jacket-slot': 5, 'socks-slot': 6, 'shoes-slot': 7, 'hat-slot': 8, 'makeup-slot': 9, 'jewelry-slot': 10, 'hair-slot': 11, 'other-slot': 12 };
+      const backgrounds = [];
+      const layers = [];
+      const visible = (setItems || []).filter(function(item) { return !hasSetPreviewHidden(item); });
+      visible.forEach(item => {
+        if (item.background && item.background.filename) {
+          backgrounds.push({
+            src: '/Uploads/' + item.background.filename,
+            x: item.background.defaultX != null ? item.background.defaultX : 0,
+            y: item.background.defaultY != null ? item.background.defaultY : 0,
+            zIndex: item.background.defaultZ != null ? item.background.defaultZ : 0
+          });
+        }
+        const slotId = item.slotId || 'other-slot';
+        const slotOrder = SLOT_LAYER_ORDER[slotId] != null ? SLOT_LAYER_ORDER[slotId] : 12;
+        const customZ = getSetPreviewZ(item);
+        const baseZ = customZ != null ? customZ : slotOrder * 100;
+        if (item.bundleParts && Array.isArray(item.bundleParts) && item.bundleParts.length > 0) {
+          item.bundleParts.forEach((part, idx) => {
+            layers.push({
+              src: '/Uploads/' + (part.filename || ''),
+              x: part.defaultX != null ? part.defaultX : 0,
+              y: part.defaultY != null ? part.defaultY : 0,
+              zIndex: part.defaultZ != null ? part.defaultZ : baseZ + idx,
+              slotId: slotId
+            });
+          });
+        } else {
+          const coordItem = getCoordItem(item, visible);
+          layers.push({
+            src: '/Uploads/' + (item.filename || ''),
+            x: coordItem.defaultX != null ? coordItem.defaultX : 0,
+            y: coordItem.defaultY != null ? coordItem.defaultY : 0,
+            zIndex: coordItem.defaultZ != null ? coordItem.defaultZ : baseZ,
+            slotId: slotId
+          });
+        }
+      });
+      backgrounds.sort((a, b) => a.zIndex - b.zIndex);
+      layers.sort((a, b) => a.zIndex - b.zIndex);
+      const flat = [{ src: '/Uploads/character.png', x: 0, y: 0, slotId: 'body-slot', zIndex: -1 }];
+      backgrounds.forEach(b => flat.push({ ...b, slotId: 'bg' }));
+      layers.forEach(l => flat.push(l));
+      return flat.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+    }
+    function compositeSetToCanvas(setItems, canvas, done) {
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width || 250;
+      const H = canvas.height || 350;
+      const refW = 250, refH = 350;
+      const s = Math.min(W / refW, H / refH);
+      const refCenterX = refW / 2, refCenterY = refH / 2;
+      const items = getFlatItemsFromSet(setItems);
+      if (items.length === 0) { ctx.clearRect(0, 0, W, H); done(); return; }
+      const loadedImages = new Array(items.length);
+      let loadedCount = 0;
+      function tryDrawAll() {
+        if (loadedCount !== items.length) return;
+        ctx.clearRect(0, 0, W, H);
+        for (let i = 0; i < items.length; i++) {
+          const img = loadedImages[i];
+          const item = items[i];
+          if (!img || !img.complete) continue;
+          const nw = img.naturalWidth || refW, nh = img.naturalHeight || refH;
+          const refScale = Math.min(1, refW / nw, refH / nh);
+          const refDrawW = nw * refScale, refDrawH = nh * refScale;
+          const refCx = refCenterX + (item.x || 0), refCy = refCenterY + (item.y || 0);
+          const drawW = refDrawW * s, drawH = refDrawH * s;
+          const drawX = refCx * s - drawW / 2, drawY = refCy * s - drawH / 2;
+          ctx.drawImage(img, 0, 0, nw, nh, drawX, drawY, drawW, drawH);
+        }
+        done();
+      }
+      items.forEach((item, i) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => { loadedImages[i] = img; loadedCount++; tryDrawAll(); };
+        img.onerror = () => { loadedCount++; tryDrawAll(); };
+        img.src = item.src || '';
+      });
+    }
+    function compositeSetToImg(setItems, imgEl) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 125;
+      canvas.height = 175;
+      compositeSetToCanvas(setItems, canvas, () => {
+        try { imgEl.src = canvas.toDataURL('image/png'); } catch (e) {}
+      });
+    }
+    function escapeHtml(s) {
+      if (s == null) return '';
+      const str = String(s);
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function showItemInfoTooltip(e, item, allItems) {
+      const tip = document.getElementById('item-info-tooltip');
+      if (!tip) return;
+      const setKey = getSetGroupKey(item);
+      const setItems = setKey ? getSetItemsFromAll(allItems || [], setKey) : [];
+      const designer = (item.designer || '').trim() || '—';
+      const brand = getBrandFromItem(item) || '—';
+      let html = '';
+      if (setItems.length > 0) {
+        html += '<div class="item-info-set-img-wrap"><img class="item-info-set-img" id="item-info-set-img" alt="" src="data:image/gif;base64,R0lGOODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></div>';
+        tip.innerHTML = html + '<div class="item-info-line"><span class="item-info-label">Set:</span> ' + escapeHtml(setKey ? setKey.name : '') + '</div><div class="item-info-line"><span class="item-info-label">Designer:</span> ' + escapeHtml(designer) + '</div><div class="item-info-line"><span class="item-info-label">Brand:</span> ' + escapeHtml(brand) + '</div>';
+        const imgEl = document.getElementById('item-info-set-img');
+        if (imgEl) compositeSetToImg(setItems, imgEl);
+      } else {
+        tip.innerHTML = '<div class="item-info-line"><span class="item-info-label">Designer:</span> ' + escapeHtml(designer) + '</div><div class="item-info-line"><span class="item-info-label">Brand:</span> ' + escapeHtml(brand) + '</div>';
+      }
+      tip.classList.add('visible');
+      tip.setAttribute('aria-hidden', 'false');
+      const rect = e.target && e.target.getBoundingClientRect ? e.target.getBoundingClientRect() : { right: 0, top: 0 };
+      let x = rect.right + 8, y = rect.top;
+      if (x + tip.offsetWidth > window.innerWidth - 8) x = rect.left - tip.offsetWidth - 8;
+      if (x < 8) x = 8;
+      if (y + tip.offsetHeight > window.innerHeight - 8) y = window.innerHeight - tip.offsetHeight - 8;
+      if (y < 8) y = 8;
+      tip.style.left = x + 'px';
+      tip.style.top = y + 'px';
+    }
+    function hideItemInfoTooltip() {
+      const tip = document.getElementById('item-info-tooltip');
+      if (tip) { tip.classList.remove('visible'); tip.setAttribute('aria-hidden', 'true'); }
+    }
+    document.body.addEventListener('mouseout', (ev) => {
+      if (ev.relatedTarget && (ev.relatedTarget.closest && (ev.relatedTarget.closest('.item-info-btn') || ev.relatedTarget.closest('#item-info-tooltip')))) return;
+      if (ev.target && ev.target.closest && ev.target.closest('.item-info-btn')) hideItemInfoTooltip();
+    });
+    function buildSetPreview(setItems, scale) {
+      const SLOT_LAYER_ORDER = window.SLOT_LAYER_ORDER || { 'body-slot': 0, 'pants-slot': 1, 'skirt-slot': 2, 'dress-slot': 3, 'shirt-slot': 4, 'jacket-slot': 5, 'socks-slot': 6, 'shoes-slot': 7, 'hat-slot': 8, 'makeup-slot': 9, 'jewelry-slot': 10, 'hair-slot': 11, 'other-slot': 12 };
+      const visible = (setItems || []).filter(function(item) { return !hasSetPreviewHidden(item); });
+      const wrap = document.createElement('div');
+      wrap.className = 'store-set-preview';
+      wrap.style.width = '70px';
+      wrap.style.height = '98px';
+      const backgrounds = [];
+      const layers = [];
+      visible.forEach(item => {
+        if (item.background && item.background.filename) {
+          backgrounds.push({
+            src: '/Uploads/' + item.background.filename,
+            defaultX: (item.background.defaultX != null ? item.background.defaultX : 0) * scale,
+            defaultY: (item.background.defaultY != null ? item.background.defaultY : 0) * scale,
+            defaultZ: item.background.defaultZ != null ? item.background.defaultZ : 0
+          });
+        }
+        const slotId = item.slotId || 'other-slot';
+        const slotOrder = SLOT_LAYER_ORDER[slotId] != null ? SLOT_LAYER_ORDER[slotId] : 12;
+        const customZ = getSetPreviewZ(item);
+        const baseZ = customZ != null ? customZ : slotOrder * 100;
+        if (item.bundleParts && Array.isArray(item.bundleParts) && item.bundleParts.length > 0) {
+          item.bundleParts.forEach((part, idx) => {
+            layers.push({
+              src: '/Uploads/' + (part.filename || ''),
+              defaultX: (part.defaultX != null ? part.defaultX : 0) * scale,
+              defaultY: (part.defaultY != null ? part.defaultY : 0) * scale,
+              defaultZ: part.defaultZ != null ? part.defaultZ : baseZ + idx,
+              slotId: slotId
+            });
+          });
+        } else {
+          const coordItem = getCoordItem(item, visible);
+          layers.push({
+            src: '/Uploads/' + (item.filename || ''),
+            defaultX: (coordItem.defaultX != null ? coordItem.defaultX : 0) * scale,
+            defaultY: (coordItem.defaultY != null ? coordItem.defaultY : 0) * scale,
+            defaultZ: coordItem.defaultZ != null ? coordItem.defaultZ : baseZ,
+            slotId: slotId
+          });
+        }
+      });
+      backgrounds.sort((a, b) => a.defaultZ - b.defaultZ);
+      layers.sort((a, b) => a.defaultZ - b.defaultZ);
+      const bgDiv = document.createElement('div');
+      bgDiv.className = 'store-set-preview-bg';
+      backgrounds.forEach(bg => {
+        const img = document.createElement('img');
+        img.src = bg.src;
+        img.alt = '';
+        img.style.zIndex = bg.defaultZ;
+        img.style.width = '70px';
+        img.style.height = '98px';
+        img.style.transform = 'translate(-50%, -50%) translate(' + bg.defaultX + 'px, ' + bg.defaultY + 'px)';
+        img.onerror = () => { img.style.display = 'none'; };
+        bgDiv.appendChild(img);
+      });
+      wrap.appendChild(bgDiv);
+      const base = document.createElement('img');
+      base.src = '/Uploads/character.png';
+      base.alt = 'Base';
+      base.className = 'store-set-preview-base';
+      base.style.width = '70px';
+      base.style.height = '98px';
+      wrap.appendChild(base);
+      const layersDiv = document.createElement('div');
+      layersDiv.className = 'store-set-preview-layers';
+      layers.forEach((lay, idx) => {
+        const img = document.createElement('img');
+        img.src = lay.src;
+        img.alt = '';
+        img.className = 'store-set-preview-layer ' + (lay.slotId || '');
+        img.style.zIndex = 2 + idx;
+        img.style.transform = 'translate(-50%, -50%) translate(' + lay.defaultX + 'px, ' + lay.defaultY + 'px)';
+        img.style.width = '70px';
+        img.style.height = '98px';
+        img.onerror = () => { img.style.display = 'none'; };
+        layersDiv.appendChild(img);
+      });
+      wrap.appendChild(layersDiv);
+      return wrap;
+    }
+    function normalizeSlotId(slotId) {
+      if (!slotId || typeof slotId !== 'string') return 'other-slot';
+      return slotId.endsWith('-slot') ? slotId : slotId + '-slot';
+    }
+    function tryOnSet(set) {
+      if (!set || !Array.isArray(set.items) || set.items.length === 0) return;
+      const SLOT_LAYER_ORDER = window.SLOT_LAYER_ORDER || { 'body-slot': 0, 'pants-slot': 1, 'skirt-slot': 2, 'dress-slot': 3, 'shirt-slot': 4, 'jacket-slot': 5, 'socks-slot': 6, 'shoes-slot': 7, 'hat-slot': 8, 'makeup-slot': 9, 'jewelry-slot': 10, 'hair-slot': 11, 'other-slot': 12 };
+      const sorted = [...set.items].sort((a, b) => (SLOT_LAYER_ORDER[normalizeSlotId(a.slotId)] ?? 12) - (SLOT_LAYER_ORDER[normalizeSlotId(b.slotId)] ?? 12));
+      let allItems = getAllStoreItems();
+      let zOffset = allItems.length + 2;
+      sorted.forEach(wi => {
+        if (wi.bundleParts && Array.isArray(wi.bundleParts) && wi.bundleParts.length > 0) {
+          wi.bundleParts.forEach((part, idx) => {
+            const slotId = normalizeSlotId(part.slotId);
+            if (!VALID_SLOT_IDS.has(slotId)) return;
+            if (!storePreviewItems[slotId]) storePreviewItems[slotId] = [];
+            const itemId = slotId + '-' + storePreviewItems[slotId].length;
+            const x = (part.defaultX != null) ? part.defaultX : 0;
+            const y = (part.defaultY != null) ? part.defaultY : 0;
+            const z = (part.defaultZ != null) ? part.defaultZ : zOffset++;
+            const newItem = { id: itemId, slotId, src: '/Uploads/' + part.filename, alt: (wi.name || '') + (idx === 0 ? ' (1)' : ' (2)'), zIndex: z, x, y };
+            storePreviewItems[slotId].push(newItem);
+            equippedOrder.push(newItem.id);
+            const slotEl = document.getElementById(slotId);
+            if (slotEl) {
+              const img = document.createElement('img');
+              img.src = newItem.src;
+              img.alt = newItem.alt;
+              img.onerror = () => { img.style.display = 'none'; };
+              img.dataset.itemId = newItem.id;
+              img.dataset.slotId = slotId;
+              img.style.zIndex = newItem.zIndex;
+              img.style.transform = 'translate(-50%, -50%) translate(' + newItem.x + 'px, ' + newItem.y + 'px)';
+              img.addEventListener('click', (e) => { e.stopPropagation(); selectStoreItem(newItem.id); });
+              hookPixelPerfect(img);
+              slotEl.appendChild(img);
+            }
+          });
+        } else {
+          const slotId = normalizeSlotId(wi.slotId);
+          if (!VALID_SLOT_IDS.has(slotId)) return;
+          if (!storePreviewItems[slotId]) storePreviewItems[slotId] = [];
+          const itemId = slotId + '-' + storePreviewItems[slotId].length;
+          const x = (wi.defaultX != null) ? wi.defaultX : 0;
+          const y = (wi.defaultY != null) ? wi.defaultY : 0;
+          const newItem = { id: itemId, slotId, src: '/Uploads/' + wi.filename, alt: wi.name || wi.filename || '', zIndex: zOffset++, x, y };
+          if (wi.background && wi.background.filename) {
+            newItem.background = {
+              filename: wi.background.filename,
+              defaultX: wi.background.defaultX != null ? wi.background.defaultX : 0,
+              defaultY: wi.background.defaultY != null ? wi.background.defaultY : 0,
+              defaultZ: wi.background.defaultZ != null ? wi.background.defaultZ : 0,
+              src: '/Uploads/' + (wi.background.filename || '')
+            };
+            newItem.backgroundOn = true;
+          }
+          storePreviewItems[slotId].push(newItem);
+          equippedOrder.push(newItem.id);
+          const slotEl = document.getElementById(slotId);
+          if (slotEl) {
+            const img = document.createElement('img');
+            img.src = newItem.src;
+            img.alt = newItem.alt;
+            img.onerror = () => { img.style.display = 'none'; };
+            img.dataset.itemId = newItem.id;
+            img.dataset.slotId = slotId;
+            img.style.zIndex = newItem.zIndex;
+            img.style.transform = 'translate(-50%, -50%) translate(' + newItem.x + 'px, ' + newItem.y + 'px)';
+            img.addEventListener('click', (e) => { e.stopPropagation(); selectStoreItem(newItem.id); });
+            hookPixelPerfect(img);
+            slotEl.appendChild(img);
+          }
+        }
+        allItems = getAllStoreItems();
+        zOffset = allItems.length + 2;
+      });
+      renderStoreBackgrounds();
+      updateStoreEquippedStrip();
+    }
+    function getSwatchParentFilename(item) {
+      if (!item || !Array.isArray(item.tags)) return null;
+      const tag = item.tags.find(t => typeof t === 'string' && t.startsWith('swatch-parent:'));
+      return tag ? tag.replace('swatch-parent:', '').trim() : null;
+    }
+    function getSwatchColor(item) {
+      if (!item || !Array.isArray(item.tags)) return null;
+      const tag = item.tags.find(t => typeof t === 'string' && t.startsWith('swatch-color:'));
+      return tag ? tag.replace('swatch-color:', '').trim() : null;
+    }
+    function getCoordItem(it, list) {
+      if (!it || !list) return it;
+      const parentFn = getSwatchParentFilename(it);
+      if (!parentFn) return it;
+      const root = list.find(i => i.filename === parentFn);
+      return root || it;
+    }
+    function hexToRgb(hex) {
+      const m = hex.replace(/^#/, '').match(/^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+      return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : null;
+    }
+    function colorDistance(hex1, hex2) {
+      const a = hexToRgb(hex1);
+      const b = hexToRgb(hex2);
+      if (!a || !b) return Infinity;
+      return (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
+    }
+    function pickColorFromStoreImage(imgSrc, onPicked) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const w = canvas.width, h = canvas.height;
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;cursor:crosshair;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;';
+        const preview = document.createElement('div');
+        preview.style.cssText = 'background:#fff;padding:12px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+        const instr = document.createElement('p');
+        instr.textContent = 'Click on the image to pick a color and switch to that variant (click outside to cancel)';
+        instr.style.margin = '0 0 8px 0';
+        preview.appendChild(instr);
+        const small = document.createElement('img');
+        small.src = imgSrc;
+        small.style.cssText = 'max-width:200px;max-height:200px;display:block;cursor:crosshair;';
+        preview.appendChild(small);
+        overlay.appendChild(preview);
+        document.body.appendChild(overlay);
+        function rgbToHex(r, g, b) {
+          return '#' + [r, g, b].map(x => { const h = Math.max(0, Math.min(255, Math.round(x))).toString(16); return h.length === 1 ? '0' + h : h; }).join('');
+        }
+        function getColorAt(clientX, clientY) {
+          const rect = small.getBoundingClientRect();
+          const scaleX = img.naturalWidth / rect.width, scaleY = img.naturalHeight / rect.height;
+          const x = Math.floor((clientX - rect.left) * scaleX);
+          const y = Math.floor((clientY - rect.top) * scaleY);
+          if (x < 0 || x >= w || y < 0 || y >= h) return null;
+          const data = ctx.getImageData(x, y, 1, 1).data;
+          return rgbToHex(data[0], data[1], data[2]);
+        }
+        function done(hex) {
+          document.body.removeChild(overlay);
+          small.removeEventListener('click', onImgClick);
+          overlay.removeEventListener('click', onOverlayClick);
+          if (hex && onPicked) onPicked(hex);
+        }
+        function onImgClick(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const hex = getColorAt(e.clientX, e.clientY);
+          if (hex) done(hex);
+        }
+        function onOverlayClick(e) {
+          if (e.target === overlay) done(null);
+        }
+        small.addEventListener('click', onImgClick);
+        overlay.addEventListener('click', onOverlayClick);
+      };
+      img.onerror = () => { if (onPicked) onPicked(null); };
+      img.src = imgSrc;
+    }
+
+    async function loadInventory() {
+      try {
+        const r = await fetch('/api/user-inventory', { credentials: 'same-origin' });
+        if (r.ok) {
+          const d = await r.json();
+          currency = d.currency ?? 0;
+          currency2 = d.currency2 ?? 0;
+          currency3 = d.currency3 ?? 0;
+          purchased = Array.isArray(d.purchased) ? d.purchased : [];
+        }
+        } catch (e) { /* ignore */ }
+    }
+
+    async function loadWishlist() {
+      try {
+        const r = await fetch('/api/wishlist', { credentials: 'same-origin' });
+        if (r.ok) {
+          const d = await r.json();
+          wishlistItems = Array.isArray(d.items) ? d.items : [];
+          wishlistSets = Array.isArray(d.sets) ? d.sets : [];
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    async function toggleWishlistItem(filename) {
+      try {
+        const r = await fetch('/api/wishlist/toggle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'item', id: filename }),
+          credentials: 'same-origin'
+        });
+        if (!r.ok) throw new Error('Failed');
+        const d = await r.json();
+        wishlistItems = Array.isArray(d.items) ? d.items : [];
+        updateStoreDisplay();
+      } catch (err) {
+        if (typeof showToast === 'function') showToast('Could not update wishlist', true);
+        else showStoreMsg('Could not update wishlist', true);
+      }
+    }
+
+    async function toggleWishlistSet(setId) {
+      try {
+        const r = await fetch('/api/wishlist/toggle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'set', id: setId }),
+          credentials: 'same-origin'
+        });
+        if (!r.ok) throw new Error('Failed');
+        const d = await r.json();
+        wishlistSets = Array.isArray(d.sets) ? d.sets : [];
+        updateStoreDisplay();
+      } catch (err) {
+        if (typeof showToast === 'function') showToast('Could not update wishlist', true);
+        else showStoreMsg('Could not update wishlist', true);
+      }
+    }
+
+    function setStoreLoading(loading) {
+      const allDiv = document.getElementById('all');
+      if (!allDiv) return;
+      if (loading) {
+        allDiv.innerHTML = '<div class="store-loading">Loading store…</div>';
+      }
+    }
+
+    async function loadStoreItems() {
+      setStoreLoading(true);
+      try {
+        const r = await fetch('/api/items', { credentials: 'same-origin' });
+        if (typeof handleApiResponse === 'function') await handleApiResponse(r);
+        else if (!r.ok) throw new Error('Failed to load store (status ' + r.status + ')');
+        const data = await r.json();
+        storeItems = Array.isArray(data) ? data : (data && Array.isArray(data.items) ? data.items : []);
+        if (storeItems.length && storeItems[0] && Array.isArray(storeItems[0])) storeItems = storeItems.flat();
+        if (!Array.isArray(storeItems)) storeItems = [];
+        categories.forEach(c => { currentPages[c] = 1; });
+        updateStoreDisplay();
+      } catch (e) {
+        setStoreLoading(false);
+        showStoreMsg('Could not load store: ' + (e.message || 'error').replace(/Failed to load store \(status 404\)/, 'Store API not found. Are you opening this page via the server (e.g. http://localhost:3000/store.html)?'), true);
+        const hint = document.getElementById('store-server-hint');
+        if (hint) hint.style.display = 'block';
+        const allEl = document.getElementById('all');
+        if (allEl) allEl.innerHTML = '<div class="store-empty">Could not load items. Open this page from the server (e.g. <strong>http://localhost:' + (window.location.port || '3000') + '/store.html</strong>) and ensure the server is running.</div>';
+      }
+    }
+
+    function updateStoreDisplay() {
+      setStoreLoading(false);
+      categories.forEach(category => {
+        const div = document.getElementById(category);
+        if (!div) return;
+        div.innerHTML = '';
+        if (category === 'full-set') {
+          let sets = getSetsFromStore();
+          if (storeSearchQuery) {
+            const q = storeSearchQuery.toLowerCase();
+            sets = sets.filter(s => (s.name || '').toLowerCase().includes(q) || (s.items || []).some(it => storeItemMatchesSearch(it, storeSearchQuery)));
+          }
+          const page = currentPages[category] || 1;
+          const start = (page - 1) * itemsPerPage;
+          const end = start + itemsPerPage;
+          const chunk = sets.slice(start, end);
+          if (chunk.length === 0) {
+            div.innerHTML = '<div class="store-empty">' + (sets.length === 0 ? 'No sets (projects with 2+ items) in store.' : '') + '</div>';
+            return;
+          }
+          chunk.forEach(set => {
+            const container = document.createElement('div');
+            container.className = 'store-item-container store-set-card';
+            container.style.cursor = 'pointer';
+            container.title = 'Try on whole set';
+            container.addEventListener('click', (e) => {
+              if (e.target.closest('.store-star-icon') || e.target.closest('.item-info-btn')) return;
+              e.preventDefault();
+              e.stopPropagation();
+              try { tryOnSet(set); } catch (err) { showStoreMsg('Could not try on set', true); }
+            });
+            const setInfoBtn = document.createElement('button');
+            setInfoBtn.type = 'button';
+            setInfoBtn.className = 'item-info-btn';
+            setInfoBtn.textContent = '=';
+            setInfoBtn.title = 'Set info';
+            setInfoBtn.setAttribute('aria-label', 'Set info');
+            const firstItem = set.items && set.items[0];
+            if (firstItem) {
+              setInfoBtn.addEventListener('mouseover', (ev) => showItemInfoTooltip(ev, firstItem, storeItems));
+              setInfoBtn.addEventListener('mouseout', hideItemInfoTooltip);
+            }
+            container.appendChild(setInfoBtn);
+            const star = document.createElement('img');
+            star.className = 'store-star-icon';
+            star.src = wishlistSets.includes(set.id) ? '/img/star_true.svg' : '/img/star_false.svg';
+            star.alt = wishlistSets.includes(set.id) ? 'Remove set from wishlist' : 'Add set to wishlist';
+            star.title = star.alt;
+            star.addEventListener('click', async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              await toggleWishlistSet(set.id);
+            });
+            container.appendChild(star);
+            const img = document.createElement('img');
+            img.className = 'item';
+            img.alt = set.name || 'Set';
+            img.src = 'https://via.placeholder.com/70x98?text=...';
+            img.onerror = () => { img.style.display = 'none'; };
+            const canvas = document.createElement('canvas');
+            canvas.width = 250;
+            canvas.height = 350;
+            compositeSetToCanvas(set.items, canvas, () => {
+              try { img.src = canvas.toDataURL('image/png'); } catch (e) {}
+            });
+            container.appendChild(img);
+            div.appendChild(container);
+          });
+          const nav = document.createElement('div');
+          nav.className = 'category-nav';
+          const prev = document.createElement('button');
+          prev.textContent = 'Previous';
+          prev.disabled = page === 1;
+          prev.addEventListener('click', (e) => { e.preventDefault(); currentPages[category] = page - 1; updateStoreDisplay(); });
+          const next = document.createElement('button');
+          next.textContent = 'Next';
+          next.disabled = end >= sets.length;
+          next.addEventListener('click', (e) => { e.preventDefault(); currentPages[category] = page + 1; updateStoreDisplay(); });
+          nav.appendChild(prev);
+          nav.appendChild(next);
+          if (sets.length > itemsPerPage) div.appendChild(nav);
+          return;
+        }
+        let rawItems = category === 'all' ? storeItems : category === 'favorites' ? storeItems.filter(item => item.heart) : storeItems.filter(item => item.slotId === `${category}-slot`);
+        if (storeSearchQuery) rawItems = rawItems.filter(item => storeItemMatchesSearch(item, storeSearchQuery));
+        const roots = rawItems.filter(item => !getSwatchParentFilename(item));
+        const page = currentPages[category] || 1;
+        const start = (page - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const chunk = roots.slice(start, end);
+        if (chunk.length === 0) {
+          let msg = roots.length === 0 ? 'No items in this category.' : '';
+          if (category === 'all' && roots.length === 0) {
+            msg = storeItems.length === 0
+              ? 'Store is empty. Open from the server: http://localhost:3000/store.html (run: npm start or node server.js).'
+              : 'No items in this category.';
+            const hint = document.getElementById('store-server-hint');
+            if (hint) hint.style.display = 'block';
+          }
+          div.innerHTML = '<div class="store-empty">' + msg + '</div>';
+          return;
+        }
+        chunk.forEach(rootItem => {
+          const swatches = rawItems.filter(i => getSwatchParentFilename(i) === rootItem.filename);
+          const variants = [rootItem, ...swatches];
+          const currentFilename = selectedVariantByRoot[rootItem.filename] || rootItem.filename;
+          const currentItem = variants.find(v => v.filename === currentFilename) || rootItem;
+
+          const owned = purchased.includes(currentItem.filename);
+          const price = getItemPrice(currentItem);
+          const container = document.createElement('div');
+          container.className = 'store-item-container';
+          if (rootItem.slotId === 'body-slot') container.classList.add('item-body');
+          container.dataset.filename = currentItem.filename;
+          container.dataset.rootFilename = rootItem.filename;
+
+          const infoBtn = document.createElement('button');
+          infoBtn.type = 'button';
+          infoBtn.className = 'item-info-btn';
+          infoBtn.textContent = '=';
+          infoBtn.title = 'Item info';
+          infoBtn.setAttribute('aria-label', 'Item info');
+          infoBtn.addEventListener('mouseover', (ev) => showItemInfoTooltip(ev, currentItem, storeItems));
+          infoBtn.addEventListener('mouseout', hideItemInfoTooltip);
+          container.appendChild(infoBtn);
+          const star = document.createElement('img');
+          star.className = 'store-star-icon';
+          star.src = wishlistItems.includes(currentItem.filename) ? '/img/star_true.svg' : '/img/star_false.svg';
+          star.alt = wishlistItems.includes(currentItem.filename) ? 'Remove from wishlist' : 'Add to wishlist';
+          star.title = star.alt;
+          star.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const filename = container.dataset.filename || currentItem.filename;
+            await toggleWishlistItem(filename);
+          });
+          container.appendChild(star);
+          const heart = document.createElement('img');
+          heart.className = 'store-heart-icon';
+          heart.src = currentItem.heart ? '/img/heart_true.svg' : '/img/heart_false.svg';
+          heart.alt = currentItem.heart ? 'Remove from favorites' : 'Add to favorites';
+          heart.title = currentItem.heart ? 'Remove from favorites' : 'Add to favorites';
+          heart.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            try {
+              const r = await fetch('/api/items/update/' + encodeURIComponent(currentItem.filename), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...currentItem, heart: !currentItem.heart })
+              });
+              if (!r.ok) throw new Error('Failed to update');
+              currentItem.heart = !currentItem.heart;
+              heart.src = currentItem.heart ? '/img/heart_true.svg' : '/img/heart_false.svg';
+              heart.alt = heart.title = currentItem.heart ? 'Remove from favorites' : 'Add to favorites';
+              const starEl = container.querySelector('.store-star-icon');
+              if (starEl) starEl.src = wishlistItems.includes(currentItem.filename) ? '/img/star_true.svg' : '/img/star_false.svg';
+              updateStoreDisplay();
+            } catch (err) {
+              if (typeof showToast === 'function') showToast('Could not update favorite', true);
+              else showStoreMsg('Could not update favorite', true);
+            }
+          });
+          container.appendChild(heart);
+          const img = document.createElement('img');
+          img.className = 'item';
+          img.src = '/Uploads/' + currentItem.filename;
+          img.alt = currentItem.name || currentItem.filename;
+          img.onerror = () => { img.src = 'https://via.placeholder.com/70?text=?'; };
+          if (variants.length > 1) img.title = 'Double-click and pick color from image to switch variant';
+          container.appendChild(img);
+
+          if (variants.length > 1) {
+            const dotsWrap = document.createElement('div');
+            dotsWrap.classList.add('store-swatch-dots');
+            variants.forEach((v, idx) => {
+              const dot = document.createElement('button');
+              dot.type = 'button';
+              dot.classList.add('store-swatch-dot');
+              const hex = getSwatchColor(v) || (idx === 0 ? null : '#999');
+              dot.style.background = hex || '#ccc';
+              dot.title = v.name || 'Variant';
+              if (v.filename === currentFilename) dot.classList.add('selected');
+              dot.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                selectedVariantByRoot[rootItem.filename] = v.filename;
+                img.src = '/Uploads/' + v.filename;
+                container.dataset.filename = v.filename;
+                container.querySelectorAll('.store-swatch-dot').forEach(d => d.classList.remove('selected'));
+                dot.classList.add('selected');
+                heart.src = v.heart ? '/img/heart_true.svg' : '/img/heart_false.svg';
+                const starEl = container.querySelector('.store-star-icon');
+                if (starEl) starEl.src = wishlistItems.includes(v.filename) ? '/img/star_true.svg' : '/img/star_false.svg';
+                const panel = container.querySelector('.store-debug-panel');
+                if (panel && storeDebugMode) {
+                  const sel = panel.querySelector('select');
+                  const inputs = panel.querySelectorAll('.store-debug-coords input');
+                  if (sel) sel.value = v.slotId || 'other-slot';
+                  if (inputs[0]) inputs[0].value = v.defaultX != null ? v.defaultX : 0;
+                  if (inputs[1]) inputs[1].value = v.defaultY != null ? v.defaultY : 0;
+                  if (inputs[2]) inputs[2].value = v.defaultZ != null ? v.defaultZ : 0;
+                }
+                const newOwned = purchased.includes(v.filename);
+                const priceEl = container.querySelector('.store-item-price');
+                if (priceEl) priceEl.textContent = getItemPrice(v) + ' ◎';
+                let ownedSpan = container.querySelector('.owned');
+                let buyBtn = container.querySelector('.btn-buy');
+                if (newOwned) {
+                  if (buyBtn) { buyBtn.remove(); buyBtn = null; }
+                  if (!ownedSpan) {
+                    ownedSpan = document.createElement('span');
+                    ownedSpan.className = 'owned';
+                    ownedSpan.textContent = 'Owned';
+                    container.appendChild(ownedSpan);
+                  }
+                } else {
+                  if (ownedSpan) ownedSpan.remove();
+                  if (!buyBtn) {
+                    buyBtn = document.createElement('button');
+                    buyBtn.type = 'button';
+                    buyBtn.className = 'btn-buy';
+                    buyBtn.textContent = 'Buy';
+                    container.appendChild(buyBtn);
+                    buyBtn.addEventListener('click', (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      buyItem(v, getItemPrice(v));
+                    });
+                  }
+                  buyBtn.disabled = currency < getItemPrice(v);
+                }
+              });
+              dotsWrap.appendChild(dot);
+            });
+            container.appendChild(dotsWrap);
+
+            img.addEventListener('dblclick', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              pickColorFromStoreImage(img.src, (pickedHex) => {
+                if (!pickedHex) return;
+                let best = null, bestDist = Infinity;
+                variants.forEach(v => {
+                  const h = getSwatchColor(v);
+                  if (!h) return;
+                  const d = colorDistance(pickedHex, h);
+                  if (d < bestDist) { bestDist = d; best = v; }
+                });
+                if (best) {
+                  selectedVariantByRoot[rootItem.filename] = best.filename;
+                  img.src = '/Uploads/' + best.filename;
+                  container.dataset.filename = best.filename;
+                  container.querySelectorAll('.store-swatch-dot').forEach(d => d.classList.remove('selected'));
+                  const dotIdx = variants.indexOf(best);
+                  if (dotsWrap.children[dotIdx]) dotsWrap.children[dotIdx].classList.add('selected');
+                  heart.src = best.heart ? '/img/heart_true.svg' : '/img/heart_false.svg';
+                  const starEl = container.querySelector('.store-star-icon');
+                  if (starEl) starEl.src = wishlistItems.includes(best.filename) ? '/img/star_true.svg' : '/img/star_false.svg';
+                  const panel = container.querySelector('.store-debug-panel');
+                  if (panel && storeDebugMode) {
+                    const sel = panel.querySelector('select');
+                    const inputs = panel.querySelectorAll('.store-debug-coords input');
+                    if (sel) sel.value = best.slotId || 'other-slot';
+                    if (inputs[0]) inputs[0].value = best.defaultX != null ? best.defaultX : 0;
+                    if (inputs[1]) inputs[1].value = best.defaultY != null ? best.defaultY : 0;
+                    if (inputs[2]) inputs[2].value = best.defaultZ != null ? best.defaultZ : 0;
+                  }
+                  const priceEl = container.querySelector('.store-item-price');
+                  if (priceEl) priceEl.textContent = getItemPrice(best) + ' ◎';
+                  const newOwned = purchased.includes(best.filename);
+                  let ownedSpan = container.querySelector('.owned');
+                  let buyBtn = container.querySelector('.btn-buy');
+                  if (newOwned) {
+                    if (buyBtn) buyBtn.remove();
+                    if (!ownedSpan) {
+                      ownedSpan = document.createElement('span');
+                      ownedSpan.className = 'owned';
+                      ownedSpan.textContent = 'Owned';
+                      container.appendChild(ownedSpan);
+                    }
+                  } else {
+                    if (ownedSpan) ownedSpan.remove();
+                    if (!buyBtn) {
+                      buyBtn = document.createElement('button');
+                      buyBtn.type = 'button';
+                      buyBtn.className = 'btn-buy';
+                      buyBtn.textContent = 'Buy';
+                      container.appendChild(buyBtn);
+                      buyBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        buyItem(best, getItemPrice(best));
+                      });
+                    }
+                    buyBtn.disabled = currency < getItemPrice(best);
+                  }
+                }
+              });
+            });
+          }
+
+          const priceEl = document.createElement('div');
+          priceEl.className = 'store-item-price';
+          priceEl.textContent = price + ' ◎';
+          container.appendChild(priceEl);
+          if (owned) {
+            const span = document.createElement('span');
+            span.className = 'owned';
+            span.textContent = 'Owned';
+            container.appendChild(span);
+          } else {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn-buy';
+            btn.textContent = 'Buy';
+            btn.disabled = currency < price;
+            btn.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              buyItem(currentItem, price);
+            });
+            container.appendChild(btn);
+          }
+          container.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-buy') || e.target.closest('.owned') || e.target.closest('.store-heart-icon') || e.target.closest('.store-swatch-dot') || e.target.closest('.store-debug-panel')) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const selectedFilename = container.dataset.filename || currentItem.filename;
+            const itemToEquip = variants.find(v => v.filename === selectedFilename) || currentItem;
+            tryOnItem(itemToEquip);
+          });
+          if (storeDebugMode) {
+            const panel = document.createElement('div');
+            panel.className = 'store-debug-panel';
+            const slotSelect = document.createElement('select');
+            STORE_DEBUG_SLOTS.forEach(s => {
+              const opt = document.createElement('option');
+              opt.value = s.value;
+              opt.textContent = s.label;
+              if ((currentItem.slotId || 'other-slot') === s.value) opt.selected = true;
+              slotSelect.appendChild(opt);
+            });
+            panel.appendChild(slotSelect);
+            const coords = document.createElement('div');
+            coords.className = 'store-debug-coords';
+            const xIn = document.createElement('input');
+            xIn.type = 'number';
+            xIn.placeholder = 'X';
+            xIn.value = currentItem.defaultX != null ? currentItem.defaultX : 0;
+            const yIn = document.createElement('input');
+            yIn.type = 'number';
+            yIn.placeholder = 'Y';
+            yIn.value = currentItem.defaultY != null ? currentItem.defaultY : 0;
+            const zIn = document.createElement('input');
+            zIn.type = 'number';
+            zIn.placeholder = 'Z';
+            zIn.value = currentItem.defaultZ != null ? currentItem.defaultZ : 0;
+            coords.appendChild(xIn);
+            coords.appendChild(yIn);
+            coords.appendChild(zIn);
+            panel.appendChild(coords);
+            const saveBtn = document.createElement('button');
+            saveBtn.type = 'button';
+            saveBtn.className = 'store-debug-save';
+            saveBtn.textContent = 'Save';
+            saveBtn.addEventListener('click', async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const filename = container.dataset.filename || currentItem.filename;
+              const item = variants.find(v => v.filename === filename) || currentItem;
+              const slotId = slotSelect.value;
+              const defaultX = Number(xIn.value) || 0;
+              const defaultY = Number(yIn.value) || 0;
+              const defaultZ = parseInt(zIn.value, 10) || 0;
+              try {
+                const r = await fetch('/api/items/update/' + encodeURIComponent(filename), {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ ...item, slotId, defaultX, defaultY, defaultZ })
+                });
+                if (!r.ok) throw new Error('Failed to save');
+                const updated = await r.json();
+                const idx = storeItems.findIndex(i => i && i.filename === filename);
+                if (idx >= 0) storeItems[idx] = { ...storeItems[idx], ...updated };
+                item.slotId = slotId;
+                item.defaultX = defaultX;
+                item.defaultY = defaultY;
+                item.defaultZ = defaultZ;
+                if (typeof showToast === 'function') showToast('Saved');
+                else showStoreMsg('Saved', false);
+                updateStoreDisplay();
+              } catch (err) {
+                if (typeof showToast === 'function') showToast('Could not save', true);
+                else showStoreMsg('Could not save', true);
+              }
+            });
+            panel.appendChild(saveBtn);
+            container.appendChild(panel);
+          }
+          div.appendChild(container);
+        });
+        const nav = document.createElement('div');
+        nav.className = 'category-nav';
+        const prev = document.createElement('button');
+        prev.textContent = 'Previous';
+        prev.disabled = page === 1;
+        prev.addEventListener('click', () => { currentPages[category] = page - 1; updateStoreDisplay(); });
+        const next = document.createElement('button');
+        next.textContent = 'Next';
+        next.disabled = end >= roots.length;
+        next.addEventListener('click', () => { currentPages[category] = page + 1; updateStoreDisplay(); });
+        nav.appendChild(prev);
+        nav.appendChild(next);
+        if (roots.length > itemsPerPage) div.appendChild(nav);
+      });
+    }
+
+    function getRootFilename(storeItem) {
+      return (storeItem && (getSwatchParentFilename(storeItem) || storeItem.filename)) || '';
+    }
+    async function buyItem(item, price) {
+      try {
+        const r = await fetch('/api/purchase/' + encodeURIComponent(item.filename), { method: 'POST', credentials: 'same-origin' });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          showStoreMsg(data.error || 'Purchase failed', true);
+          return;
+        }
+        currency = data.currency ?? currency - price;
+        currency2 = data.currency2 ?? currency2;
+        currency3 = data.currency3 ?? currency3;
+        purchased = data.purchased || [...purchased, item.filename];
+        const rootFilename = getRootFilename(item);
+        const otherOwnedSameRoot = rootFilename && purchased.some(function (f) {
+          if (f === item.filename) return false;
+          const si = storeItems.find(function (i) { return i.filename === f; });
+          return si && getRootFilename(si) === rootFilename;
+        });
+        if (otherOwnedSameRoot && item.filename !== rootFilename) {
+          const tags = Array.isArray(item.tags) ? [...item.tags] : [];
+          const hasParent = tags.some(function (t) { return typeof t === 'string' && t.startsWith('swatch-parent:') && t.replace('swatch-parent:', '').trim() === rootFilename; });
+          if (!hasParent) {
+            const withoutParent = tags.filter(function (t) { return typeof t !== 'string' || !t.startsWith('swatch-parent:'); });
+            const newTags = withoutParent.concat('swatch-parent:' + rootFilename);
+            try {
+              await fetch('/api/items/update/' + encodeURIComponent(item.filename), {
+                method: 'PUT',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...item, tags: newTags })
+              });
+            } catch (err) {
+              if (typeof showToast === 'function') showToast('Purchased; could not link as swatch', true);
+            }
+          }
+        }
+        showStoreMsg('Purchased: ' + (item.name || item.filename));
+        updateStoreDisplay();
+      } catch (e) {
+        showStoreMsg('Error: ' + (e.message || 'purchase failed'), true);
+      }
+    }
+
+    function renderStoreBackgrounds() {
+      const container = document.getElementById('character-backgrounds');
+      if (!container) return;
+      container.innerHTML = '';
+      const withBg = [];
+      Object.keys(storePreviewItems).forEach(slotId => {
+        (storePreviewItems[slotId] || []).forEach(item => {
+          if (item.background && item.backgroundOn !== false) withBg.push(item);
+        });
+      });
+      withBg.sort((a, b) => (a.background.defaultZ != null ? a.background.defaultZ : 0) - (b.background.defaultZ != null ? b.background.defaultZ : 0));
+      withBg.forEach(item => {
+        const bg = item.background;
+        const src = bg.src || ('/Uploads/' + (bg.filename || ''));
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = (item.alt || '') + ' (background)';
+        img.style.zIndex = (bg.defaultZ != null ? bg.defaultZ : 0);
+        img.style.transform = 'translate(-50%, -50%) translate(' + (bg.defaultX != null ? bg.defaultX : 0) + 'px, ' + (bg.defaultY != null ? bg.defaultY : 0) + 'px)';
+        img.onerror = () => { img.style.display = 'none'; };
+        hookPixelPerfect(img);
+        container.appendChild(img);
+      });
+    }
+    function getRawStoreItems() {
+      const out = [];
+      const slotOrder = Object.keys(SLOT_LAYER_ORDER).sort((a, b) => (SLOT_LAYER_ORDER[a] ?? 0) - (SLOT_LAYER_ORDER[b] ?? 0));
+      slotOrder.forEach(slotId => {
+        if (!VALID_SLOT_IDS.has(slotId) || !storePreviewItems[slotId]) return;
+        (storePreviewItems[slotId] || []).forEach((item, idx) => out.push({ ...item, slotId, index: idx }));
+      });
+      return out;
+    }
+    function getAllStoreItems() {
+      const out = getRawStoreItems();
+      if (out.length === 0) return out;
+      const orderIdx = (item) => equippedOrder.indexOf(item.id);
+      if (equippedOrder.length === 0) {
+        const byHierarchy = (a, b) => {
+          const layerA = SLOT_LAYER_ORDER[a.slotId] ?? 0;
+          const layerB = SLOT_LAYER_ORDER[b.slotId] ?? 0;
+          if (layerA !== layerB) return layerA - layerB;
+          return (a.index ?? 0) - (b.index ?? 0);
+        };
+        out.sort(byHierarchy);
+        equippedOrder = out.slice().reverse().map(o => o.id);
+      }
+      if (userHasReordered) {
+        out.sort((a, b) => {
+          const i = orderIdx(a);
+          const j = orderIdx(b);
+          if (i === -1 && j === -1) return 0;
+          if (i === -1) return 1;
+          if (j === -1) return -1;
+          return i - j;
+        });
+        return out;
+      }
+      const bodyItems = out.filter(o => o.slotId === 'body-slot').sort((a, b) => a.index - b.index);
+      const nonBody = out.filter(o => o.slotId !== 'body-slot').sort((a, b) => {
+        const layerA = SLOT_LAYER_ORDER[a.slotId] ?? 0;
+        const layerB = SLOT_LAYER_ORDER[b.slotId] ?? 0;
+        if (layerA !== layerB) return layerA - layerB;
+        return a.index - b.index;
+      });
+      const mostRecentNonBody = nonBody.length ? nonBody.reduce((best, o) => orderIdx(o) > orderIdx(best) ? o : best, nonBody[0]) : null;
+      const nonBodyWithoutRecent = mostRecentNonBody ? nonBody.filter(o => o.id !== mostRecentNonBody.id) : nonBody;
+      const bottomToTop = bodyItems.concat(nonBodyWithoutRecent).concat(mostRecentNonBody ? [mostRecentNonBody] : []);
+      const ordered = bottomToTop.slice().reverse();
+      ordered.forEach((item, idx) => { item._hierarchyPosition = idx; });
+      return ordered;
+    }
+
+    function applyZOrderFromStrip() {
+      const all = getAllStoreItems();
+      all.forEach((item, idx) => {
+        const z = all.length - idx + 2;
+        item.zIndex = z;
+        const actual = (storePreviewItems[item.slotId] || []).find(i => i.id === item.id);
+        if (actual) actual.zIndex = z;
+      });
+    }
+
+    /** Unique store items currently equipped (for checkout). Each item appears once with price. */
+    function getEquippedStoreItemsForCheckout() {
+      const equipped = getAllStoreItems();
+      const seen = new Set();
+      const result = [];
+      equipped.forEach(equippedEntry => {
+        const filename = (equippedEntry.src || '').replace(/^\/Uploads\//, '');
+        if (!filename) return;
+        const storeItem = storeItems.find(i =>
+          i.filename === filename || (i.bundleParts && Array.isArray(i.bundleParts) && i.bundleParts.some(p => p && p.filename === filename))
+        );
+        if (!storeItem || seen.has(storeItem.filename)) return;
+        seen.add(storeItem.filename);
+        result.push({ item: storeItem, price: getItemPrice(storeItem) });
+      });
+      return result;
+    }
+
+    function openCheckout() {
+      const list = getEquippedStoreItemsForCheckout();
+      const modal = document.getElementById('checkout-modal');
+      const listEl = document.getElementById('checkout-list');
+      const totalEl = document.getElementById('checkout-total');
+      const actionsEl = document.getElementById('checkout-actions');
+      listEl.innerHTML = '';
+      if (list.length === 0) {
+        listEl.innerHTML = '<div class="checkout-empty">No items equipped. Try on items from the store first.</div>';
+        totalEl.style.display = 'none';
+        actionsEl.style.display = 'none';
+      } else {
+        list.forEach(({ item, price }) => {
+          const row = document.createElement('div');
+          row.className = 'checkout-row';
+          const owned = purchased.includes(item.filename);
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = !owned;
+          checkbox.dataset.filename = item.filename;
+          checkbox.dataset.price = String(price);
+          checkbox.disabled = owned;
+          const img = document.createElement('img');
+          img.src = '/Uploads/' + item.filename;
+          img.alt = item.name || item.filename;
+          img.onerror = () => { img.src = 'https://via.placeholder.com/48?text=?'; };
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'name';
+          nameSpan.textContent = (item.name || item.filename) + (owned ? ' (owned)' : '');
+          const priceSpan = document.createElement('span');
+          priceSpan.className = 'price';
+          priceSpan.textContent = price + ' ◎';
+          row.appendChild(checkbox);
+          row.appendChild(img);
+          row.appendChild(nameSpan);
+          row.appendChild(priceSpan);
+          listEl.appendChild(row);
+        });
+        totalEl.style.display = 'flex';
+        actionsEl.style.display = 'flex';
+        updateCheckoutTotal();
+        listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+          cb.addEventListener('change', updateCheckoutTotal);
+        });
+      }
+      modal.classList.add('open');
+    }
+
+    function updateCheckoutTotal() {
+      const listEl = document.getElementById('checkout-list');
+      const totalEl = document.getElementById('checkout-total');
+      const purchaseBtn = document.getElementById('checkout-purchase');
+      let total = 0;
+      listEl.querySelectorAll('input[type="checkbox"]:not(:disabled)').forEach(cb => {
+        if (cb.checked) total += Number(cb.dataset.price || 0);
+      });
+      totalEl.textContent = 'Total: ' + total + ' ◎';
+      if (purchaseBtn) purchaseBtn.disabled = total === 0 || total > currency;
+    }
+
+    function closeCheckout() {
+      document.getElementById('checkout-modal').classList.remove('open');
+    }
+
+    async function purchaseCheckoutSelected() {
+      const listEl = document.getElementById('checkout-list');
+      const checkboxes = listEl.querySelectorAll('input[type="checkbox"]:not(:disabled):checked');
+      const itemsToBuy = [];
+      checkboxes.forEach(cb => {
+        const filename = cb.dataset.filename;
+        const price = Number(cb.dataset.price || 0);
+        const item = storeItems.find(i => i.filename === filename);
+        if (item && price) itemsToBuy.push({ item, price });
+      });
+      if (itemsToBuy.length === 0) return;
+      const purchaseBtn = document.getElementById('checkout-purchase');
+      purchaseBtn.disabled = true;
+      try {
+        for (const { item, price } of itemsToBuy) {
+          await buyItem(item, price);
+        }
+        closeCheckout();
+      } finally {
+        purchaseBtn.disabled = false;
+      }
+    }
+    function findStoreItemById(itemId) {
+      for (const slotId of Object.keys(storePreviewItems)) {
+        const idx = (storePreviewItems[slotId] || []).findIndex(i => i.id === itemId);
+        if (idx >= 0) return { slotId, index: idx };
+      }
+      return { slotId: null, index: -1 };
+    }
+    function tryOnItem(item) {
+      const isCombo = item.bundleParts && Array.isArray(item.bundleParts) && item.bundleParts.length > 0;
+      if (isCombo) {
+        const bundleSrcs = item.bundleParts.map(p => '/Uploads/' + p.filename);
+        let anyOn = false;
+        const toRemove = [];
+        Object.keys(storePreviewItems).forEach(slotId => {
+          (storePreviewItems[slotId] || []).forEach(prev => {
+            if (bundleSrcs.indexOf(prev.src) !== -1) {
+              anyOn = true;
+              toRemove.push({ slotId, id: prev.id });
+            }
+          });
+        });
+        if (anyOn) {
+          toRemove.forEach(({ slotId, id }) => {
+            storePreviewItems[slotId] = (storePreviewItems[slotId] || []).filter(i => i.id !== id);
+            equippedOrder = equippedOrder.filter(oid => oid !== id);
+            const slotEl = document.getElementById(slotId);
+            if (slotEl) {
+              const img = slotEl.querySelector('[data-item-id="' + id + '"]');
+              if (img) img.remove();
+            }
+          });
+          renderStoreBackgrounds();
+        } else {
+          const allItems = getAllStoreItems();
+          let zOffset = allItems.length + 2;
+          item.bundleParts.forEach((part, idx) => {
+            const slotId = part.slotId;
+            if (!VALID_SLOT_IDS.has(slotId)) return;
+            if (!storePreviewItems[slotId]) storePreviewItems[slotId] = [];
+            const itemId = slotId + '-' + storePreviewItems[slotId].length;
+            const x = (part.defaultX != null) ? part.defaultX : 0;
+            const y = (part.defaultY != null) ? part.defaultY : 0;
+            const z = (part.defaultZ != null) ? part.defaultZ : zOffset++;
+            const newItem = { id: itemId, slotId, src: '/Uploads/' + part.filename, alt: (item.name || '') + (idx === 0 ? ' (1)' : ' (2)'), zIndex: z, x, y };
+            storePreviewItems[slotId].push(newItem);
+            equippedOrder.push(newItem.id);
+            const slotEl = document.getElementById(slotId);
+            if (slotEl) {
+              const img = document.createElement('img');
+              img.src = newItem.src;
+              img.alt = newItem.alt;
+              img.onerror = () => { img.style.display = 'none'; };
+              img.dataset.itemId = newItem.id;
+              img.dataset.slotId = slotId;
+              img.style.zIndex = newItem.zIndex;
+              img.style.transform = 'translate(-50%, -50%) translate(' + newItem.x + 'px, ' + newItem.y + 'px)';
+              img.addEventListener('click', (e) => { e.stopPropagation(); selectStoreItem(newItem.id); });
+              hookPixelPerfect(img);
+              slotEl.appendChild(img);
+            }
+          });
+          renderStoreBackgrounds();
+        }
+      } else {
+        const slotId = item.slotId;
+        if (!VALID_SLOT_IDS.has(slotId)) return;
+        if (!storePreviewItems[slotId]) storePreviewItems[slotId] = [];
+        const existing = storePreviewItems[slotId].find(i => i.src === '/Uploads/' + item.filename);
+        if (existing) {
+          storePreviewItems[slotId] = storePreviewItems[slotId].filter(i => i.id !== existing.id);
+          equippedOrder = equippedOrder.filter(oid => oid !== existing.id);
+          const slotEl = document.getElementById(slotId);
+          if (slotEl) {
+            const img = slotEl.querySelector('[data-item-id="' + existing.id + '"]');
+            if (img) img.remove();
+          }
+          renderStoreBackgrounds();
+        } else {
+          const allItems = getAllStoreItems();
+          const coordItem = getCoordItem(item, allItems);
+          const itemId = slotId + '-' + storePreviewItems[slotId].length;
+          const x = (coordItem.defaultX != null) ? coordItem.defaultX : 0;
+          const y = (coordItem.defaultY != null) ? coordItem.defaultY : 0;
+          const z = (coordItem.defaultZ != null) ? coordItem.defaultZ : (allItems.length + 2);
+          const newItem = { id: itemId, slotId, src: '/Uploads/' + item.filename, alt: item.name || item.filename, zIndex: z, x, y };
+          if (item.background) {
+            newItem.background = {
+              filename: item.background.filename,
+              defaultX: item.background.defaultX != null ? item.background.defaultX : 0,
+              defaultY: item.background.defaultY != null ? item.background.defaultY : 0,
+              defaultZ: item.background.defaultZ != null ? item.background.defaultZ : 0,
+              src: '/Uploads/' + (item.background.filename || '')
+            };
+            newItem.backgroundOn = true;
+          }
+          storePreviewItems[slotId].push(newItem);
+          equippedOrder.push(newItem.id);
+          const slotEl = document.getElementById(slotId);
+          if (slotEl) {
+            const img = document.createElement('img');
+            img.src = newItem.src;
+            img.alt = newItem.alt;
+            img.onerror = () => { img.style.display = 'none'; };
+            img.dataset.itemId = newItem.id;
+            img.dataset.slotId = slotId;
+            img.style.zIndex = newItem.zIndex;
+            img.style.transform = 'translate(-50%, -50%) translate(' + newItem.x + 'px, ' + newItem.y + 'px)';
+            img.addEventListener('click', (e) => { e.stopPropagation(); selectStoreItem(newItem.id); });
+            hookPixelPerfect(img);
+            slotEl.appendChild(img);
+          }
+        }
+      }
+      renderStoreBackgrounds();
+      updateStoreEquippedStrip();
+    }
+    function selectStoreItem(itemId) {
+      selectedStoreItemId = itemId;
+      const box = document.getElementById('store-equipped-items');
+      if (box) box.querySelectorAll('img').forEach(img => img.classList.toggle('selected', img.dataset.itemId === itemId));
+      updateStoreBackgroundToggle();
+    }
+    function updateStoreBackgroundToggle() {
+      const btn = document.getElementById('store-toggle-background-btn');
+      if (!btn) return;
+      if (!selectedStoreItemId) {
+        btn.style.display = 'none';
+        return;
+      }
+      let item = null;
+      for (const slotId of Object.keys(storePreviewItems)) {
+        const found = (storePreviewItems[slotId] || []).find(i => i.id === selectedStoreItemId);
+        if (found) { item = found; break; }
+      }
+      if (!item || !item.background) {
+        btn.style.display = 'none';
+        return;
+      }
+      btn.style.display = 'inline-block';
+      btn.textContent = item.backgroundOn !== false ? 'Background: On' : 'Background: Off';
+    }
+    function updateStoreEquippedStrip() {
+      applyZOrderFromStrip();
+      const box = document.getElementById('store-equipped-items');
+      if (!box) return;
+      box.innerHTML = '';
+      const all = getAllStoreItems();
+      all.forEach((item, idx) => {
+        const container = document.createElement('div');
+        container.className = 'equipped-item-container';
+        if (item.slotId === 'body-slot') container.classList.add('body-slot');
+        container.draggable = true;
+        container.dataset.itemId = item.id;
+        container.dataset.stripIndex = String(idx);
+        container.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', item.id);
+          e.dataTransfer.effectAllowed = 'move';
+          container.classList.add('store-drag-over');
+        });
+        container.addEventListener('dragend', () => container.classList.remove('store-drag-over'));
+        container.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          box.querySelectorAll('.store-drop-target').forEach(el => el.classList.remove('store-drop-target'));
+          container.classList.add('store-drop-target');
+        });
+        container.addEventListener('dragleave', () => container.classList.remove('store-drop-target'));
+        container.addEventListener('drop', (e) => {
+          e.preventDefault();
+          box.querySelectorAll('.store-drop-target').forEach(el => el.classList.remove('store-drop-target'));
+          container.classList.remove('store-drag-over');
+          const draggedId = e.dataTransfer.getData('text/plain');
+          if (!draggedId || draggedId === item.id) return;
+          const fromIdx = equippedOrder.indexOf(draggedId);
+          const toIdx = equippedOrder.indexOf(item.id);
+          if (fromIdx === -1 || toIdx === -1) return;
+          userHasReordered = true;
+          equippedOrder.splice(fromIdx, 1);
+          equippedOrder.splice(toIdx, 0, draggedId);
+          applyZOrderFromStrip();
+          redrawStoreCharacter();
+          updateStoreEquippedStrip();
+        });
+        const img = document.createElement('img');
+        img.src = item.src;
+        img.alt = item.alt;
+        img.onerror = () => { img.style.display = 'none'; };
+        img.dataset.itemId = item.id;
+        img.dataset.slotId = item.slotId;
+        img.draggable = false;
+        img.classList.toggle('selected', item.id === selectedStoreItemId);
+        container.addEventListener('click', (e) => { e.stopPropagation(); selectStoreItem(item.id); });
+        const eyeBtn = document.createElement('button');
+        eyeBtn.type = 'button';
+        eyeBtn.className = 'item-visibility-btn';
+        const isVisible = item.visible !== false;
+        eyeBtn.setAttribute('aria-label', isVisible ? 'Hide this item' : 'Show this item');
+        eyeBtn.title = isVisible ? 'Hide this item' : 'Show this item';
+        function setStoreEyeIcon(visible) {
+          eyeBtn.innerHTML = visible
+            ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+            : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+          eyeBtn.setAttribute('aria-label', visible ? 'Hide this item' : 'Show this item');
+          eyeBtn.title = visible ? 'Hide this item' : 'Show this item';
+        }
+        setStoreEyeIcon(isVisible);
+        eyeBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          item.visible = item.visible === false;
+          const slotImgEl = document.querySelector('#' + item.slotId + ' [data-item-id="' + item.id + '"]');
+          if (slotImgEl) slotImgEl.style.visibility = item.visible ? 'visible' : 'hidden';
+          setStoreEyeIcon(item.visible);
+        });
+        container.appendChild(img);
+        container.appendChild(eyeBtn);
+        box.appendChild(container);
+        const slotImg = document.querySelector('#' + item.slotId + ' [data-item-id="' + item.id + '"]');
+        if (slotImg) {
+          slotImg.style.zIndex = item.zIndex || (all.length - idx + 2);
+          slotImg.style.visibility = item.visible !== false ? 'visible' : 'hidden';
+        }
+      });
+    }
+    function setActiveCategory(cat) {
+      if (cat === activeCategory) {
+        cat = 'all';
+      }
+      activeCategory = cat;
+      document.querySelectorAll('.category').forEach(el => { el.classList.remove('active'); });
+      const target = document.getElementById(cat);
+      if (target) target.classList.add('active');
+      document.querySelectorAll('.menu-icon').forEach(icon => icon.classList.remove('selected'));
+      if (cat === 'body' && document.getElementById('body-icon')) document.getElementById('body-icon').classList.add('selected');
+      else if (cat === 'other' || cat === 'jewelry') { const o = document.getElementById('other-icon'); if (o) o.classList.add('selected'); }
+      else if (cat === 'full-set' && document.getElementById('full-sets-icon')) document.getElementById('full-sets-icon').classList.add('selected');
+      else if (cat !== 'all') {
+        const icon = document.querySelector('.menu-icon[data-categories="' + cat + '"]');
+        if (icon) icon.classList.add('selected');
+      }
+    }
+
+    document.getElementById('body-icon').addEventListener('click', () => setActiveCategory('body'));
+    document.getElementById('other-icon').addEventListener('click', () => setActiveCategory('other'));
+    document.getElementById('full-sets-icon').addEventListener('click', () => setActiveCategory('full-set'));
+    ['shirt', 'pants', 'skirt', 'dress', 'jacket', 'shoes', 'socks', 'hat', 'hair', 'makeup', 'jewelry', 'favorites'].forEach(cat => {
+      const icon = document.querySelector('.menu-icon[data-categories="' + cat + '"]');
+      if (icon) icon.addEventListener('click', () => setActiveCategory(cat));
+    });
+
+    document.getElementById('store-move-up').addEventListener('click', () => {
+      if (!selectedStoreItemId) return;
+      const all = getAllStoreItems();
+      const idx = all.findIndex(o => o.id === selectedStoreItemId);
+      if (idx <= 0) return;
+      userHasReordered = true;
+      equippedOrder = all.map(o => o.id);
+      equippedOrder.splice(idx, 1);
+      equippedOrder.splice(idx - 1, 0, selectedStoreItemId);
+      applyZOrderFromStrip();
+      redrawStoreCharacter();
+      updateStoreEquippedStrip();
+    });
+    document.getElementById('store-move-down').addEventListener('click', () => {
+      if (!selectedStoreItemId) return;
+      const all = getAllStoreItems();
+      const idx = all.findIndex(o => o.id === selectedStoreItemId);
+      if (idx < 0 || idx >= all.length - 1) return;
+      userHasReordered = true;
+      equippedOrder = all.map(o => o.id);
+      equippedOrder.splice(idx, 1);
+      equippedOrder.splice(idx + 1, 0, selectedStoreItemId);
+      applyZOrderFromStrip();
+      redrawStoreCharacter();
+      updateStoreEquippedStrip();
+    });
+    document.getElementById('store-remove-item').addEventListener('click', () => {
+      if (!selectedStoreItemId) return;
+      const { slotId, index } = findStoreItemById(selectedStoreItemId);
+      if (!slotId || index < 0) return;
+      const id = storePreviewItems[slotId][index].id;
+      storePreviewItems[slotId].splice(index, 1);
+      equippedOrder = equippedOrder.filter(oid => oid !== id);
+      selectedStoreItemId = null;
+      redrawStoreCharacter();
+      renderStoreBackgrounds();
+      updateStoreEquippedStrip();
+      document.getElementById('store-toggle-background-btn').style.display = 'none';
+    });
+    document.getElementById('store-toggle-background-btn').addEventListener('click', () => {
+      if (!selectedStoreItemId) return;
+      let item = null;
+      let slotId = null;
+      let index = -1;
+      for (const s of Object.keys(storePreviewItems)) {
+        const idx = (storePreviewItems[s] || []).findIndex(i => i.id === selectedStoreItemId);
+        if (idx >= 0) { item = storePreviewItems[s][idx]; slotId = s; index = idx; break; }
+      }
+      if (!item || !item.background) return;
+      item.backgroundOn = item.backgroundOn === false;
+      renderStoreBackgrounds();
+      updateStoreBackgroundToggle();
+    });
+    document.getElementById('store-reset-outfit').addEventListener('click', () => {
+      VALID_SLOT_IDS.forEach(slotId => {
+        storePreviewItems[slotId] = [];
+        const slotEl = document.getElementById(slotId);
+        if (slotEl) slotEl.innerHTML = '';
+      });
+      const bgEl = document.getElementById('character-backgrounds');
+      if (bgEl) bgEl.innerHTML = '';
+      equippedOrder = [];
+      userHasReordered = false;
+      selectedStoreItemId = null;
+      document.getElementById('store-toggle-background-btn').style.display = 'none';
+      updateStoreEquippedStrip();
+    });
+
+    (function setupStoreEquippedVisibilityToggle() {
+      const visibilityBtn = document.getElementById('store-equipped-visibility-toggle');
+      const characterEl = document.getElementById('character');
+      if (!visibilityBtn || !characterEl) return;
+      function updateStoreVisibilityButton() {
+        if (storeEquippedItemsVisible) {
+          visibilityBtn.setAttribute('aria-label', 'Hide equipped items');
+          visibilityBtn.title = 'Hide equipped items';
+          visibilityBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+          characterEl.classList.remove('equipped-items-hidden');
+        } else {
+          visibilityBtn.setAttribute('aria-label', 'Show equipped items');
+          visibilityBtn.title = 'Show equipped items';
+          visibilityBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+          characterEl.classList.add('equipped-items-hidden');
+        }
+      }
+      visibilityBtn.addEventListener('click', function () {
+        storeEquippedItemsVisible = !storeEquippedItemsVisible;
+        updateStoreVisibilityButton();
+      });
+      updateStoreVisibilityButton();
+    })();
+
+    document.getElementById('store-checkout-btn').addEventListener('click', openCheckout);
+    document.getElementById('checkout-cancel').addEventListener('click', closeCheckout);
+    document.getElementById('checkout-purchase').addEventListener('click', purchaseCheckoutSelected);
+    document.getElementById('checkout-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'checkout-modal') closeCheckout();
+    });
+
+    const storePanel = document.getElementById('store-panel');
+    if (storePanel) {
+      storePanel.addEventListener('wheel', function(e) {
+        const cat = e.target.closest('.category.active');
+        if (cat && cat.scrollHeight > cat.clientHeight) {
+          cat.scrollTop += e.deltaY;
+          e.preventDefault();
+        }
+      }, { passive: false });
+    }
+
+    function initStoreSearch() {
+      const wrap = document.getElementById('store-search-wrap');
+      const input = document.getElementById('store-search-input');
+      if (!wrap || !input) return;
+      function expand() {
+        wrap.classList.add('expanded');
+        input.focus();
+      }
+      wrap.addEventListener('mouseenter', expand);
+      wrap.addEventListener('mouseleave', function() {
+        if (input === document.activeElement) return;
+        wrap.classList.remove('expanded');
+      });
+      wrap.addEventListener('click', function(e) {
+        if (e.target === input) return;
+        e.preventDefault();
+        if (wrap.classList.contains('expanded')) return;
+        expand();
+      });
+      input.addEventListener('input', function() {
+        storeSearchQuery = (input.value || '').trim();
+        try { if (typeof updateStoreDisplay === 'function') updateStoreDisplay(); } catch (err) {}
+      });
+      input.addEventListener('blur', function() {
+        setTimeout(function() {
+          if (document.activeElement !== input && !wrap.contains(document.activeElement)) wrap.classList.remove('expanded');
+        }, 150);
+      });
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          wrap.classList.remove('expanded');
+          input.value = '';
+          storeSearchQuery = '';
+          try { if (typeof updateStoreDisplay === 'function') updateStoreDisplay(); } catch (err) {}
+          input.blur();
+        }
+      });
+    }
+    function initStoreDebug() {
+      const btn = document.getElementById('store-debug-btn');
+      if (!btn) return;
+      btn.addEventListener('click', () => {
+        storeDebugMode = !storeDebugMode;
+        btn.classList.toggle('active', storeDebugMode);
+        btn.textContent = storeDebugMode ? 'Debug ON' : 'Debug';
+        const panel = document.getElementById('store-panel');
+        if (panel) panel.classList.toggle('store-debug-mode', storeDebugMode);
+        try { if (typeof updateStoreDisplay === 'function') updateStoreDisplay(); } catch (err) {}
+      });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => { initStoreSearch(); initStoreDebug(); });
+    } else {
+      initStoreSearch();
+      initStoreDebug();
+    }
+
+    function redrawStoreCharacter() {
+      VALID_SLOT_IDS.forEach(slotId => {
+        const slotEl = document.getElementById(slotId);
+        if (slotEl) slotEl.innerHTML = '';
+        (storePreviewItems[slotId] || []).forEach(item => {
+          const img = document.createElement('img');
+          img.src = item.src;
+          img.alt = item.alt;
+          img.onerror = () => { img.style.display = 'none'; };
+          img.dataset.itemId = item.id;
+          img.dataset.slotId = slotId;
+          img.style.zIndex = item.zIndex || 2;
+          img.style.visibility = item.visible !== false ? 'visible' : 'hidden';
+          img.style.transform = 'translate(-50%, -50%) translate(' + (item.x || 0) + 'px, ' + (item.y || 0) + 'px)';
+          img.addEventListener('click', (e) => { e.stopPropagation(); selectStoreItem(item.id); });
+          hookPixelPerfect(img);
+          slotEl.appendChild(img);
+        });
+      });
+      renderStoreBackgrounds();
+    }
+
+    (async function init() {
+      await loadInventory();
+      await loadWishlist();
+      await loadStoreItems();
+      setActiveCategory('all');
+    })();
+  </script>
+  <script src="/js/toast.js" defer></script>
+  <script src="/js/api.js" defer></script>
+  <script src="/js/header.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!-- public/login.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body {
+      font-family: 'Comfortaa', 'Quicksand', 'Nunito', Verdana, "Trebuchet MS", Tahoma, sans-serif;
+      background: linear-gradient(180deg, #fdf2f8 0%, #fce7f3 30%, #fbcfe8 70%, #f9a8d4 100%) !important;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .page-header {
+      background: var(--btn-pink-gradient);
+      border: var(--btn-pink-border);
+      box-shadow: var(--btn-pink-shadow);
+      margin: 24px 32px 16px 32px;
+      padding: 16px 24px;
+      border-radius: 10px;
+      color: white;
+      font-size: 1.25rem;
+      font-weight: 600;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    .page-content {
+      flex: 1;
+      padding: 24px 32px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+    }
+    .container {
+      text-align: center;
+      padding: 0;
+      background: var(--btn-pink-gradient);
+      border: var(--btn-pink-border);
+      border-radius: 10px;
+      box-shadow: var(--btn-pink-shadow);
+      width: 340px;
+      overflow: hidden;
+    }
+    .box-body {
+      padding: 24px;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: left;
+    }
+    .form-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .form-row label {
+      flex-shrink: 0;
+      min-width: 80px;
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+    }
+    .form-row input {
+      flex: 1;
+      min-width: 0;
+    }
+    input {
+      padding: 12px 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 9999px;
+      font-size: 14px;
+      background: white;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    input:focus {
+      outline: none;
+      border-color: #ec4899;
+      box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.25);
+    }
+    button {
+      padding: 12px 16px;
+      background: var(--btn-pink-gradient);
+      color: white;
+      border: var(--btn-pink-border);
+      border-radius: 9999px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: var(--btn-pink-shadow);
+      width: 100%;
+      margin-top: 4px;
+    }
+    button:hover {
+      background: var(--btn-pink-gradient-hover);
+      filter: brightness(1.02);
+      box-shadow: 0 3px 8px rgba(244,143,177,0.45), inset 0 1px 0 rgba(255,255,255,0.6);
+    }
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    .error {
+      color: #fecaca;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .toggle-row label {
+      font-size: 13px;
+      font-weight: 500;
+      color: white;
+      min-width: 0;
+      cursor: pointer;
+    }
+    .toggle-row input[type="checkbox"] {
+      width: auto;
+      cursor: pointer;
+      accent-color: #ec4899;
+    }
+    .toggle-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 12px;
+    }
+    .login-footer {
+      margin-top: 16px;
+      font-size: 14px;
+      color: white;
+    }
+    .login-footer a {
+      color: white;
+      text-decoration: underline;
+    }
+    .login-footer a:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <header class="page-header"></header>
+  <main class="page-content">
+  <div class="container">
+    <div class="box-body">
+      <div class="error" id="error-message" role="alert"></div>
+      <form action="/login" method="POST" id="login-form">
+        <div class="form-row">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" name="username" placeholder="Username" required autocomplete="username">
+        </div>
+        <div class="form-row">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" name="password" placeholder="Password" required autocomplete="current-password">
+        </div>
+        <div class="toggle-group">
+          <div class="toggle-row">
+            <input type="checkbox" id="remember-username" name="rememberUsername">
+            <label for="remember-username">Remember username</label>
+          </div>
+          <div class="toggle-row">
+            <input type="checkbox" id="remember-password" name="rememberPassword">
+            <label for="remember-password">Remember password</label>
+          </div>
+        </div>
+        <button type="submit" id="login-submit">Log in</button>
+      </form>
+      <p class="login-footer">
+        Don't have an account? <a href="/create-account">Create account</a>
+      </p>
+    </div>
+  </div>
+  </main>
+  <script>
+    (function () {
+      var REMEMBER_USER_KEY = 'dressup-remember-username';
+      var usernameInput = document.getElementById('login-username');
+      var rememberUsernameEl = document.getElementById('remember-username');
+      var rememberPasswordEl = document.getElementById('remember-password');
+      try {
+        if (localStorage.getItem(REMEMBER_USER_KEY) === '1') {
+          var saved = localStorage.getItem('dressup-username');
+          if (saved) usernameInput.value = saved;
+          if (rememberUsernameEl) rememberUsernameEl.checked = true;
+        }
+        var savedPw = localStorage.getItem('dressup-remember-password');
+        if (savedPw === '1' && rememberPasswordEl) rememberPasswordEl.checked = true;
+      } catch (_) {}
+      var urlParams = new URLSearchParams(window.location.search);
+      var errorEl = document.getElementById('error-message');
+      var err = urlParams.get('error');
+      if (err === 'invalid') errorEl.textContent = 'Invalid username or password.';
+      else if (err === 'missing') errorEl.textContent = 'Please enter your username and password.';
+      else if (err === 'rate') errorEl.textContent = 'Too many attempts. Please try again in 15 minutes.';
+      var form = document.getElementById('login-form');
+      var submitBtn = document.getElementById('login-submit');
+      form.addEventListener('submit', function () {
+        var username = (usernameInput.value || '').trim();
+        var password = document.getElementById('login-password').value;
+        if (!username || !password) {
+          if (!errorEl.textContent) errorEl.textContent = 'Please enter your username and password.';
+          return false;
+        }
+        try {
+          if (rememberUsernameEl && rememberUsernameEl.checked) {
+            localStorage.setItem(REMEMBER_USER_KEY, '1');
+            localStorage.setItem('dressup-username', username);
+          } else {
+            localStorage.removeItem(REMEMBER_USER_KEY);
+            localStorage.removeItem('dressup-username');
+          }
+          if (rememberPasswordEl && rememberPasswordEl.checked) {
+            localStorage.setItem('dressup-remember-password', '1');
+          } else {
+            localStorage.removeItem('dressup-remember-password');
+          }
+        } catch (_) {}
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Logging in…';
+      });
+    })();
+  </script>
+  <script src="/js/toast.js"></script>
+</body>
+</html>

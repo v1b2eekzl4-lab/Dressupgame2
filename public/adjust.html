@@ -1,0 +1,2414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Upload Items</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body {
+      font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif;
+      background: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    #adjust-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      flex: 0 0 auto;
+    }
+    #adjust-area {
+      width: 1200px;
+      height: 600px;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      display: flex;
+      gap: 20px;
+      margin: auto;
+    }
+    .preview-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    #adjustment-character {
+      position: relative;
+      width: 250px;
+      height: 350px;
+      border: 2px solid #888;
+      border-radius: 5px;
+      background: #fff;
+      overflow: hidden;
+      transform: translateZ(0);
+      backface-visibility: hidden;
+    }
+    #adjustment-base {
+      position: absolute;
+      width: 250px;
+      height: 350px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+      object-fit: none;
+      z-index: 0;
+      pointer-events: none;
+    }
+    #adjustment-slot {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 250px;
+      height: 350px;
+      pointer-events: none;
+    }
+    #adjustment-slot img {
+      pointer-events: auto;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: -webkit-optimize-contrast;
+      object-fit: none;
+      cursor: move;
+      border: 1px solid transparent;
+      max-width: 250px;
+      max-height: 350px;
+    }
+    .adjustment-slot img.selected {
+      border: 2px solid #ec4899;
+    }
+    #coord-tool {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      width: 250px;
+    }
+    #coord-tool button {
+      padding: 5px 10px;
+      background: var(--btn-pink-gradient);
+      color: white;
+      border: var(--btn-pink-border);
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 12px;
+      box-shadow: var(--btn-pink-shadow);
+    }
+    #coord-tool button:hover {
+      background: var(--btn-pink-gradient-hover);
+      filter: brightness(1.02);
+    }
+    #coord-tool label {
+      font-size: 12px;
+    }
+    #coord-tool input {
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    #coord-tracker {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 5px;
+      border-radius: 3px;
+      font-size: 12px;
+      z-index: 100;
+    }
+    #item-list-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #add-item-button {
+      padding: 5px 10px;
+      background: var(--btn-pink-gradient);
+      color: white;
+      border: var(--btn-pink-border);
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 12px;
+      box-shadow: var(--btn-pink-shadow);
+    }
+    #add-item-button:hover {
+      background: var(--btn-pink-gradient-hover);
+      filter: brightness(1.02);
+    }
+    #upload-sections {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      max-height: 500px;
+    }
+    .upload-section {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      cursor: grab;
+    }
+    .upload-section.selected {
+      background: #fce4ec;
+    }
+    .upload-section.bar-compact .swatches-inline,
+    .upload-section.bar-compact .actions { display: none !important; }
+    .upload-section .bar-details-btn {
+      flex-shrink: 0;
+      padding: 2px 8px;
+      font-size: 11px;
+      background: #e5e7eb;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #374151;
+    }
+    .upload-section .bar-details-btn:hover { background: #d1d5db; }
+    .upload-section .bar-details-btn::after { content: ' Show details'; }
+    .upload-section.bar-details-open .bar-details-btn::after { content: ' Hide details'; }
+    .upload-section .preview-and-plus {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      touch-action: none;
+    }
+    .upload-section .item-preview {
+      width: auto;
+      height: auto;
+      max-width: 100px;
+      max-height: 100px;
+      object-fit: contain;
+      image-rendering: pixelated;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .upload-section .add-swatch {
+      flex-shrink: 0;
+    }
+    .upload-section .swatches-inline {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .upload-section .swatch-thumb {
+      width: auto;
+      height: auto;
+      max-width: 100px;
+      max-height: 100px;
+      object-fit: contain;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      cursor: pointer;
+      image-rendering: pixelated;
+    }
+    .upload-section .swatch-thumb:hover {
+      border-color: #ec4899;
+    }
+    .upload-section .swatch-thumb.selected-swatch {
+      border: 2px solid #ec4899;
+    }
+    .upload-section .swatch-color-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-direction: column;
+    }
+    .upload-section .swatch-color-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1px solid #666;
+      cursor: pointer;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+    }
+    .upload-section .swatch-color-dot:hover { border-color: #ec4899; }
+    .upload-section .swatch-pick-btn {
+      font-size: 10px;
+      padding: 1px 4px;
+      background: #6c757d;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .upload-section .swatch-pick-btn:hover { background: #5a6268; }
+    .upload-section .actions {
+      display: flex;
+      gap: 5px;
+      margin-left: auto;
+    }
+    .upload-section .delete-item {
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      padding: 2px 5px;
+      cursor: pointer;
+    }
+    .upload-section .delete-item:hover {
+      background: #c82333;
+    }
+    .upload-section-empty {
+      min-height: 44px;
+      align-items: center;
+      justify-content: center;
+      border: 2px dashed #9ca3af;
+      background: #f9fafb;
+      cursor: default;
+    }
+    .upload-section-empty.drag-over {
+      border-color: #ec4899;
+      background: #fce4ec;
+    }
+    .upload-dewatch-zone {
+      min-height: 20px;
+      margin: 2px 0;
+      border: 2px dashed transparent;
+      border-radius: 4px;
+      transition: border-color 0.15s, background 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #9ca3af;
+      pointer-events: auto;
+    }
+    .upload-dewatch-zone:hover {
+      border-color: #d1d5db;
+      background: #f9fafb;
+    }
+    .upload-dewatch-zone.drag-over {
+      border-color: #ec4899;
+      background: rgba(236, 72, 153, 0.15);
+      color: #be185d;
+    }
+    .upload-dewatch-zone::before {
+      content: 'Drop swatch here → separate item';
+      opacity: 0.5;
+    }
+    .upload-dewatch-zone.drag-over::before {
+      content: 'Release to make separate item';
+      opacity: 1;
+      font-weight: 600;
+    }
+    .upload-section:not(.upload-section-empty).drag-over {
+      border-color: #ec4899;
+      background: #fce4ec;
+      box-shadow: 0 0 0 2px #ec4899;
+    }
+    body.upload-dragging { cursor: grabbing; }
+    body.upload-dragging * { cursor: grabbing !important; }
+    .upload-section-empty .upload-section-empty-text {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .upload-section .visibility-toggle-btn {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .upload-section .visibility-toggle-btn:hover {
+      background: #f1f3f4;
+    }
+    .upload-section .visibility-toggle-btn.hidden {
+      opacity: 0.6;
+    }
+    .upload-section .frames-toggle-btn {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .upload-section .frames-toggle-btn:hover {
+      background: #f1f3f4;
+    }
+    .upload-section .frames-menu {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px 12px;
+      margin-top: 8px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      background: #f9fafb;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .upload-section .frames-menu.open {
+      display: flex;
+    }
+    .upload-section .frames-menu .frames-view-strip {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .upload-section .frames-menu .frames-view-strip img {
+      width: 32px;
+      height: 32px;
+      object-fit: none;
+      object-position: 0 0;
+      border: 1px solid #e5e7eb;
+      border-radius: 3px;
+    }
+    .upload-section .frames-menu .frames-form-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .upload-section .frames-menu .frames-form-row label { font-size: 12px; min-width: 70px; }
+    .upload-section .frames-menu .frames-form-row input[type="number"] { width: 56px; padding: 4px 6px; font-size: 12px; }
+    .upload-section .frames-menu .frames-import-row input[type="file"] { font-size: 11px; }
+    .upload-section .add-swatch {
+      background: var(--btn-pink-gradient);
+      color: white;
+      border: var(--btn-pink-border);
+      border-radius: 3px;
+      padding: 2px 5px;
+      cursor: pointer;
+    }
+    .upload-dropzone {
+      border: 2px dashed #9ca3af;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      background: #f9fafb;
+      cursor: pointer;
+      margin-bottom: 8px;
+      outline: none;
+    }
+    .upload-dropzone:hover, .upload-dropzone:focus { border-color: #6b7280; background: #f3f4f6; }
+    .upload-dropzone.drag-over { border-color: #ec4899; background: #fce4ec; }
+    .upload-dropzone .upload-dropzone-text { display: block; font-weight: 600; color: #374151; }
+    .upload-dropzone .upload-dropzone-sub { display: block; font-size: 12px; color: #6b7280; margin-top: 4px; }
+    .upload-section .add-swatch:hover {
+      background: var(--btn-pink-gradient-hover);
+      filter: brightness(1.02);
+    }
+    #adjust-right-panel {
+      width: 250px;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      padding-right: 4px;
+    }
+    #adjust-right-panel::-webkit-scrollbar { width: 8px; }
+    #adjust-right-panel::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 4px; }
+    #adjust-right-panel::-webkit-scrollbar-track { background: #f1f5f9; }
+    #adjust-right-panel select, #adjust-right-panel input, #adjust-right-panel button {
+      margin: 5px 0;
+      width: 100%;
+      padding: 5px;
+    }
+    #adjust-right-panel button {
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #adjust-right-panel button:hover {
+      background: #0056b3;
+    }
+    #adjust-right-panel a {
+      padding: 5px 10px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 12px;
+      text-decoration: none;
+      text-align: center;
+    }
+    #adjust-right-panel a:hover {
+      background: #218838;
+    }
+    .save-project-btn {
+      margin-top: 8px;
+      padding: 10px 20px;
+      background: #059669;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .save-project-btn:hover {
+      background: #047857;
+    }
+    .save-project-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    #swatches-section {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    #swatches-section .swatch {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    #swatches-section .swatch img {
+      width: 30px;
+      height: 30px;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body data-adjust-version="compact-bars-dewatch">
+  <div id="adjust-version-marker" style="position:fixed;top:60px;right:10px;z-index:9999;background:#0ea5e9;color:#fff;padding:4px 8px;border-radius:6px;font-size:11px;" title="If you see this, you have the latest adjust page">Adjust v2</div>
+  <div id="header-placeholder"></div>
+  <div id="adjust-wrapper">
+  <div id="project-banner" style="display: none; max-width: 1200px; width: 100%; margin: 10px 0 0; padding: 10px 20px; background: #e0f2fe; border-radius: 8px; font-size: 14px; box-sizing: border-box;"></div>
+  <div id="adjust-area" style="padding-top: 60px;">
+    <div class="preview-wrapper">
+      <div id="adjustment-character">
+        <img src="/Uploads/character.png" id="adjustment-base" alt="Character Base">
+        <div id="adjustment-slot" class="adjustment-slot"></div>
+        <div id="coord-tracker"></div>
+      </div>
+      <div id="coord-tool">
+        <button id="reset-coord">Reset Coordinates</button>
+        <label for="coord-x">X Coordinate:</label>
+        <input type="number" id="coord-x" min="-125" max="125" value="0">
+        <label for="coord-y">Y Coordinate:</label>
+        <input type="number" id="coord-y" min="-175" max="175" value="0">
+      </div>
+    </div>
+    <div id="item-list-section">
+      <button id="add-item-button">Add Item/Set</button>
+      <div id="upload-sections"></div>
+    </div>
+    <div id="adjust-right-panel">
+      <h4>Upload Options</h4>
+      <p style="font-size: 12px; color: #6b7280; margin: 4px 0 8px 0;">Add images without opening a file window: drag images here or paste (Ctrl+V). Assets are uploaded to the server.</p>
+      <div id="item-upload-dropzone" class="upload-dropzone" tabindex="0" role="button" aria-label="Drop or paste images to upload">
+        <span class="upload-dropzone-text">Drag images here or paste (Ctrl+V)</span>
+        <span class="upload-dropzone-sub">No file picker — avoids Explorer</span>
+      </div>
+      <label for="item-upload" style="margin-top:8px;display:inline-block;">Or choose file:</label>
+      <input type="file" id="item-upload" accept="image/*,.gif" multiple>
+      <div style="margin-top:8px;">
+        <label for="item-upload-url">Add from URL:</label>
+        <input type="url" id="item-upload-url" placeholder="https://…" style="width:100%;max-width:280px;padding:6px 8px;margin-right:6px;">
+        <button type="button" id="item-upload-url-btn" class="btn-save" style="margin-top:4px;">Add from URL</button>
+      </div>
+      <hr style="margin: 12px 0;">
+      <h5 style="margin: 8px 0;">Add background image</h5>
+      <p style="font-size: 12px; color: #6b7280; margin: 4px 0;">Select an item above, then add one background image. It draws <strong>under</strong> the character base when equipped. You can toggle it off in Wardrobe/Shopping.</p>
+      <div id="secondary-image-panel" style="margin-top: 8px; padding: 8px; border: 1px solid #e5e7eb; border-radius: 6px; background: #f9fafb; display: none;">
+        <input type="file" id="secondary-image-upload" accept="image/*,.gif" style="display:none">
+        <div id="secondary-dropzone" class="upload-dropzone" style="padding:10px;margin-bottom:8px;" tabindex="0" role="button" aria-label="Drop or paste background image">Drag image here or paste (Ctrl+V) — no file window</div>
+        <button type="button" id="add-secondary-btn" style="margin-bottom: 8px;">Or choose file…</button>
+        <div id="secondary-image-preview" style="display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+          <label style="font-size: 12px;">Background (under base; hierarchy for stacking):</label>
+          <img id="secondary-image-thumb" src="" alt="Background" style="display: block; max-width: 80px; max-height: 80px; margin: 4px 0; border: 1px solid #ccc; border-radius: 4px;">
+          <label style="font-size: 12px;">X: <input type="number" id="secondary-coord-x" min="-125" max="125" value="0" style="width: 56px;"></label>
+          <label style="font-size: 12px;">Y: <input type="number" id="secondary-coord-y" min="-175" max="175" value="0" style="width: 56px;"></label>
+          <label style="font-size: 12px;">Layer order (under base): <input type="number" id="secondary-coord-z" min="-10" max="0" value="0" style="width: 48px;" title="Lower = further back"></label>
+          <button type="button" id="remove-secondary-btn" style="margin-top: 6px; font-size: 11px; padding: 2px 6px;">Remove background</button>
+        </div>
+      </div>
+      <hr style="margin: 12px 0;">
+      <button type="button" id="swatch-options-toggle" style="margin-bottom: 8px; padding: 6px 12px; font-size: 12px; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; border-radius: 6px; cursor: pointer;">Show swatch & color</button>
+      <div id="swatch-actions-wrap" style="margin-bottom: 12px; padding: 10px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; display: none;">
+        <div style="font-size: 12px; font-weight: 600; color: #0369a1; margin-bottom: 6px;">Swatch</div>
+        <p style="margin: 0 0 8px 0; font-size: 12px; color: #0c4a6e;">Drag an item onto another to make it a swatch, or use below.</p>
+        <div id="swatch-make-wrap" style="display: none;">
+          <label style="font-size: 12px;">Make this item a swatch of:</label>
+          <select id="swatch-of-select" style="margin-top: 4px; width: 100%; max-width: 220px; padding: 6px 8px;">
+            <option value="">— choose item —</option>
+          </select>
+          <button type="button" id="swatch-of-apply-btn" class="btn-save" style="margin-top: 6px; padding: 4px 10px; font-size: 12px;">Set as swatch</button>
+        </div>
+        <div id="swatch-separate-wrap" style="display: none;">
+          <button type="button" id="swatch-make-separate-btn" style="padding: 6px 12px; font-size: 12px; background: #0ea5e9; color: #fff; border: none; border-radius: 6px; cursor: pointer;">Make separate item</button>
+        </div>
+      </div>
+      <label for="designer">Designer:</label>
+      <input type="text" id="designer" placeholder="Enter designer">
+      <label for="slot-select">Category:</label>
+      <select id="slot-select">
+        <option value="body-slot">Body</option>
+        <option value="shirt-slot">Shirt</option>
+        <option value="pants-slot">Pants</option>
+        <option value="skirt-slot">Skirt</option>
+        <option value="dress-slot">Dress</option>
+        <option value="jacket-slot">Jacket</option>
+        <option value="shoes-slot">Shoes</option>
+        <option value="hat-slot">Hat</option>
+        <option value="jewelry-slot">Jewelry</option>
+        <option value="other-slot">Other</option>
+        <option value="hair-slot">Hair</option>
+        <option value="socks-slot">Socks</option>
+      </select>
+      <div id="categories-wrap">
+        <label style="display:block; margin-bottom: 6px;">Subcategories</label>
+        <div id="categories-list" style="display: flex; flex-wrap: wrap; gap: 8px 12px;"></div>
+      </div>
+      <label for="item-name">Item Name:</label>
+      <input type="text" id="item-name" placeholder="Enter item name">
+      <div id="swatches-section">
+        <h5>Color Swatches</h5>
+        <!-- Dynamic swatches -->
+      </div>
+      <button type="button" id="save-project-btn" class="save-project-btn" style="display: none;">Save project</button>
+      <a href="/projects" id="back-link">Back to Upload Items</a>
+    </div>
+  </div>
+  </div>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectId = urlParams.get('projectId');
+    const equippedItems = {};
+    let selectedItemId = null;
+    function applyPixelPerfectSize(img, maxW, maxH) {
+      maxW = maxW || 250; maxH = maxH || 350;
+      const nw = img.naturalWidth, nh = img.naturalHeight;
+      if (!nw || !nh) return;
+      let scale = Math.min(1, maxW / nw, maxH / nh);
+      if (scale < 1) scale = 1 / Math.ceil(1 / scale);
+      let w = Math.round(nw * scale), h = Math.round(nh * scale);
+      if (w % 2 !== 0) w++; if (h % 2 !== 0) h++;
+      img.style.width = w + 'px';
+      img.style.height = h + 'px';
+    }
+    function hookPixelPerfect(img, maxW, maxH) {
+      img.addEventListener('load', function () { applyPixelPerfectSize(img, maxW, maxH); });
+      if (img.complete) applyPixelPerfectSize(img, maxW, maxH);
+    }
+    (function () {
+      const base = document.getElementById('adjustment-base');
+      if (base) hookPixelPerfect(base);
+    })();
+    let isDragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    let wardrobeItems = [];
+    let dragStartIndex = null;
+    let uploadDragState = null;
+    let projectName = '';
+    function getUploadSectionAt(x, y) {
+      const el = document.elementFromPoint(x, y);
+      if (!el || !el.closest) return null;
+      return el.closest('.upload-section') || null;
+    }
+    function clearUploadDropTargetHighlight() {
+      document.querySelectorAll('.upload-section').forEach(s => s.classList.remove('drag-over'));
+    }
+    function applyUploadDrop(dragId, targetId) {
+      if (!targetId) return;
+      if (targetId === 'empty') {
+        const list = getAllItems();
+        const it = list.find(function (i) { return i.id === dragId; });
+        if (it && getSwatchParentFilename(it)) {
+          makeItemRootAgain(dragId);
+          saveEquippedItems();
+          if (typeof showToast === 'function') showToast('Item is now separate.');
+        }
+      } else if (targetId !== dragId) {
+        makeItemSwatchOfTarget(dragId, targetId);
+        saveEquippedItems();
+        if (typeof showToast === 'function') showToast('Item is now a swatch of the target.');
+      }
+    }
+    const ITEM_CATEGORIES = ['Casual', 'Formal', 'Sporty', 'Party', 'Summer', 'Winter', 'Accessory', 'Limited Edition', 'Set piece'];
+    const CAT_PREFIX = 'cat:';
+    function getSelectedCategoriesFromTags(tags) {
+      if (!Array.isArray(tags)) return [];
+      return tags.filter(t => typeof t === 'string' && t.startsWith(CAT_PREFIX)).map(t => t.slice(CAT_PREFIX.length).trim()).filter(Boolean);
+    }
+    function setTagsWithCategories(currentTags, categoryNames) {
+      const withoutCat = (currentTags || []).filter(t => typeof t !== 'string' || !t.startsWith(CAT_PREFIX));
+      const catTags = (categoryNames || []).map(c => CAT_PREFIX + c);
+      return [...withoutCat, ...catTags];
+    }
+    function getCheckedCategoryNames() {
+      const list = document.getElementById('categories-list');
+      if (!list) return [];
+      return Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+    }
+    function showError(message) {
+      if (typeof window.showError === 'function') window.showError(message);
+      else alert('Error: ' + message);
+    }
+    function isProjectMode() { return !!projectId; }
+    function projectUploadUrl() { return `/api/projects/${encodeURIComponent(projectId)}/upload`; }
+    function projectItemUpdateUrl(filename) { return `/api/projects/${encodeURIComponent(projectId)}/items/${encodeURIComponent(filename)}`; }
+    function projectItemDeleteUrl(filename) { return `/api/projects/${encodeURIComponent(projectId)}/items/${encodeURIComponent(filename)}`; }
+    async function loadEquippedItems() {
+      Object.keys(equippedItems).forEach(slotId => { equippedItems[slotId] = []; });
+      wardrobeItems = [];
+      if (isProjectMode()) {
+        try {
+          const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}`);
+          if (!res.ok) throw new Error('Project not found');
+          const project = await res.json();
+          projectName = project.name || 'Project';
+          const items = Array.isArray(project.items) ? project.items : [];
+          items.forEach((it, i) => {
+            const slotId = it.slotId || 'other-slot';
+            if (!equippedItems[slotId]) equippedItems[slotId] = [];
+            const itemId = `${slotId}-${equippedItems[slotId].length}`;
+            const equipped = {
+              id: itemId,
+              slotId,
+              src: '/Uploads/' + (it.filename || ''),
+              alt: it.name || it.filename || '',
+              zIndex: (items.length - i) + 1,
+              x: it.defaultX != null ? it.defaultX : 0,
+              y: it.defaultY != null ? it.defaultY : 0,
+              heart: it.heart || false,
+              tags: it.tags || [],
+              designer: it.designer || '',
+              isSet: it.isSet || false,
+              visible: true,
+              background: it.background ? { filename: it.background.filename, defaultX: it.background.defaultX, defaultY: it.background.defaultY, defaultZ: it.background.defaultZ, src: '/Uploads/' + (it.background.filename || '') } : null
+            };
+            if (it.frameCount > 1 && it.spriteSheetFrameW && it.spriteSheetFrameH) {
+              equipped.frameCount = it.frameCount;
+              equipped.spriteSheetFrameW = it.spriteSheetFrameW;
+              equipped.spriteSheetFrameH = it.spriteSheetFrameH;
+            }
+            equippedItems[slotId].push(equipped);
+            wardrobeItems.push(it);
+          });
+        } catch (e) {
+          showError('Could not load project: ' + (e.message || 'unknown'));
+        }
+      }
+      populateUploadSections();
+      updatePreview();
+    }
+    function saveEquippedItems() {
+      // Persisted via Save project in project mode; no-op for direct
+    }
+    /** Flush right-panel form (name, coords, category, designer, slot) into the currently selected item and its wardrobe entry. */
+    function syncSelectedItemFromPanel() {
+      if (!selectedItemId) return;
+      const coordX = document.getElementById('coord-x');
+      const coordY = document.getElementById('coord-y');
+      const itemNameInput = document.getElementById('item-name');
+      const slotSelect = document.getElementById('slot-select');
+      const designerInput = document.getElementById('designer');
+      if (!coordX || !coordY || !itemNameInput || !slotSelect) return;
+      const loc = findItemById(selectedItemId);
+      if (loc.slotId == null || loc.index < 0) return;
+      const item = equippedItems[loc.slotId][loc.index];
+      const defaultX = parseFloat(coordX.value) || 0;
+      const defaultY = parseFloat(coordY.value) || 0;
+      const updatedItem = {
+        name: itemNameInput.value || item.alt,
+        slotId: slotSelect.value || 'other-slot',
+        tags: setTagsWithCategories(item.tags, getCheckedCategoryNames()),
+        heart: item.heart,
+        designer: (designerInput && designerInput.value) || item.designer || '',
+        isSet: item.isSet,
+        defaultX,
+        defaultY,
+        defaultZ: item.zIndex != null ? item.zIndex : 0
+      };
+      item.x = defaultX;
+      item.y = defaultY;
+      item.alt = updatedItem.name;
+      item.tags = updatedItem.tags;
+      item.designer = updatedItem.designer;
+      item.isSet = updatedItem.isSet;
+      const filename = item.src && item.src.startsWith('/Uploads/') ? item.src.split('/').pop() : null;
+      const wardrobeItemIndex = wardrobeItems.findIndex(i => i.filename === filename || i.name === item.alt);
+      if (wardrobeItemIndex >= 0) wardrobeItems[wardrobeItemIndex] = { ...wardrobeItems[wardrobeItemIndex], ...updatedItem };
+      if (loc.slotId !== updatedItem.slotId) {
+        equippedItems[loc.slotId].splice(loc.index, 1);
+        if (!equippedItems[updatedItem.slotId]) equippedItems[updatedItem.slotId] = [];
+        item.slotId = updatedItem.slotId;
+        item.id = `${updatedItem.slotId}-${equippedItems[updatedItem.slotId].length}`;
+        equippedItems[updatedItem.slotId].push(item);
+        selectedItemId = item.id;
+      }
+      populateUploadSections();
+      updatePreview();
+    }
+    async function saveProject() {
+      if (!isProjectMode() || !projectId) return;
+      syncSelectedItemFromPanel();
+      const toSave = wardrobeItems.filter(wi => wi.filename);
+      if (toSave.length === 0) {
+        if (typeof showToast === 'function') showToast('No items to save.', true);
+        else alert('No items to save.');
+        return;
+      }
+      const saveProjectBtn = document.getElementById('save-project-btn');
+      if (saveProjectBtn) saveProjectBtn.disabled = true;
+      const allEquipped = getAllItems();
+      const usedEquippedIds = new Set();
+      let saved = 0;
+      let failed = 0;
+      for (const wi of toSave) {
+        const filename = wi.filename;
+        const eq = allEquipped.find(e => {
+          if (usedEquippedIds.has(e.id)) return false;
+          return (e.src && e.src.endsWith('/' + filename)) || (wi.name && e.alt === wi.name);
+        });
+        if (eq) usedEquippedIds.add(eq.id);
+        const defaultX = eq && eq.x != null ? eq.x : (wi.defaultX != null ? wi.defaultX : 0);
+        const defaultY = eq && eq.y != null ? eq.y : (wi.defaultY != null ? wi.defaultY : 0);
+        const defaultZ = eq && eq.zIndex != null ? eq.zIndex : (wi.defaultZ != null ? wi.defaultZ : 0);
+        const name = (eq && eq.alt) || wi.name || filename;
+        const slotId = (eq && eq.slotId) || wi.slotId || 'other-slot';
+        const tags = (eq && eq.tags && Array.isArray(eq.tags)) ? eq.tags : (wi.tags || []);
+        const designer = (eq && eq.designer) || wi.designer || '';
+        const isSet = eq && eq.isSet != null ? eq.isSet : (wi.isSet != null ? wi.isSet : false);
+        const heart = eq && eq.heart != null ? eq.heart : (wi.heart != null ? wi.heart : false);
+        let body = { name, slotId, defaultX, defaultY, defaultZ, tags, designer, isSet, heart };
+        const primaryPart = { filename, slotId, defaultX, defaultY, defaultZ };
+        body.bundleParts = [primaryPart];
+        if (eq && eq.background && eq.background.filename) {
+          body.background = {
+            filename: eq.background.filename,
+            defaultX: eq.background.defaultX != null ? eq.background.defaultX : 0,
+            defaultY: eq.background.defaultY != null ? eq.background.defaultY : 0,
+            defaultZ: eq.background.defaultZ != null ? eq.background.defaultZ : 0
+          };
+        } else if (wi.background && wi.background.filename) {
+          body.background = {
+            filename: wi.background.filename,
+            defaultX: wi.background.defaultX != null ? wi.background.defaultX : 0,
+            defaultY: wi.background.defaultY != null ? wi.background.defaultY : 0,
+            defaultZ: wi.background.defaultZ != null ? wi.background.defaultZ : 0
+          };
+        } else {
+          body.background = null;
+        }
+        try {
+          const res = await fetch(projectItemUpdateUrl(filename), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+          if (res.ok) saved++; else failed++;
+        } catch (e) { failed++; }
+      }
+      if (saveProjectBtn) saveProjectBtn.disabled = false;
+      if (failed === 0) {
+        if (typeof showToast === 'function') showToast('Project saved. ' + saved + ' item(s) updated.');
+        else alert('Project saved. ' + saved + ' item(s) updated.');
+      } else {
+        const msg = saved + ' saved, ' + failed + ' failed.';
+        if (typeof showToast === 'function') showToast(msg, true);
+        else alert(msg);
+      }
+    }
+    function fetchWardrobeItems() {
+      // wardrobeItems set in loadEquippedItems when project mode
+      if (!isProjectMode()) wardrobeItems = [];
+    }
+    function getSwatchParentId(item) {
+      if (!item.tags) return null;
+      const tag = item.tags.find(t => typeof t === 'string' && t.startsWith('swatch-of:'));
+      return tag ? tag.replace('swatch-of:', '') : null;
+    }
+    function getSwatchParentFilename(item) {
+      if (!item.tags) return null;
+      const tag = item.tags.find(t => typeof t === 'string' && t.startsWith('swatch-parent:'));
+      return tag ? tag.replace('swatch-parent:', '').trim() : null;
+    }
+    /** Remove swatch-of and swatch-parent from an item so it becomes a separate root item again. */
+    function makeItemRootAgain(itemId) {
+      const loc = findItemById(itemId);
+      if (loc.slotId == null || loc.index < 0) return;
+      const eq = equippedItems[loc.slotId][loc.index];
+      const parentFilename = getSwatchParentFilename(eq);
+      if (!parentFilename) return;
+      let tags = Array.isArray(eq.tags) ? [...eq.tags] : [];
+      tags = tags.filter(t => typeof t !== 'string' || (!t.startsWith('swatch-of:') && !t.startsWith('swatch-parent:')));
+      eq.tags = tags;
+      const filename = eq.src && eq.src.startsWith('/Uploads/') ? eq.src.split('/').pop() : null;
+      const wi = wardrobeItems.find(w => (w.filename && filename && w.filename === filename) || (w.name === eq.alt));
+      if (wi) wi.tags = tags;
+      saveEquippedItems();
+      populateUploadSections();
+      updatePreview();
+    }
+    /** Make the dragged item (and its swatches) become swatches of the target item. */
+    function makeItemSwatchOfTarget(draggedItemId, targetItemId) {
+      const allItems = getAllItems();
+      const targetLoc = findItemById(targetItemId);
+      if (targetLoc.slotId == null || targetLoc.index < 0) return;
+      const targetItem = equippedItems[targetLoc.slotId][targetLoc.index];
+      const targetX = targetItem.x != null ? targetItem.x : 0;
+      const targetY = targetItem.y != null ? targetItem.y : 0;
+      const targetZ = targetItem.zIndex != null ? targetItem.zIndex : 0;
+      const targetFilename = targetItem.src && targetItem.src.startsWith('/Uploads/') ? targetItem.src.split('/').pop() : null;
+      const toConvert = [draggedItemId, ...allItems.filter(i => getSwatchParentId(i) === draggedItemId).map(i => i.id)];
+      toConvert.forEach(id => {
+        const loc = findItemById(id);
+        if (loc.slotId == null || loc.index < 0) return;
+        const eq = equippedItems[loc.slotId][loc.index];
+        let tags = Array.isArray(eq.tags) ? [...eq.tags] : [];
+        const ofIdx = tags.findIndex(t => typeof t === 'string' && t.startsWith('swatch-of:'));
+        if (ofIdx >= 0) tags[ofIdx] = 'swatch-of:' + targetItemId; else tags.push('swatch-of:' + targetItemId);
+        if (targetFilename) {
+          const parentIdx = tags.findIndex(t => typeof t === 'string' && t.startsWith('swatch-parent:'));
+          if (parentIdx >= 0) tags[parentIdx] = 'swatch-parent:' + targetFilename; else tags.push('swatch-parent:' + targetFilename);
+        }
+        eq.tags = tags;
+        eq.x = targetX;
+        eq.y = targetY;
+        eq.zIndex = targetZ;
+        const filename = eq.src && eq.src.startsWith('/Uploads/') ? eq.src.split('/').pop() : null;
+        const wi = wardrobeItems.find(w => (w.filename && filename && w.filename === filename) || (w.name === eq.alt));
+        if (wi) {
+          wi.tags = tags;
+          wi.defaultX = targetX;
+          wi.defaultY = targetY;
+          wi.defaultZ = targetZ;
+        }
+      });
+      saveEquippedItems();
+      populateUploadSections();
+      updatePreview();
+    }
+    function getSwatchColor(item) {
+      if (!item || !Array.isArray(item.tags)) return null;
+      const tag = item.tags.find(t => typeof t === 'string' && t.startsWith('swatch-color:'));
+      return tag ? tag.replace('swatch-color:', '').trim() : null;
+    }
+    function setSwatchColorInTags(tags, hex) {
+      const next = tags ? [...tags] : [];
+      const idx = next.findIndex(t => typeof t === 'string' && t.startsWith('swatch-color:'));
+      const newTag = 'swatch-color:' + (hex || '');
+      if (idx >= 0) next[idx] = newTag; else next.push(newTag);
+      return next;
+    }
+    function pickColorFromImage(imgSrc, onPicked) {
+      const img = new Image();
+      if (imgSrc && !imgSrc.startsWith('data:')) img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const w = canvas.width, h = canvas.height;
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;cursor:crosshair;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;';
+        const preview = document.createElement('div');
+        preview.style.cssText = 'background:#fff;padding:12px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);max-width:90vw;';
+        const instr = document.createElement('p');
+        instr.textContent = 'Click on the image to pick a color (click outside to cancel)';
+        instr.style.margin = '0 0 8px 0';
+        preview.appendChild(instr);
+        const small = document.createElement('img');
+        small.src = imgSrc;
+        small.style.cssText = 'max-width:200px;max-height:200px;display:block;cursor:crosshair;';
+        preview.appendChild(small);
+        overlay.appendChild(preview);
+        document.body.appendChild(overlay);
+        function rgbToHex(r, g, b) {
+          return '#' + [r, g, b].map(x => { const h = Math.max(0, Math.min(255, Math.round(x))).toString(16); return h.length === 1 ? '0' + h : h; }).join('');
+        }
+        function getColorAt(clientX, clientY) {
+          const rect = small.getBoundingClientRect();
+          const scaleX = img.naturalWidth / rect.width, scaleY = img.naturalHeight / rect.height;
+          const x = Math.floor((clientX - rect.left) * scaleX);
+          const y = Math.floor((clientY - rect.top) * scaleY);
+          if (x < 0 || x >= w || y < 0 || y >= h) return null;
+          const data = ctx.getImageData(x, y, 1, 1).data;
+          return rgbToHex(data[0], data[1], data[2]);
+        }
+        function done(hex) {
+          document.body.removeChild(overlay);
+          small.removeEventListener('click', onImgClick);
+          overlay.removeEventListener('click', onOverlayClick);
+          if (hex && onPicked) onPicked(hex);
+        }
+        function onImgClick(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const hex = getColorAt(e.clientX, e.clientY);
+          if (hex) done(hex);
+        }
+        function onOverlayClick(e) {
+          if (e.target === overlay) done(null);
+        }
+        small.addEventListener('click', onImgClick);
+        overlay.addEventListener('click', onOverlayClick);
+      };
+      img.onerror = () => { if (onPicked) onPicked(null); };
+      img.src = imgSrc;
+    }
+    async function applySwatchColor(equippedItem, hex) {
+      const filename = equippedItem.src && equippedItem.src.startsWith('/Uploads/') ? equippedItem.src.split('/').pop() : null;
+      const newTags = setSwatchColorInTags(equippedItem.tags || [], hex);
+      equippedItem.tags = newTags;
+      const wi = wardrobeItems.find(i => (i.filename && filename && i.filename === filename) || (i.name === equippedItem.alt));
+      if (wi) {
+        wi.tags = newTags;
+        if (filename && (isProjectMode() && projectId)) {
+          try {
+            const body = { name: wi.name, slotId: wi.slotId || 'other-slot', defaultX: wi.defaultX != null ? wi.defaultX : 0, defaultY: wi.defaultY != null ? wi.defaultY : 0, defaultZ: wi.defaultZ != null ? wi.defaultZ : 0, tags: newTags };
+            await fetch(projectItemUpdateUrl(filename), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+          } catch (e) { showError('Could not save swatch color: ' + (e.message || '')); }
+        } else if (filename && !isProjectMode()) {
+          try {
+            await fetch(`/api/items/update/${encodeURIComponent(filename)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...wi, tags: newTags }) });
+          } catch (e) { showError('Could not save swatch color: ' + (e.message || '')); }
+        }
+      }
+    }
+    function populateUploadSections() {
+      const uploadSections = document.getElementById('upload-sections');
+      uploadSections.innerHTML = '';
+      const allItems = getAllItems();
+      const allFilenames = new Set(allItems.map(i => {
+        const src = i.src || '';
+        return src.startsWith('/Uploads/') ? src.split('/').pop() : null;
+      }).filter(Boolean));
+      const rootItems = allItems.filter(item => {
+        const parentFilename = getSwatchParentFilename(item);
+        if (!parentFilename) return true;
+        return !allFilenames.has(parentFilename);
+      });
+      rootItems.forEach(function (item, sectionIndex) {
+        const itemFilename = item.src && item.src.startsWith('/Uploads/') ? item.src.split('/').pop() : null;
+        const swatches = allItems.filter(o => getSwatchParentFilename(o) === itemFilename);
+        const section = document.createElement('div');
+        section.classList.add('upload-section');
+        const previewAndPlus = document.createElement('div');
+        previewAndPlus.classList.add('preview-and-plus');
+        previewAndPlus.title = 'Drag image onto another bar to make this item a swatch of that bar';
+        const preview = document.createElement('img');
+        preview.classList.add('item-preview');
+        preview.draggable = true;
+        preview.src = item.src || 'https://via.placeholder.com/40x40?text=Preview';
+        preview.alt = item.alt || 'Item Preview';
+        if (item.frameCount > 1 && item.spriteSheetFrameW && item.spriteSheetFrameH) {
+          preview.style.objectFit = 'none';
+          preview.style.objectPosition = '0 0';
+          preview.style.width = '40px';
+          preview.style.height = Math.round(40 * (item.spriteSheetFrameH / item.spriteSheetFrameW)) + 'px';
+          preview.style.maxHeight = '56px';
+        }
+        preview.addEventListener('dragstart', function (e) {
+          e.dataTransfer.setData('text/plain', item.id);
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        previewAndPlus.appendChild(preview);
+        swatches.forEach(swatch => {
+          const thumb = document.createElement('img');
+          thumb.classList.add('swatch-thumb');
+          thumb.draggable = true;
+          thumb.dataset.itemId = swatch.id;
+          thumb.src = swatch.src || 'https://via.placeholder.com/100x100?text=•';
+          thumb.alt = swatch.alt || 'Color variant';
+          thumb.title = (swatch.alt || 'Color variant') + ' — drag to empty bar to make separate item';
+          if (selectedItemId === swatch.id) thumb.classList.add('selected-swatch');
+          thumb.addEventListener('dragstart', function (e) {
+            e.stopPropagation();
+            e.dataTransfer.setData('text/plain', swatch.id);
+            e.dataTransfer.effectAllowed = 'move';
+          });
+          thumb.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.upload-section').forEach(s => s.classList.remove('selected'));
+            document.querySelectorAll('.swatch-thumb').forEach(t => t.classList.remove('selected-swatch'));
+            section.classList.add('selected');
+            thumb.classList.add('selected-swatch');
+            selectItem(swatch.id);
+          });
+          previewAndPlus.appendChild(thumb);
+        });
+        const addSwatchButton = document.createElement('button');
+        addSwatchButton.classList.add('add-swatch');
+        addSwatchButton.textContent = '+';
+        addSwatchButton.title = 'Add same item in another color';
+        addSwatchButton.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const swatchUpload = document.createElement('input');
+          swatchUpload.type = 'file';
+          swatchUpload.accept = 'image/*,.gif';
+          swatchUpload.addEventListener('change', async (e) => {
+            const file = e.target && e.target.files && e.target.files[0];
+            if (!file) return;
+            const parentFilename = item.src && item.src.startsWith('/Uploads/') ? item.src.split('/').pop() : null;
+            try {
+              const tags = [...(item.tags || []), 'swatch-of:' + item.id];
+              if (parentFilename) tags.push('swatch-parent:' + parentFilename);
+              const formData = new FormData();
+              formData.append('item', file);
+              formData.append('name', 'swatch-' + file.name);
+              formData.append('slotId', item.slotId || 'other-slot');
+              formData.append('tags', tags.join(','));
+              formData.append('designer', (item.designer || '') + '');
+              formData.append('isSet', 'true');
+              const uploadUrl = isProjectMode() ? projectUploadUrl() : '/api/items/upload';
+              const uploadRes = await fetch(uploadUrl, { method: 'POST', body: formData });
+              if (!uploadRes.ok) throw new Error('Upload failed');
+              const saved = await uploadRes.json();
+              const newSwatch = { id: saved.id, filename: saved.filename, name: saved.name || ('swatch-' + file.name), slotId: saved.slotId || item.slotId, tags: tags, designer: item.designer || '', src: '/Uploads/' + saved.filename, alt: saved.name || file.name };
+              wardrobeItems.push(newSwatch);
+              const swatchSlotId = newSwatch.slotId || 'other-slot';
+              if (!equippedItems[swatchSlotId]) equippedItems[swatchSlotId] = [];
+              const swatchId = `${swatchSlotId}-${equippedItems[swatchSlotId].length}`;
+              const equippedSwatch = { id: swatchId, slotId: swatchSlotId, src: '/Uploads/' + newSwatch.filename, alt: newSwatch.name, zIndex: getAllItems().length + 2, x: item.x != null ? item.x : 0, y: item.y != null ? item.y : 0, heart: false, tags: newSwatch.tags || [], designer: newSwatch.designer || '', isSet: newSwatch.isSet || false, visible: true };
+              equippedItems[swatchSlotId].push(equippedSwatch);
+              saveEquippedItems();
+              populateUploadSections();
+              updatePreview();
+            } catch (err) {
+              showError('Could not upload swatch: ' + (err.message || ''));
+            }
+            swatchUpload.remove();
+          });
+          swatchUpload.click();
+        });
+        previewAndPlus.appendChild(addSwatchButton);
+        section.appendChild(previewAndPlus);
+        section.classList.add(swatchOptionsVisible ? 'bar-details-open' : 'bar-compact');
+        section.classList.remove(swatchOptionsVisible ? 'bar-compact' : 'bar-details-open');
+        const swatchesInline = document.createElement('div');
+        swatchesInline.classList.add('swatches-inline');
+        if (swatches.length > 0) {
+          const mainWrap = document.createElement('div');
+          mainWrap.classList.add('swatch-color-wrap');
+          const mainDot = document.createElement('button');
+          mainDot.type = 'button';
+          mainDot.classList.add('swatch-color-dot');
+          mainDot.title = 'Set main item color (for first swatch dot in wardrobe/store)';
+          mainDot.style.background = getSwatchColor(item) || '#ccc';
+          mainDot.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const input = document.createElement('input');
+            input.type = 'color';
+            input.value = getSwatchColor(item) || '#888888';
+            input.style.position = 'fixed';
+            input.style.left = '-9999px';
+            document.body.appendChild(input);
+            input.click();
+            input.addEventListener('change', () => {
+              const newHex = input.value;
+              document.body.removeChild(input);
+              applySwatchColor(item, newHex);
+              mainDot.style.background = newHex;
+            });
+            input.addEventListener('blur', () => { if (input.parentNode) document.body.removeChild(input); });
+          });
+          mainWrap.appendChild(mainDot);
+          const mainPick = document.createElement('button');
+          mainPick.type = 'button';
+          mainPick.classList.add('swatch-pick-btn');
+          mainPick.textContent = 'Pick';
+          mainPick.title = 'Pick color from main image';
+          mainPick.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!item.src) return;
+            pickColorFromImage(item.src, (pickedHex) => {
+              if (pickedHex) {
+                applySwatchColor(item, pickedHex);
+                mainDot.style.background = pickedHex;
+              }
+            });
+          });
+          mainWrap.appendChild(mainPick);
+          swatchesInline.appendChild(mainWrap);
+        }
+        swatches.forEach(swatch => {
+          const wrap = document.createElement('div');
+          wrap.classList.add('swatch-color-wrap');
+          const dot = document.createElement('button');
+          dot.type = 'button';
+          dot.classList.add('swatch-color-dot');
+          dot.title = 'Set swatch color (click to pick from palette or use Pick from image)';
+          const hex = getSwatchColor(swatch);
+          dot.style.background = hex || '#ccc';
+          dot.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const input = document.createElement('input');
+            input.type = 'color';
+            input.value = hex || '#888888';
+            input.style.position = 'fixed';
+            input.style.left = '-9999px';
+            document.body.appendChild(input);
+            input.click();
+            input.addEventListener('change', () => {
+              const newHex = input.value;
+              document.body.removeChild(input);
+              applySwatchColor(swatch, newHex);
+              dot.style.background = newHex;
+            });
+            input.addEventListener('blur', () => { if (input.parentNode) document.body.removeChild(input); });
+          });
+          wrap.appendChild(dot);
+          const pickBtn = document.createElement('button');
+          pickBtn.type = 'button';
+          pickBtn.classList.add('swatch-pick-btn');
+          pickBtn.textContent = 'Pick';
+          pickBtn.title = 'Pick color from this image';
+          pickBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const src = swatch.src;
+            if (!src) return;
+            pickColorFromImage(src, (pickedHex) => {
+              if (pickedHex) {
+                applySwatchColor(swatch, pickedHex);
+                dot.style.background = pickedHex;
+              }
+            });
+          });
+          wrap.appendChild(pickBtn);
+          swatchesInline.appendChild(wrap);
+        });
+        section.appendChild(swatchesInline);
+        const actions = document.createElement('div');
+        actions.classList.add('actions');
+        const visibilityBtn = document.createElement('button');
+        visibilityBtn.type = 'button';
+        visibilityBtn.classList.add('visibility-toggle-btn');
+        visibilityBtn.textContent = '×';
+        visibilityBtn.title = item.visible ? 'Hide item' : 'Show item';
+        visibilityBtn.setAttribute('aria-label', item.visible ? 'Hide item' : 'Show item');
+        if (!item.visible) visibilityBtn.classList.add('hidden');
+        visibilityBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const loc = findItemById(item.id);
+          if (loc.slotId == null || loc.index < 0) return;
+          const eq = equippedItems[loc.slotId][loc.index];
+          const newVisible = (eq.visible === false);
+          const rootId = getSwatchParentId(eq) || eq.id;
+          const allItems = getAllItems();
+          const groupIds = [rootId, ...allItems.filter(i => getSwatchParentId(i) === rootId).map(i => i.id)];
+          groupIds.forEach(id => {
+            const l = findItemById(id);
+            if (l.slotId != null && l.index >= 0) equippedItems[l.slotId][l.index].visible = newVisible;
+          });
+          visibilityBtn.title = newVisible ? 'Hide item' : 'Show item';
+          visibilityBtn.setAttribute('aria-label', visibilityBtn.title);
+          visibilityBtn.classList.toggle('hidden', !newVisible);
+          saveEquippedItems();
+          updatePreview();
+        });
+        actions.appendChild(visibilityBtn);
+        const framesBtn = document.createElement('button');
+        framesBtn.type = 'button';
+        framesBtn.classList.add('frames-toggle-btn');
+        framesBtn.textContent = '⏵';
+        framesBtn.title = 'Frames / sprite sheet';
+        framesBtn.setAttribute('aria-label', 'Frames');
+        framesBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const menu = section.querySelector('.frames-menu');
+          if (menu) menu.classList.toggle('open');
+        });
+        actions.appendChild(framesBtn);
+        const framesMenu = document.createElement('div');
+        framesMenu.classList.add('frames-menu');
+        if (item.frameCount > 1 && item.spriteSheetFrameW && item.spriteSheetFrameH) {
+          const viewRow = document.createElement('div');
+          viewRow.classList.add('frames-view-strip');
+          const viewLabel = document.createElement('span');
+          viewLabel.style.fontSize = '12px';
+          viewLabel.style.color = '#6b7280';
+          viewLabel.textContent = 'View frames: ';
+          viewRow.appendChild(viewLabel);
+          const count = Math.max(1, parseInt(item.frameCount, 10) || 1);
+          const fw = Math.max(1, parseInt(item.spriteSheetFrameW, 10) || 1);
+          const fh = Math.max(1, parseInt(item.spriteSheetFrameH, 10) || 1);
+          for (let f = 0; f < count; f++) {
+            const wrap = document.createElement('div');
+            wrap.style.width = '32px';
+            wrap.style.height = '32px';
+            wrap.style.overflow = 'hidden';
+            wrap.style.flexShrink = '0';
+            wrap.style.border = '1px solid #e5e7eb';
+            wrap.style.borderRadius = '3px';
+            const thumb = document.createElement('img');
+            thumb.src = item.src || '';
+            thumb.alt = 'Frame ' + (f + 1);
+            const scale = 32 / fw;
+            thumb.style.width = (count * fw) * scale + 'px';
+            thumb.style.height = fh * scale + 'px';
+            thumb.style.objectFit = 'none';
+            thumb.style.objectPosition = (-f * fw) + 'px 0';
+            thumb.style.display = 'block';
+            wrap.appendChild(thumb);
+            viewRow.appendChild(wrap);
+          }
+          framesMenu.appendChild(viewRow);
+        }
+        const setRow = document.createElement('div');
+        setRow.classList.add('frames-form-row');
+        setRow.innerHTML = '<label>Set frames</label>';
+        const fcInput = document.createElement('input');
+        fcInput.type = 'number';
+        fcInput.min = 1;
+        fcInput.max = 64;
+        fcInput.placeholder = 'Count';
+        fcInput.value = (item.frameCount > 1 ? item.frameCount : 1);
+        const fwInput = document.createElement('input');
+        fwInput.type = 'number';
+        fwInput.min = 1;
+        fwInput.placeholder = 'W';
+        fwInput.value = item.spriteSheetFrameW || '';
+        const fhInput = document.createElement('input');
+        fhInput.type = 'number';
+        fhInput.min = 1;
+        fhInput.placeholder = 'H';
+        fhInput.value = item.spriteSheetFrameH || '';
+        const applyBtn = document.createElement('button');
+        applyBtn.type = 'button';
+        applyBtn.className = 'btn-save';
+        applyBtn.style.padding = '4px 8px';
+        applyBtn.style.fontSize = '12px';
+        applyBtn.textContent = 'Apply';
+        applyBtn.addEventListener('click', async () => {
+          const fc = Math.max(1, Math.min(64, parseInt(fcInput.value, 10) || 1));
+          const fw = Math.max(1, parseInt(fwInput.value, 10) || 0);
+          const fh = Math.max(1, parseInt(fhInput.value, 10) || 0);
+          const filename = (mainItem.src && mainItem.src.startsWith('/Uploads/')) ? mainItem.src.split('/').pop() : null;
+          if (!filename) return;
+          const loc = findItemById(mainItem.id);
+          if (loc.slotId != null && loc.index >= 0) {
+            const eq = equippedItems[loc.slotId][loc.index];
+            if (fc > 1 && fw && fh) {
+              eq.frameCount = fc;
+              eq.spriteSheetFrameW = fw;
+              eq.spriteSheetFrameH = fh;
+            } else {
+              delete eq.frameCount;
+              delete eq.spriteSheetFrameW;
+              delete eq.spriteSheetFrameH;
+            }
+          }
+          const wi = wardrobeItems.find(w => (w.filename && w.filename === filename) || (w.name === mainItem.alt));
+          if (wi) {
+            if (fc > 1 && fw && fh) {
+              wi.frameCount = fc;
+              wi.spriteSheetFrameW = fw;
+              wi.spriteSheetFrameH = fh;
+            } else {
+              delete wi.frameCount;
+              delete wi.spriteSheetFrameW;
+              delete wi.spriteSheetFrameH;
+            }
+          }
+          saveEquippedItems();
+          try {
+            const updateUrl = isProjectMode() ? projectItemUpdateUrl(filename) : '/api/items/update/' + encodeURIComponent(filename);
+            await fetch(updateUrl, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ frameCount: fc > 1 ? fc : 1, spriteSheetFrameW: fc > 1 ? fw : 0, spriteSheetFrameH: fc > 1 ? fh : 0 })
+            });
+          } catch (e) { showError('Could not save frame settings.'); }
+          populateUploadSections();
+          updatePreview();
+        });
+        setRow.appendChild(fcInput);
+        setRow.appendChild(fwInput);
+        setRow.appendChild(fhInput);
+        setRow.appendChild(applyBtn);
+        framesMenu.appendChild(setRow);
+        const importRow = document.createElement('div');
+        importRow.classList.add('frames-form-row', 'frames-import-row');
+        importRow.innerHTML = '<label>Import sprite sheet</label>';
+        const importFile = document.createElement('input');
+        importFile.type = 'file';
+        importFile.accept = 'image/png,image/gif,image/webp,image/jpeg';
+        importFile.style.maxWidth = '140px';
+        const importFc = document.createElement('input');
+        importFc.type = 'number';
+        importFc.min = 1;
+        importFc.max = 64;
+        importFc.placeholder = 'Frames';
+        importFc.value = '4';
+        importFc.style.width = '50px';
+        const importFw = document.createElement('input');
+        importFw.type = 'number';
+        importFw.min = 1;
+        importFw.placeholder = 'W';
+        importFw.style.width = '44px';
+        const importFh = document.createElement('input');
+        importFh.type = 'number';
+        importFh.min = 1;
+        importFh.placeholder = 'H';
+        importFh.style.width = '44px';
+        importRow.appendChild(importFile);
+        importRow.appendChild(importFc);
+        importRow.appendChild(importFw);
+        importRow.appendChild(importFh);
+        importFile.addEventListener('change', async () => {
+          const file = importFile.files && importFile.files[0];
+          if (!file) return;
+          const fc = Math.max(1, Math.min(64, parseInt(importFc.value, 10) || 4));
+          const fw = Math.max(1, parseInt(importFw.value, 10) || 32);
+          const fh = Math.max(1, parseInt(importFh.value, 10) || 32);
+          try {
+            const formData = new FormData();
+            formData.append('item', file);
+            formData.append('name', file.name.replace(/\.[^.]+$/, ''));
+            formData.append('slotId', mainItem.slotId || 'other-slot');
+            formData.append('tags', (mainItem.tags || []).join(','));
+            formData.append('frameCount', String(fc));
+            formData.append('spriteSheetFrameW', String(fw));
+            formData.append('spriteSheetFrameH', String(fh));
+            const uploadUrl = isProjectMode() ? projectUploadUrl() : '/api/items/upload';
+            const res = await fetch(uploadUrl, { method: 'POST', body: formData });
+            if (!res.ok) throw new Error(await res.text());
+            const newItem = await res.json();
+            const slotId = newItem.slotId || 'other-slot';
+            if (!equippedItems[slotId]) equippedItems[slotId] = [];
+            const itemId = `${slotId}-${equippedItems[slotId].length}`;
+            const equippedItem = {
+              id: itemId,
+              slotId,
+              src: '/Uploads/' + newItem.filename,
+              alt: newItem.name,
+              zIndex: getAllItems().length + 2,
+              x: mainItem.x || 0,
+              y: mainItem.y || 0,
+              heart: false,
+              tags: newItem.tags || [],
+              visible: true,
+              frameCount: newItem.frameCount,
+              spriteSheetFrameW: newItem.spriteSheetFrameW,
+              spriteSheetFrameH: newItem.spriteSheetFrameH
+            };
+            wardrobeItems.push(newItem);
+            equippedItems[slotId].push(equippedItem);
+            saveEquippedItems();
+            populateUploadSections();
+            updatePreview();
+            framesMenu.classList.remove('open');
+            importFile.value = '';
+          } catch (err) { showError('Upload failed: ' + (err.message || '')); }
+        });
+        framesMenu.appendChild(importRow);
+        section.appendChild(framesMenu);
+        const deleteButton = document.createElement('button');
+        deleteButton.classList.add('delete-item');
+        deleteButton.textContent = 'Delete';
+        const mainItem = item;
+        const swatchIds = swatches.map(s => s.id);
+        deleteButton.addEventListener('click', async () => {
+          const toDelete = (selectedItemId && (selectedItemId === mainItem.id || swatchIds.includes(selectedItemId))) ? selectedItemId : mainItem.id;
+          if (!confirm('Are you sure you want to delete this item?')) return;
+          const { slotId, index } = findItemById(toDelete);
+          if (slotId && index < 0) return;
+          const targetItem = equippedItems[slotId][index];
+          if (isProjectMode() && targetItem.src && targetItem.src.startsWith('/Uploads/')) {
+            const filename = targetItem.src.split('/').pop();
+            if (filename) {
+              try {
+                const res = await fetch(projectItemDeleteUrl(filename), { method: 'DELETE' });
+                if (!res.ok) throw new Error('Delete failed');
+              } catch (e) {
+                showError('Could not delete item from project: ' + (e.message || ''));
+                return;
+              }
+            }
+          }
+          equippedItems[slotId].splice(index, 1);
+          const wi = wardrobeItems.findIndex(w => (w.filename && targetItem.src && targetItem.src.endsWith(w.filename)) || (w.name === targetItem.alt));
+          if (wi >= 0) wardrobeItems.splice(wi, 1);
+          saveEquippedItems();
+          populateUploadSections();
+          updatePreview();
+          if (selectedItemId === toDelete) selectedItemId = null;
+        });
+        actions.appendChild(deleteButton);
+        section.appendChild(actions);
+        section.dataset.itemId = item.id;
+        if (selectedItemId === item.id || swatches.some(s => s.id === selectedItemId)) section.classList.add('selected');
+        section.addEventListener('click', (e) => {
+          if (e.target.closest('.actions') || e.target.closest('.add-swatch') || e.target.closest('.swatch-thumb') || e.target.closest('.frames-menu')) return;
+          const wasSelected = section.classList.contains('selected');
+          document.querySelectorAll('.upload-section').forEach(s => s.classList.remove('selected'));
+          document.querySelectorAll('.swatch-thumb').forEach(t => t.classList.remove('selected-swatch'));
+          if (!wasSelected) {
+            section.classList.add('selected');
+            selectItem(item.id);
+          } else {
+            selectedItemId = null;
+            updatePreview();
+          }
+        });
+        section.addEventListener('dragover', function (e) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          section.classList.add('drag-over');
+        });
+        section.addEventListener('dragleave', function (e) {
+          if (!section.contains(e.relatedTarget)) section.classList.remove('drag-over');
+        });
+        section.addEventListener('drop', function (e) {
+          e.preventDefault();
+          section.classList.remove('drag-over');
+          const dragId = e.dataTransfer.getData('text/plain');
+          const targetId = section.dataset.itemId;
+          if (dragId && targetId) applyUploadDrop(dragId, targetId);
+        });
+        uploadSections.appendChild(section);
+        if (sectionIndex < rootItems.length - 1) {
+          const dewatchZone = document.createElement('div');
+          dewatchZone.className = 'upload-dewatch-zone';
+          dewatchZone.title = 'Drop a swatch here to make it a separate item';
+          dewatchZone.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            dewatchZone.classList.add('drag-over');
+          });
+          dewatchZone.addEventListener('dragleave', function (e) {
+            if (!dewatchZone.contains(e.relatedTarget)) dewatchZone.classList.remove('drag-over');
+          });
+          dewatchZone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            dewatchZone.classList.remove('drag-over');
+            const dragId = e.dataTransfer.getData('text/plain');
+            if (dragId) applyUploadDrop(dragId, 'empty');
+          });
+          uploadSections.appendChild(dewatchZone);
+        }
+      });
+      const emptyBar = document.createElement('div');
+      emptyBar.className = 'upload-section upload-section-empty';
+      emptyBar.dataset.itemId = 'empty';
+      emptyBar.innerHTML = '<span class="upload-section-empty-text">Drop swatch here → separate item</span>';
+      emptyBar.title = 'Drag a swatch here to make it a separate item again';
+      emptyBar.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        emptyBar.classList.add('drag-over');
+      });
+      emptyBar.addEventListener('dragleave', function (e) {
+        if (!emptyBar.contains(e.relatedTarget)) emptyBar.classList.remove('drag-over');
+      });
+      emptyBar.addEventListener('drop', function (e) {
+        e.preventDefault();
+        emptyBar.classList.remove('drag-over');
+        const dragId = e.dataTransfer.getData('text/plain');
+        if (dragId) applyUploadDrop(dragId, 'empty');
+      });
+      uploadSections.appendChild(emptyBar);
+    }
+    function updateLayerOrder() {
+      const uploadSections = document.getElementById('upload-sections');
+      const sections = Array.from(uploadSections.children);
+      const allItems = getAllItems();
+      sections.forEach((section, index) => {
+        const itemId = section.dataset.itemId;
+        if (itemId) {
+          const z = sections.length - index;
+          const { slotId, index: itemIndex } = findItemById(itemId);
+          if (slotId && itemIndex >= 0) {
+            equippedItems[slotId][itemIndex].zIndex = z;
+          }
+          allItems.filter(i => getSwatchParentId(i) === itemId).forEach(swatch => {
+            const sw = findItemById(swatch.id);
+            if (sw.slotId && sw.index >= 0) equippedItems[sw.slotId][sw.index].zIndex = z;
+          });
+        }
+      });
+      saveEquippedItems();
+      updatePreview();
+    }
+    function selectItem(itemId) {
+      selectedItemId = itemId;
+      document.querySelectorAll('.upload-section').forEach(section => {
+        section.classList.remove('selected');
+      });
+      document.querySelectorAll('.swatch-thumb').forEach(t => t.classList.remove('selected-swatch'));
+      let selectedSection = document.querySelector(`.upload-section[data-item-id="${itemId}"]`);
+      if (!selectedSection) {
+        const swatchThumb = document.querySelector(`.swatch-thumb[data-item-id="${itemId}"]`);
+        if (swatchThumb) selectedSection = swatchThumb.closest('.upload-section');
+        if (selectedSection) swatchThumb.classList.add('selected-swatch');
+      }
+      if (selectedSection) {
+        selectedSection.classList.add('selected');
+      }
+      if (selectedItemId) {
+        const item = findItemById(selectedItemId);
+        if (item && item.slotId) {
+          const selectedItem = equippedItems[item.slotId][item.index];
+          document.getElementById('slot-select').value = selectedItem.slotId || 'other-slot';
+          document.getElementById('coord-x').value = selectedItem.x || 0;
+          document.getElementById('coord-y').value = selectedItem.y || 0;
+          const cats = getSelectedCategoriesFromTags(selectedItem.tags);
+          const list = document.getElementById('categories-list');
+          if (list) list.querySelectorAll('input[name="category"]').forEach(cb => { cb.checked = cats.includes(cb.value); });
+          document.getElementById('item-name').value = selectedItem.alt || '';
+        }
+        document.getElementById('secondary-image-panel').style.display = '';
+        const sel = item && item.slotId ? equippedItems[item.slotId][item.index] : null;
+        const sec = sel && sel.background ? sel.background : null;
+        if (sec) {
+          document.getElementById('secondary-image-preview').style.display = '';
+          document.getElementById('secondary-image-thumb').src = sec.src || ('/Uploads/' + (sec.filename || ''));
+          document.getElementById('secondary-coord-x').value = sec.defaultX != null ? sec.defaultX : 0;
+          document.getElementById('secondary-coord-y').value = sec.defaultY != null ? sec.defaultY : 0;
+          const zEl = document.getElementById('secondary-coord-z');
+          if (zEl) zEl.value = sec.defaultZ != null ? sec.defaultZ : 0;
+        } else {
+          document.getElementById('secondary-image-preview').style.display = 'none';
+        }
+      } else {
+        document.getElementById('secondary-image-panel').style.display = 'none';
+        const list = document.getElementById('categories-list');
+        if (list) list.querySelectorAll('input[name="category"]').forEach(cb => { cb.checked = false; });
+      }
+      updateSwatchActionsPanel();
+      updatePreview();
+    }
+    let swatchOptionsVisible = false;
+    function updateSwatchActionsPanel() {
+      const wrap = document.getElementById('swatch-actions-wrap');
+      const makeWrap = document.getElementById('swatch-make-wrap');
+      const separateWrap = document.getElementById('swatch-separate-wrap');
+      const selectEl = document.getElementById('swatch-of-select');
+      const toggleBtn = document.getElementById('swatch-options-toggle');
+      if (!wrap || !makeWrap || !separateWrap || !selectEl) return;
+      if (toggleBtn) {
+        toggleBtn.textContent = swatchOptionsVisible ? 'Hide swatch & color' : 'Show swatch & color';
+      }
+      if (!selectedItemId || !swatchOptionsVisible) {
+        wrap.style.display = 'none';
+        return;
+      }
+      wrap.style.display = 'block';
+      const allItems = getAllItems();
+      const selected = allItems.find(function (i) { return i.id === selectedItemId; });
+      const isSwatch = selected && getSwatchParentFilename(selected);
+      const rootItems = allItems.filter(function (i) { return !getSwatchParentFilename(i); });
+      if (isSwatch) {
+        makeWrap.style.display = 'none';
+        separateWrap.style.display = 'block';
+      } else {
+        makeWrap.style.display = 'block';
+        separateWrap.style.display = 'none';
+        selectEl.innerHTML = '<option value="">— choose item —</option>';
+        rootItems.forEach(function (r) {
+          if (r.id === selectedItemId) return;
+          const opt = document.createElement('option');
+          opt.value = r.id;
+          opt.textContent = (r.alt || r.id || '').slice(0, 28);
+          selectEl.appendChild(opt);
+        });
+      }
+    }
+    function setupSwatchActionButtons() {
+      const toggleBtn = document.getElementById('swatch-options-toggle');
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', function () {
+          swatchOptionsVisible = !swatchOptionsVisible;
+          document.querySelectorAll('.upload-section').forEach(function (s) {
+            s.classList.toggle('bar-compact', !swatchOptionsVisible);
+            s.classList.toggle('bar-details-open', swatchOptionsVisible);
+          });
+          updateSwatchActionsPanel();
+        });
+      }
+      const applyBtn = document.getElementById('swatch-of-apply-btn');
+      const separateBtn = document.getElementById('swatch-make-separate-btn');
+      const selectEl = document.getElementById('swatch-of-select');
+      if (applyBtn && selectEl) {
+        applyBtn.addEventListener('click', function () {
+          const targetId = (selectEl.value || '').trim();
+          if (!targetId || !selectedItemId) return;
+          makeItemSwatchOfTarget(selectedItemId, targetId);
+          saveEquippedItems();
+          populateUploadSections();
+          updatePreview();
+          updateSwatchActionsPanel();
+        });
+      }
+      if (separateBtn) {
+        separateBtn.addEventListener('click', function () {
+          if (!selectedItemId) return;
+          const list = getAllItems();
+          const it = list.find(function (i) { return i.id === selectedItemId; });
+          if (!it || !getSwatchParentFilename(it)) return;
+          makeItemRootAgain(selectedItemId);
+          saveEquippedItems();
+          populateUploadSections();
+          updatePreview();
+          updateSwatchActionsPanel();
+        });
+      }
+    }
+    function updatePreview() {
+      const adjustmentSlot = document.getElementById('adjustment-slot');
+      adjustmentSlot.innerHTML = '';
+      let allVisibleItems = getAllItems().filter(item => item.visible !== false);
+      allVisibleItems.sort((a, b) => a.zIndex - b.zIndex); // Lower z first
+      allVisibleItems.forEach(item => {
+        if (item.src) {
+          const adjustmentImg = document.createElement('img');
+          adjustmentImg.src = item.src;
+          adjustmentImg.alt = item.alt || 'Unknown Item';
+          adjustmentImg.dataset.itemId = item.id;
+          adjustmentImg.dataset.slotId = item.slotId;
+          adjustmentImg.style.transform = `translate(-50%, -50%) translate(${item.x || 0}px, ${item.y || 0}px)`;
+          adjustmentImg.style.zIndex = item.zIndex;
+          if (item.frameCount > 1 && item.spriteSheetFrameW && item.spriteSheetFrameH) {
+            adjustmentImg.dataset.frameCount = item.frameCount;
+            adjustmentImg.dataset.frameW = item.spriteSheetFrameW;
+            adjustmentImg.dataset.frameH = item.spriteSheetFrameH;
+            adjustmentImg.style.width = item.spriteSheetFrameW + 'px';
+            adjustmentImg.style.height = item.spriteSheetFrameH + 'px';
+            adjustmentImg.style.maxWidth = item.spriteSheetFrameW + 'px';
+            adjustmentImg.style.objectFit = 'none';
+            adjustmentImg.style.objectPosition = '0 0';
+          }
+          if (item.id === selectedItemId) {
+            adjustmentImg.classList.add('selected');
+            adjustmentImg.style.zIndex = Math.max(...allVisibleItems.map(i => i.zIndex)) + 1; // Selected on top
+          }
+          if (!(item.frameCount > 1 && item.spriteSheetFrameW && item.spriteSheetFrameH)) {
+            hookPixelPerfect(adjustmentImg);
+          }
+          adjustmentImg.addEventListener('click', (e) => {
+            selectItem(item.id);
+            e.stopPropagation();
+          });
+          adjustmentSlot.appendChild(adjustmentImg);
+        }
+      });
+      updateAdjustmentPanel();
+      startSpriteSheetAnimation();
+    }
+    let spriteSheetAnimationInterval = null;
+    function startSpriteSheetAnimation() {
+      if (spriteSheetAnimationInterval) clearInterval(spriteSheetAnimationInterval);
+      const slot = document.getElementById('adjustment-slot');
+      if (!slot) return;
+      const animated = slot.querySelectorAll('img[data-frame-count]');
+      if (animated.length === 0) return;
+      let frameIndex = 0;
+      spriteSheetAnimationInterval = setInterval(() => {
+        frameIndex = (frameIndex + 1) % 10000;
+        animated.forEach(img => {
+          const count = parseInt(img.dataset.frameCount, 10) || 1;
+          const w = parseInt(img.dataset.frameW, 10) || 1;
+          const idx = frameIndex % count;
+          img.style.objectPosition = (-idx * w) + 'px 0';
+        });
+      }, 120);
+    }
+    function updateAdjustmentPanel() {
+      const coordTracker = document.getElementById('coord-tracker');
+      if (selectedItemId) {
+        const { slotId, index } = findItemById(selectedItemId);
+        if (slotId && index >= 0) {
+          const item = equippedItems[slotId][index];
+          coordTracker.textContent = `x: ${item.x || 0}, y: ${item.y || 0}`;
+        } else {
+          coordTracker.textContent = '';
+        }
+      } else {
+        coordTracker.textContent = '';
+      }
+    }
+    function getAllItems() {
+      const allItems = [];
+      Object.keys(equippedItems).forEach(slotId =>
+        equippedItems[slotId].forEach((item, index) =>
+          allItems.push({ ...item, slotId, index })
+        )
+      );
+      return allItems;
+    }
+    function findItemById(itemId) {
+      for (const slotId of Object.keys(equippedItems)) {
+        const index = equippedItems[slotId].findIndex(item => item.id === itemId);
+        if (index !== -1) return { slotId, index };
+      }
+      return { slotId: null, index: -1 };
+    }
+    /** Set item position and keep all swatches (or parent + siblings) in sync: same x,y. */
+    function setItemPositionAndSyncSwatches(itemId, x, y) {
+      const allItems = getAllItems();
+      const allIds = new Set(allItems.map(i => i.id));
+      const { slotId, index } = findItemById(itemId);
+      if (slotId == null || index < 0) return;
+      const item = equippedItems[slotId][index];
+      const clampedX = Math.max(-125, Math.min(125, x));
+      const clampedY = Math.max(-175, Math.min(175, y));
+      const parentId = getSwatchParentId(item);
+      let idsToSet = [itemId];
+      if (parentId && allIds.has(parentId)) {
+        idsToSet = [parentId, ...allItems.filter(i => getSwatchParentId(i) === parentId).map(i => i.id)];
+      } else {
+        const swatchIds = allItems.filter(i => getSwatchParentId(i) === itemId).map(i => i.id);
+        idsToSet = [itemId, ...swatchIds];
+      }
+      idsToSet.forEach(id => {
+        const loc = findItemById(id);
+        if (loc.slotId != null && loc.index >= 0) {
+          equippedItems[loc.slotId][loc.index].x = clampedX;
+          equippedItems[loc.slotId][loc.index].y = clampedY;
+        }
+      });
+    }
+    function setupDragHandling() {
+      const adjustmentCharacter = document.getElementById('adjustment-character');
+      if (adjustmentCharacter) {
+        adjustmentCharacter.addEventListener('mousedown', (e) => {
+          const img = e.target.closest('img');
+          if (img && img.dataset.itemId) {
+            selectItem(img.dataset.itemId);
+            isDragging = true;
+            const { slotId, index } = findItemById(img.dataset.itemId);
+            if (slotId && index >= 0) {
+              const item = equippedItems[slotId][index];
+              const panelRect = adjustmentCharacter.getBoundingClientRect();
+              const centerX = 125;
+              const centerY = 175;
+              dragOffsetX = e.clientX - (panelRect.left + centerX + (item.x || 0));
+              dragOffsetY = e.clientY - (panelRect.top + centerY + (item.y || 0));
+              e.preventDefault();
+            }
+          } else {
+            selectedItemId = null;
+            updatePreview();
+          }
+        });
+        document.addEventListener('mousemove', (e) => {
+          if (isDragging && selectedItemId) {
+            const { slotId, index } = findItemById(selectedItemId);
+            if (slotId && index >= 0) {
+              const item = equippedItems[slotId][index];
+              const panelRect = document.getElementById('adjustment-character').getBoundingClientRect();
+              const centerX = 125;
+              const centerY = 175;
+              let newX = (e.clientX - dragOffsetX) - panelRect.left - centerX;
+              let newY = (e.clientY - dragOffsetY) - panelRect.top - centerY;
+              setItemPositionAndSyncSwatches(selectedItemId, newX, newY);
+              updatePreview();
+              document.getElementById('coord-x').value = item.x;
+              document.getElementById('coord-y').value = item.y;
+            }
+          }
+        });
+        document.addEventListener('mouseup', () => {
+          if (isDragging) {
+            isDragging = false;
+            saveEquippedItems();
+          }
+        });
+      }
+    }
+    function setupKeyboardControls() {
+      document.addEventListener('keydown', (e) => {
+        if (!selectedItemId) return;
+        const { slotId, index } = findItemById(selectedItemId);
+        if (slotId && index >= 0) {
+          const item = equippedItems[slotId][index];
+          let newX = item.x != null ? item.x : 0;
+          let newY = item.y != null ? item.y : 0;
+          const moveAmount = 1;
+          switch (e.key) {
+            case 'ArrowUp':
+              newY = Math.max(-175, newY - moveAmount);
+              break;
+            case 'ArrowDown':
+              newY = Math.min(175, newY + moveAmount);
+              break;
+            case 'ArrowLeft':
+              newX = Math.max(-125, newX - moveAmount);
+              break;
+            case 'ArrowRight':
+              newX = Math.min(125, newX + moveAmount);
+              break;
+            default:
+              return;
+          }
+          setItemPositionAndSyncSwatches(selectedItemId, newX, newY);
+          updatePreview();
+          document.getElementById('coord-x').value = item.x;
+          document.getElementById('coord-y').value = item.y;
+          saveEquippedItems();
+        }
+      });
+    }
+    function setupCoordinateInputs() {
+      const coordX = document.getElementById('coord-x');
+      const coordY = document.getElementById('coord-y');
+      if (coordX && coordY) {
+        coordX.addEventListener('change', () => {
+          if (selectedItemId) {
+            const { slotId, index } = findItemById(selectedItemId);
+            if (slotId && index >= 0) {
+              const item = equippedItems[slotId][index];
+              const newX = Math.max(-125, Math.min(125, parseFloat(coordX.value) || 0));
+              setItemPositionAndSyncSwatches(selectedItemId, newX, item.y != null ? item.y : 0);
+              updatePreview();
+              document.getElementById('coord-x').value = item.x;
+              saveEquippedItems();
+            }
+          }
+        });
+        coordY.addEventListener('change', () => {
+          if (selectedItemId) {
+            const { slotId, index } = findItemById(selectedItemId);
+            if (slotId && index >= 0) {
+              const item = equippedItems[slotId][index];
+              const newY = Math.max(-175, Math.min(175, parseFloat(coordY.value) || 0));
+              setItemPositionAndSyncSwatches(selectedItemId, item.x != null ? item.x : 0, newY);
+              updatePreview();
+              document.getElementById('coord-y').value = item.y;
+              saveEquippedItems();
+            }
+          }
+        });
+      }
+    }
+    function setupResetCoord() {
+      const resetCoord = document.getElementById('reset-coord');
+      if (resetCoord) {
+        resetCoord.addEventListener('click', () => {
+          if (selectedItemId) {
+            setItemPositionAndSyncSwatches(selectedItemId, 0, 0);
+            updatePreview();
+            document.getElementById('coord-x').value = 0;
+            document.getElementById('coord-y').value = 0;
+            saveEquippedItems();
+          }
+        });
+      }
+    }
+    function setupCategoryChange() {
+      const slotSelect = document.getElementById('slot-select');
+      slotSelect.addEventListener('change', () => {
+        if (selectedItemId) {
+          const { slotId, index } = findItemById(selectedItemId);
+          if (slotId && index >= 0) {
+            const item = equippedItems[slotId][index];
+            const newSlotId = slotSelect.value;
+            if (slotId !== newSlotId) {
+              equippedItems[slotId].splice(index, 1);
+              if (!equippedItems[newSlotId]) equippedItems[newSlotId] = [];
+              item.slotId = newSlotId;
+              item.id = `${newSlotId}-${equippedItems[newSlotId].length}`;
+              equippedItems[newSlotId].push(item);
+              saveEquippedItems();
+              populateUploadSections();
+              selectItem(item.id);
+            }
+          }
+        }
+      });
+    }
+    function setupItemUploadAndEdit() {
+      const addItemButton = document.getElementById('add-item-button');
+      const itemUpload = document.getElementById('item-upload');
+      const itemNameInput = document.getElementById('item-name');
+      const slotSelect = document.getElementById('slot-select');
+      const categoriesList = document.getElementById('categories-list');
+      const coordX = document.getElementById('coord-x');
+      if (categoriesList) {
+        categoriesList.innerHTML = '';
+        ITEM_CATEGORIES.forEach(name => {
+          const label = document.createElement('label');
+          label.style.cssText = 'display: inline-flex; align-items: center; gap: 4px; font-size: 13px; cursor: pointer;';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.value = name;
+          cb.name = 'category';
+          label.appendChild(cb);
+          label.appendChild(document.createTextNode(name));
+          categoriesList.appendChild(label);
+        });
+      }
+      function syncCategoryCheckboxesToItem() {
+        if (!selectedItemId) return;
+        const loc = findItemById(selectedItemId);
+        if (loc.slotId == null || loc.index < 0) return;
+        const eq = equippedItems[loc.slotId][loc.index];
+        const checked = getCheckedCategoryNames();
+        eq.tags = setTagsWithCategories(eq.tags, checked);
+        const filename = eq.src && eq.src.startsWith('/Uploads/') ? eq.src.split('/').pop() : null;
+        const wi = wardrobeItems.find(w => (w.filename && filename && w.filename === filename) || (w.name === eq.alt));
+        if (wi) wi.tags = eq.tags;
+        saveEquippedItems();
+        updatePreview();
+      }
+      if (categoriesList) {
+        categoriesList.addEventListener('change', (e) => {
+          if (e.target.type === 'checkbox' && e.target.name === 'category') syncCategoryCheckboxesToItem();
+        });
+      }
+      const coordY = document.getElementById('coord-y');
+      const designerInput = document.getElementById('designer');
+      const uploadSectionsContainer = document.getElementById('upload-sections');
+      const dropzone = document.getElementById('item-upload-dropzone');
+      const urlInput = document.getElementById('item-upload-url');
+      const urlBtn = document.getElementById('item-upload-url-btn');
+
+      async function processItemUploadFiles(fileListOrArray) {
+        const files = Array.from(fileListOrArray || []).filter(f => f && f.type && f.type.startsWith('image/'));
+        if (files.length === 0) return;
+        const setName = (prompt('Enter set name (optional):') || '').trim();
+        let lastItemId = null;
+        const sections = document.querySelectorAll('.upload-section');
+        for (const file of files) {
+          let targetSection = null;
+          for (let i = sections.length - 1; i >= 0; i--) {
+            if (sections[i].dataset.itemId === 'null') {
+              targetSection = sections[i];
+              break;
+            }
+          }
+          if (!targetSection) {
+            targetSection = document.createElement('div');
+            targetSection.classList.add('upload-section');
+            const previewAndPlus = document.createElement('div');
+            previewAndPlus.classList.add('preview-and-plus');
+            const preview = document.createElement('img');
+            preview.classList.add('item-preview');
+            preview.src = 'https://via.placeholder.com/40x40?text=Preview';
+            preview.alt = 'Item Preview';
+            previewAndPlus.appendChild(preview);
+            const addSwatchButton = document.createElement('button');
+            addSwatchButton.classList.add('add-swatch');
+            addSwatchButton.textContent = '+';
+            addSwatchButton.disabled = true;
+            addSwatchButton.title = 'Add same item in another color';
+            previewAndPlus.appendChild(addSwatchButton);
+            targetSection.appendChild(previewAndPlus);
+            const actions = document.createElement('div');
+            actions.classList.add('actions');
+            const visibilityBtn = document.createElement('button');
+            visibilityBtn.type = 'button';
+            visibilityBtn.classList.add('visibility-toggle-btn');
+            visibilityBtn.textContent = '×';
+            visibilityBtn.title = 'Hide item';
+            visibilityBtn.disabled = true;
+            actions.appendChild(visibilityBtn);
+            const deleteButton = document.createElement('button');
+            deleteButton.classList.add('delete-item');
+            deleteButton.textContent = 'Delete';
+            deleteButton.disabled = true;
+            actions.appendChild(deleteButton);
+            targetSection.appendChild(actions);
+            targetSection.dataset.itemId = 'null';
+            targetSection.addEventListener('click', (e) => {
+              if (e.target.closest('.actions') || e.target.closest('.add-swatch')) return;
+              const wasSelected = targetSection.classList.contains('selected');
+              document.querySelectorAll('.upload-section').forEach(s => s.classList.remove('selected'));
+              if (!wasSelected) {
+                targetSection.classList.add('selected');
+                if (targetSection.dataset.itemId && targetSection.dataset.itemId !== 'null') {
+                  selectItem(targetSection.dataset.itemId);
+                }
+              } else {
+                selectedItemId = null;
+                updatePreview();
+              }
+            });
+            uploadSectionsContainer.appendChild(targetSection);
+          }
+          const preview = targetSection.querySelector('.item-preview');
+          const visibilityBtn = targetSection.querySelector('.visibility-toggle-btn');
+          const deleteButton = targetSection.querySelector('.delete-item');
+          const addSwatchButton = targetSection.querySelector('.add-swatch');
+          const reader = new FileReader();
+          const dataURL = await new Promise((resolve) => {
+            reader.onload = (event) => resolve(event.target.result);
+            reader.readAsDataURL(file);
+          });
+          preview.src = dataURL;
+          let tagsArray = setTagsWithCategories([], getCheckedCategoryNames());
+          if (setName) tagsArray.push(`set:${setName}`);
+          const slotId = slotSelect.value || 'other-slot';
+          const defaultX = parseFloat(coordX.value) || 0;
+          const defaultY = parseFloat(coordY.value) || 0;
+          let newItem = {
+            filename: file.name,
+            name: file.name,
+            slotId,
+            tags: tagsArray,
+            designer: designerInput.value || '',
+            isSet: true,
+            heart: false
+          };
+          let savedItem = null;
+          try {
+            const formData = new FormData();
+            formData.append('item', file);
+            formData.append('name', file.name);
+            formData.append('slotId', slotId);
+            formData.append('tags', tagsArray.join(','));
+            formData.append('designer', designerInput.value || '');
+            formData.append('isSet', 'true');
+            formData.append('defaultX', String(defaultX));
+            formData.append('defaultY', String(defaultY));
+            formData.append('defaultZ', '0');
+            const uploadUrl = isProjectMode() ? projectUploadUrl() : '/api/items/upload';
+            const uploadRes = await fetch(uploadUrl, { method: 'POST', body: formData });
+            if (!uploadRes.ok) throw new Error('Upload failed');
+            savedItem = await uploadRes.json();
+            newItem = { ...newItem, filename: savedItem.filename, name: savedItem.name, slotId: savedItem.slotId, defaultX: savedItem.defaultX != null ? savedItem.defaultX : defaultX, defaultY: savedItem.defaultY != null ? savedItem.defaultY : defaultY, defaultZ: savedItem.defaultZ != null ? savedItem.defaultZ : 0 };
+            wardrobeItems.push(newItem);
+            if (!equippedItems[slotId]) equippedItems[slotId] = [];
+            const itemId = `${slotId}-${equippedItems[slotId].length}`;
+            const equippedItem = {
+              id: itemId,
+              slotId,
+              src: '/Uploads/' + newItem.filename,
+              alt: newItem.name,
+              zIndex: getAllItems().length + 2,
+              x: defaultX,
+              y: defaultY,
+              heart: newItem.heart || false,
+              tags: newItem.tags || [],
+              designer: newItem.designer || '',
+              isSet: newItem.isSet || false,
+              visible: true
+            };
+            equippedItems[slotId].push(equippedItem);
+            saveEquippedItems();
+          } catch (err) {
+            showError('Could not save item to wardrobe: ' + (err.message || 'upload failed'));
+            continue;
+          }
+          targetSection.dataset.itemId = equippedItem.id;
+          visibilityBtn.disabled = false;
+          deleteButton.disabled = false;
+          addSwatchButton.disabled = false;
+          visibilityBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            equippedItem.visible = !equippedItem.visible;
+            visibilityBtn.title = equippedItem.visible ? 'Hide item' : 'Show item';
+            visibilityBtn.classList.toggle('hidden', !equippedItem.visible);
+            saveEquippedItems();
+            updatePreview();
+          });
+          deleteButton.addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to delete this item?')) return;
+            const { slotId: sId, index } = findItemById(equippedItem.id);
+            if (sId && index < 0) return;
+            const fn = savedItem && savedItem.filename ? savedItem.filename : null;
+            if (isProjectMode() && fn) {
+              try {
+                const res = await fetch(projectItemDeleteUrl(fn), { method: 'DELETE' });
+                if (!res.ok) throw new Error('Delete failed');
+              } catch (e) {
+                showError('Could not delete item from project: ' + (e.message || ''));
+                return;
+              }
+            }
+            equippedItems[sId].splice(index, 1);
+            const wi = wardrobeItems.findIndex(w => w.filename === fn || w.filename === (savedItem && savedItem.filename));
+            if (wi >= 0) wardrobeItems.splice(wi, 1);
+            saveEquippedItems();
+            populateUploadSections();
+            updatePreview();
+            if (selectedItemId === equippedItem.id) selectedItemId = null;
+          });
+          addSwatchButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const swatchUpload = document.createElement('input');
+            swatchUpload.type = 'file';
+            swatchUpload.accept = 'image/*,.gif';
+            swatchUpload.addEventListener('change', async (e) => {
+              const f = e.target.files[0];
+              if (f) {
+                const tagsArray = setTagsWithCategories(equippedItem.tags || [], getCheckedCategoryNames());
+                tagsArray.push(`swatch-of:${equippedItem.id}`);
+                const parentFilename = equippedItem.src && equippedItem.src.startsWith('/Uploads/') ? equippedItem.src.split('/').pop() : null;
+                if (parentFilename) tagsArray.push('swatch-parent:' + parentFilename);
+                const newSwatch = { filename: 'swatch-' + f.name, name: 'swatch-' + f.name, slotId: slotSelect.value || 'other-slot', tags: tagsArray, designer: designerInput.value || '', isSet: true, heart: false };
+                wardrobeItems.push(newSwatch);
+                const swatchSlotId = newSwatch.slotId || 'other-slot';
+                if (!equippedItems[swatchSlotId]) equippedItems[swatchSlotId] = [];
+                const swatchId = `${swatchSlotId}-${equippedItems[swatchSlotId].length}`;
+                const equippedSwatch = { id: swatchId, slotId: swatchSlotId, src: '', alt: newSwatch.name, zIndex: getAllItems().length + 2, x: defaultX, y: defaultY, heart: false, tags: newSwatch.tags || [], designer: newSwatch.designer || '', isSet: newSwatch.isSet || false, visible: true };
+                const reader = new FileReader();
+                equippedSwatch.src = await new Promise((resolve) => { reader.onload = (ev) => resolve(ev.target.result); reader.readAsDataURL(f); });
+                equippedItems[swatchSlotId].push(equippedSwatch);
+                saveEquippedItems();
+                populateUploadSections();
+                updatePreview();
+              }
+              swatchUpload.remove();
+            });
+            swatchUpload.click();
+          });
+          lastItemId = equippedItem.id;
+        }
+        uploadSectionsContainer.querySelectorAll('.upload-section[data-item-id="null"]').forEach(s => s.remove());
+        populateUploadSections();
+        updatePreview();
+        if (files.length > 1) {
+          alert(`Set "${setName}" uploaded successfully!`);
+        } else {
+          alert('Item uploaded successfully!');
+        }
+        if (lastItemId) {
+          selectItem(lastItemId);
+        }
+      }
+
+      if (dropzone) {
+        dropzone.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); dropzone.classList.add('drag-over'); });
+        dropzone.addEventListener('dragleave', (e) => { e.preventDefault(); dropzone.classList.remove('drag-over'); });
+        dropzone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.remove('drag-over');
+          if (e.dataTransfer.files && e.dataTransfer.files.length) processItemUploadFiles(e.dataTransfer.files);
+        });
+        dropzone.addEventListener('paste', (e) => {
+          const items = e.clipboardData && e.clipboardData.items;
+          if (!items) return;
+          const files = [];
+          for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) files.push(items[i].getAsFile());
+          }
+          if (files.length) { e.preventDefault(); processItemUploadFiles(files); }
+        });
+        dropzone.addEventListener('click', () => dropzone.focus());
+      }
+      if (urlInput && urlBtn) {
+        urlBtn.addEventListener('click', async () => {
+          const url = (urlInput.value || '').trim();
+          if (!url) { showError('Enter an image URL.'); return; }
+          try {
+            const res = await fetch(url, { mode: 'cors' });
+            if (!res.ok) throw new Error('Could not load image');
+            const blob = await res.blob();
+            if (!blob.type.startsWith('image/')) throw new Error('URL is not an image');
+            const file = new File([blob], (url.split('/').pop() || 'image.png').split('?')[0] || 'image.png', { type: blob.type });
+            await processItemUploadFiles([file]);
+            urlInput.value = '';
+          } catch (err) {
+            showError('Add from URL failed: ' + (err.message || 'unknown'));
+          }
+        });
+      }
+
+      if (addItemButton && itemUpload) {
+        addItemButton.addEventListener('click', () => itemUpload.click());
+        itemUpload.addEventListener('change', async (e) => {
+          if (e.target.files && e.target.files.length > 0) {
+            await processItemUploadFiles(e.target.files);
+            itemUpload.value = '';
+          }
+        });
+      }
+    }
+    function setupAddSecondary() {
+      const btn = document.getElementById('add-secondary-btn');
+      const fileInput = document.getElementById('secondary-image-upload');
+      const thumb = document.getElementById('secondary-image-thumb');
+      const previewDiv = document.getElementById('secondary-image-preview');
+      const secX = document.getElementById('secondary-coord-x');
+      const secY = document.getElementById('secondary-coord-y');
+      const secZ = document.getElementById('secondary-coord-z');
+      const removeBtn = document.getElementById('remove-secondary-btn');
+      if (!btn || !fileInput) return;
+      async function processSecondaryImageFile(file) {
+        if (!file || !file.type.startsWith('image/')) return;
+        if (!selectedItemId) { showError('Select an item first.'); return; }
+        const { slotId, index } = findItemById(selectedItemId);
+        if (!slotId || index < 0) return;
+        const mainItem = equippedItems[slotId][index];
+        const mainFilename = mainItem.src && mainItem.src.startsWith('/Uploads/') ? mainItem.src.split('/').pop() : null;
+        if (!mainFilename) {
+          showError('Could not determine main item filename.');
+          return;
+        }
+        const defaultZ = secZ ? Math.max(-10, Math.min(0, parseInt(secZ.value, 10) || 0)) : 0;
+        try {
+          const formData = new FormData();
+          formData.append('item', file);
+          formData.append('name', file.name);
+          formData.append('slotId', mainItem.slotId);
+          formData.append('defaultX', '0');
+          formData.append('defaultY', '0');
+          formData.append('defaultZ', String(defaultZ));
+          const uploadRes = await fetch('/api/items/upload', { method: 'POST', body: formData });
+          if (!uploadRes.ok) throw new Error('Upload failed');
+          const newPart = await uploadRes.json();
+          mainItem.background = {
+            filename: newPart.filename,
+            defaultX: 0,
+            defaultY: 0,
+            defaultZ: defaultZ,
+            src: '/Uploads/' + newPart.filename
+          };
+          const bgUpdateUrl = isProjectMode() ? projectItemUpdateUrl(mainFilename) : '/api/items/update/' + encodeURIComponent(mainFilename);
+          const updateRes = await fetch(bgUpdateUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ background: { filename: mainItem.background.filename, defaultX: 0, defaultY: 0, defaultZ: mainItem.background.defaultZ } })
+          });
+          if (!updateRes.ok) throw new Error('Update failed');
+          if (previewDiv) previewDiv.style.display = '';
+          if (thumb) thumb.src = mainItem.background.src;
+          if (secX) secX.value = mainItem.background.defaultX;
+          if (secY) secY.value = mainItem.background.defaultY;
+          if (secZ) secZ.value = mainItem.background.defaultZ;
+          alert('Background image added. It draws under the character base when equipped; you can toggle it off in Wardrobe/Shopping.');
+        } catch (e) {
+          showError('Failed: ' + (e.message || 'unknown'));
+        }
+      }
+      btn.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', async () => {
+        const file = fileInput.files[0];
+        if (file) await processSecondaryImageFile(file);
+        fileInput.value = '';
+      });
+      const secondaryDropzone = document.getElementById('secondary-dropzone');
+      if (secondaryDropzone) {
+        secondaryDropzone.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); secondaryDropzone.classList.add('drag-over'); });
+        secondaryDropzone.addEventListener('dragleave', (e) => { e.preventDefault(); secondaryDropzone.classList.remove('drag-over'); });
+        secondaryDropzone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          secondaryDropzone.classList.remove('drag-over');
+          const file = e.dataTransfer.files && e.dataTransfer.files[0];
+          if (file) processSecondaryImageFile(file);
+        });
+        secondaryDropzone.addEventListener('paste', (e) => {
+          const items = e.clipboardData && e.clipboardData.items;
+          if (!items) return;
+          for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+              const file = items[i].getAsFile();
+              if (file) { e.preventDefault(); processSecondaryImageFile(file); break; }
+            }
+          }
+        });
+      }
+      if (secX) secX.addEventListener('change', () => {
+        if (!selectedItemId) return;
+        const { slotId, index } = findItemById(selectedItemId);
+        if (slotId && index >= 0 && equippedItems[slotId][index].background) {
+          equippedItems[slotId][index].background.defaultX = Math.max(-125, Math.min(125, parseFloat(secX.value) || 0));
+        }
+      });
+      if (secY) secY.addEventListener('change', () => {
+        if (!selectedItemId) return;
+        const { slotId, index } = findItemById(selectedItemId);
+        if (slotId && index >= 0 && equippedItems[slotId][index].background) {
+          equippedItems[slotId][index].background.defaultY = Math.max(-175, Math.min(175, parseFloat(secY.value) || 0));
+        }
+      });
+      if (secZ) secZ.addEventListener('change', () => {
+        if (!selectedItemId) return;
+        const { slotId, index } = findItemById(selectedItemId);
+        if (slotId && index >= 0 && equippedItems[slotId][index].background) {
+          equippedItems[slotId][index].background.defaultZ = Math.max(-10, Math.min(0, parseInt(secZ.value, 10) || 0));
+        }
+      });
+      if (removeBtn) removeBtn.addEventListener('click', async () => {
+        if (!selectedItemId) return;
+        const { slotId, index } = findItemById(selectedItemId);
+        if (slotId && index >= 0 && equippedItems[slotId][index].background) {
+          const mainItem = equippedItems[slotId][index];
+          const mainFilename = mainItem.src && mainItem.src.startsWith('/Uploads/') ? mainItem.src.split('/').pop() : null;
+          equippedItems[slotId][index].background = null;
+          delete equippedItems[slotId][index].background;
+          if (previewDiv) previewDiv.style.display = 'none';
+          if (thumb) thumb.src = '';
+          if (mainFilename) {
+            try {
+              const updateUrl = isProjectMode() ? projectItemUpdateUrl(mainFilename) : '/api/items/update/' + encodeURIComponent(mainFilename);
+              await fetch(updateUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ background: null }) });
+            } catch (e) { showError('Could not remove background on server.'); }
+          }
+        }
+      });
+    }
+    function initializeAdjust() {
+      document.querySelectorAll('img').forEach(img => {
+        img.onerror = () => {
+          img.src = 'https://via.placeholder.com/40x40?text=Error';
+          img.onerror = null;
+        };
+      });
+      if (isProjectMode()) {
+        const banner = document.getElementById('project-banner');
+        if (banner) {
+          banner.style.display = 'block';
+          banner.innerHTML = 'Editing project: <strong id="project-banner-name">' + (projectName || '…') + '</strong> — <a href="/projects">Back to Upload Items</a>';
+        }
+        const backLink = document.getElementById('back-link');
+        if (backLink) {
+          backLink.href = '/projects';
+          backLink.textContent = 'Back to Upload Items';
+        }
+        const saveProjectBtn = document.getElementById('save-project-btn');
+        if (saveProjectBtn) {
+          saveProjectBtn.style.display = 'inline-block';
+          saveProjectBtn.addEventListener('click', saveProject);
+        }
+      }
+      (async () => {
+        await loadEquippedItems();
+        if (isProjectMode() && projectName) {
+          const el = document.getElementById('project-banner-name');
+          if (el) el.textContent = projectName;
+        }
+        fetchWardrobeItems();
+        setupDragHandling();
+        setupKeyboardControls();
+        setupCoordinateInputs();
+        setupResetCoord();
+        setupItemUploadAndEdit();
+        setupCategoryChange();
+        setupAddSecondary();
+        setupSwatchActionButtons();
+      })();
+    }
+    document.addEventListener('DOMContentLoaded', initializeAdjust);
+  </script>
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+</body>
+</html>

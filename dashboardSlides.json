@@ -1,0 +1,61 @@
+[
+  {
+    "id": "3",
+    "title": "Untitled slide",
+    "text": "",
+    "imageUrl": "/Uploads/hover-card-stickers/1770933589565.gif",
+    "backgroundUrl": "/Uploads/slide-gallery/gallery-1770650798669.gif",
+    "titleX": 20,
+    "titleY": 20,
+    "textX": 20,
+    "textY": 60,
+    "images": [
+      {
+        "url": "/Uploads/hover-card-stickers/1770933589565.gif",
+        "x": 89,
+        "y": 12,
+        "visible": true
+      }
+    ],
+    "durationMs": 3000,
+    "layerOrder": [
+      "background",
+      "image-0",
+      "text-0"
+    ]
+  },
+  {
+    "id": "4",
+    "title": "Untitled slide",
+    "text": "",
+    "imageUrl": "",
+    "backgroundUrl": "",
+    "titleX": 20,
+    "titleY": 20,
+    "textX": 20,
+    "textY": 60,
+    "images": [],
+    "durationMs": 3000,
+    "layerOrder": [
+      "background",
+      "text-0"
+    ]
+  },
+  {
+    "id": "5",
+    "title": "Untitled slide",
+    "text": "",
+    "imageUrl": "",
+    "backgroundUrl": "",
+    "titleX": 20,
+    "titleY": 20,
+    "textX": 20,
+    "textY": 60,
+    "images": [],
+    "durationMs": 3000,
+    "layerOrder": [
+      "background",
+      "text-0"
+    ]
+  }
+]

@@ -1,0 +1,41 @@
+{
+  "body-slot": [
+    {
+      "id": "body-slot-1",
+      "slotId": "body-slot",
+      "src": "http://localhost:3000/Uploads/1769879784069.png",
+      "alt": "ji6oz08tbuqwhfdbo2fjqcz3i1dhb11619618609.png",
+      "zIndex": 4,
+      "x": 0,
+      "y": 0,
+      "heart": false,
+      "tags": [
+        "set:DefaultSet"
+      ]
+    },
+    {
+      "id": "dress-slot-0",
+      "slotId": "dress-slot",
+      "src": "http://localhost:3000/Uploads/1769881420255.png",
+      "alt": "uliruha5tyqfmkurqltdf7vtu8jsb1630054912.png",
+      "zIndex": 3,
+      "x": 1,
+      "y": -15,
+      "heart": false,
+      "tags": [
+        "set:DefaultSet"
+      ]
+    }
+  ],
+  "shirt-slot": [],
+  "pants-slot": [],
+  "skirt-slot": [],
+  "dress-slot": [],
+  "jacket-slot": [],
+  "shoes-slot": [],
+  "hat-slot": [],
+  "jewelry-slot": [],
+  "other-slot": [],
+  "hair-slot": [],
+  "socks-slot": []
+}

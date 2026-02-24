@@ -1,0 +1,67 @@
+<!-- public/welcome.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dress-Up Game - Welcome</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body {
+      font-family: 'Comfortaa', 'Quicksand', 'Nunito', Verdana, "Trebuchet MS", Tahoma, sans-serif;
+      background: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      text-align: center;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    .cta-primary, .cta-secondary {
+      display: block;
+      padding: 10px 20px;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      margin: 10px auto;
+      width: 200px;
+      text-align: center;
+    }
+    .cta-primary {
+      background: var(--btn-pink-gradient);
+      border: var(--btn-pink-border);
+      box-shadow: var(--btn-pink-shadow);
+    }
+    .cta-primary:hover {
+      background: var(--btn-pink-gradient-hover);
+      filter: brightness(1.02);
+    }
+    .cta-secondary {
+      background: #6b7280;
+    }
+    .cta-secondary:hover {
+      background: #4b5563;
+    }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container" style="margin-top: 48px;">
+    <h1>Welcome to Dress-Up Game</h1>
+    <p class="text-gray-600 mb-4">Join today to save your avatar, try on clothes, and play.</p>
+    <a href="/create-account" class="cta-primary">Join today</a>
+    <a href="/login" class="cta-secondary">Log in</a>
+  </div>
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+</body>
+</html>

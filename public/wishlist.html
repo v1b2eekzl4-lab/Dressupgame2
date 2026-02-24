@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wishlist - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .wishlist-container { max-width: 900px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .wishlist-container h1 { margin: 0 0 8px 0; font-size: 1.5rem; }
+    .wishlist-container p.sub { margin: 0 0 24px 0; color: #6b7280; font-size: 14px; }
+    .wishlist-section { margin-bottom: 32px; }
+    .wishlist-section h2 { margin: 0 0 12px 0; font-size: 1.1rem; color: #374151; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
+    .wishlist-grid { display: flex; flex-wrap: wrap; gap: 16px; }
+    .wishlist-card { display: flex; align-items: center; gap: 12px; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; }
+    .wishlist-card.set-card { position: relative; display: flex; flex-direction: column; align-items: stretch; width: 250px; padding: 12px; }
+    /* Set displayed 1:1 at 250×350 — no resize, no reformat */
+    .wishlist-card.set-card img.thumb { width: 250px; height: 350px; min-width: 250px; min-height: 350px; max-width: 250px; max-height: 350px; object-fit: none; object-position: 0 0; image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; display: block; }
+    .wishlist-card.set-card .set-card-hover { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); margin-bottom: 8px; padding: 8px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 30; visibility: hidden; opacity: 0; transition: visibility 0.15s, opacity 0.15s; pointer-events: none; }
+    .wishlist-card.set-card:hover .set-card-hover { visibility: visible; opacity: 1; }
+    .wishlist-card.set-card .set-card-hover img { display: block; width: 250px; height: 350px; min-width: 250px; min-height: 350px; max-width: 250px; max-height: 350px; object-fit: none; object-position: 0 0; image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; border-radius: 4px; }
+    .wishlist-card.item-card { position: relative; width: 70px; max-width: none; padding: 4px; }
+    .wishlist-card.item-card img.thumb { width: 70px; height: 70px; object-fit: contain; border-radius: 6px; border: 1px solid #e5e7eb; image-rendering: pixelated; display: block; }
+    .wishlist-card.item-card .star-wrap { position: absolute; top: 4px; right: 4px; }
+    .wishlist-card.item-card a.item-thumb-link { display: block; line-height: 0; }
+    .wishlist-card .star-wrap { flex-shrink: 0; }
+    .wishlist-star-btn { padding: 0; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .wishlist-star { width: 24px; height: 24px; display: block; pointer-events: none; }
+    .wishlist-empty { color: #6b7280; font-size: 14px; padding: 16px 0; }
+    .wishlist-loading { color: #6b7280; font-style: italic; padding: 24px 0; }
+    .wishlist-error { color: #b91c1c; padding: 16px; background: #fef2f2; border-radius: 8px; margin-bottom: 16px; }
+    .wishlist-card .info-star-wrap { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .wishlist-card.item-card .info-star-wrap { position: absolute; top: 4px; right: 4px; }
+    .wishlist-card.set-card .info-star-wrap { position: absolute; top: 8px; right: 8px; }
+    .wishlist-card[draggable="true"] { cursor: grab; }
+    .wishlist-card[draggable="true"]:active { cursor: grabbing; }
+    .wishlist-card.dragging { opacity: 0.5; }
+    .wishlist-card.drag-over { outline: 2px solid #ec4899; outline-offset: 2px; }
+    .wishlist-actions { margin-bottom: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.wishlist-actions .save-order-btn { padding: 8px 16px; background: var(--btn-pink-gradient); color: white; border: var(--btn-pink-border); border-radius: 6px; cursor: pointer; font-size: 14px; box-shadow: var(--btn-pink-shadow); }
+.wishlist-actions .save-order-btn:hover { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); }
+    .wishlist-actions .save-order-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .wishlist-actions .save-order-msg { font-size: 14px; color: #059669; }
+    .wishlist-actions .save-order-msg.error { color: #b91c1c; }
+    .wishlist-search-wrap { margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .wishlist-search-wrap label { font-size: 13px; color: #6b7280; white-space: nowrap; }
+    .wishlist-search-input { flex: 1; min-width: 0; max-width: 280px; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 14px; }
+    .wishlist-search-input:focus { outline: none; border-color: #ec4899; box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.25); }
+    .add-to-wishlist-section { margin-bottom: 32px; }
+    .add-to-wishlist-section h2 { margin: 0 0 12px 0; font-size: 1.1rem; color: #374151; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
+    #add-search-results { min-height: 60px; }
+    #add-search-results .wishlist-empty { padding: 12px 0; }
+    .add-result-card { display: inline-flex; align-items: center; gap: 8px; padding: 8px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin: 0 8px 8px 0; }
+    .add-result-card.set-card { flex-direction: column; width: auto; }
+    .add-result-card .thumb { width: 50px; height: 50px; object-fit: contain; border-radius: 4px; border: 1px solid #e5e7eb; }
+    .add-result-card.set-card .thumb { width: 100px; height: 140px; object-fit: none; object-position: 0 0; image-rendering: pixelated; }
+    .add-result-card .add-star-btn { width: 22px; height: 22px; padding: 0; border: none; background: none; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .add-result-card .add-star-btn:hover { opacity: 0.85; }
+    .add-result-card .add-star-btn img { width: 22px; height: 22px; display: block; pointer-events: none; }
+    .wishlist-card.hidden-by-search { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div id="item-info-tooltip" class="item-info-tooltip" aria-hidden="true"></div>
+  <div class="wishlist-container">
+    <h1>Wishlist</h1>
+    <p class="sub">Items and sets you've starred. Drag to reorder, then save. Click the star to remove from wishlist.</p>
+    <div id="wishlist-error" class="wishlist-error" style="display:none;"></div>
+    <div class="wishlist-actions" id="wishlist-actions" style="display:none;">
+      <button type="button" class="save-order-btn" id="save-order-btn">Save order</button>
+      <span class="save-order-msg" id="save-order-msg"></span>
+    </div>
+    <div class="add-to-wishlist-section wishlist-section">
+      <h2>Add to wishlist</h2>
+      <div class="wishlist-search-wrap">
+        <label for="add-search-input">Search items and sets to add:</label>
+        <input type="text" id="add-search-input" class="wishlist-search-input" placeholder="Filename, designer, or tags…" aria-label="Search catalog to add to wishlist" autocomplete="off">
+      </div>
+      <div id="add-search-results" class="wishlist-grid"></div>
+    </div>
+    <div class="wishlist-section">
+      <h2>Wishlisted sets</h2>
+      <div class="wishlist-search-wrap">
+        <label for="wished-sets-search">Search wishlisted sets:</label>
+        <input type="text" id="wished-sets-search" class="wishlist-search-input" placeholder="Filter by set id…" aria-label="Search wishlisted sets" autocomplete="off">
+      </div>
+      <div id="wishlist-sets" class="wishlist-grid">
+        <div class="wishlist-loading">Loading…</div>
+      </div>
+    </div>
+    <div class="wishlist-section">
+      <h2>Wishlisted items</h2>
+      <div class="wishlist-search-wrap">
+        <label for="wished-items-search">Search wishlisted items:</label>
+        <input type="text" id="wished-items-search" class="wishlist-search-input" placeholder="Filter by filename, designer, or tags…" aria-label="Search wishlisted items" autocomplete="off">
+      </div>
+      <div id="wishlist-items" class="wishlist-grid">
+        <div class="wishlist-loading">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/slots.js"></script>
+  <script>
+    (function () {
+      const SLOT_LAYER_ORDER = window.SLOT_LAYER_ORDER || { 'body-slot': 0, 'pants-slot': 1, 'skirt-slot': 2, 'dress-slot': 3, 'shirt-slot': 4, 'jacket-slot': 5, 'socks-slot': 6, 'shoes-slot': 7, 'hat-slot': 8, 'jewelry-slot': 9, 'hair-slot': 10, 'other-slot': 11 };
+      var pendingItemRemovals = new Set();
+      var pendingSetRemovals = new Set();
+      var currentWishlist = { items: [], sets: [] };
+      var currentAllItems = [];
+      var wishedSetsFilter = '';
+      var wishedItemsFilter = '';
+
+      function flushPendingRemovals() {
+        pendingItemRemovals.forEach(function (filename) {
+          fetch('/api/wishlist/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'item', id: filename }),
+            credentials: 'same-origin',
+            keepalive: true
+          }).catch(function () {});
+        });
+        pendingItemRemovals.clear();
+        pendingSetRemovals.forEach(function (setId) {
+          fetch('/api/wishlist/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'set', id: setId }),
+            credentials: 'same-origin',
+            keepalive: true
+          }).catch(function () {});
+        });
+        pendingSetRemovals.clear();
+      }
+      window.addEventListener('pagehide', flushPendingRemovals);
+
+      function getSetId(item) {
+        if (!item || !Array.isArray(item.tags)) return null;
+        const tag = item.tags.find(function (t) { return typeof t === 'string' && t.startsWith('set-id:'); });
+        return tag ? tag.replace('set-id:', '').trim() : null;
+      }
+      function getSetName(item) {
+        if (!item || !Array.isArray(item.tags)) return null;
+        const tag = item.tags.find(function (t) { return typeof t === 'string' && t.startsWith('set-name:'); });
+        return tag ? tag.replace('set-name:', '').trim() : null;
+      }
+      function getSetGroupKey(item) {
+        const sid = getSetId(item);
+        if (sid && sid !== 'DefaultSet') return { id: sid, name: getSetName(item) || sid };
+        if (!item || !Array.isArray(item.tags)) return null;
+        const setTag = item.tags.find(function (t) { return typeof t === 'string' && t.startsWith('set:'); });
+        if (setTag) {
+          const name = setTag.replace('set:', '').trim();
+          if (name === 'DefaultSet') return null;
+          return { id: 'tag_' + name, name: name };
+        }
+        return null;
+      }
+      function getBrandFromItem(item) {
+        if (!item || !Array.isArray(item.tags)) return '';
+        const t = item.tags.find(function (x) { return typeof x === 'string' && x.startsWith('set-brand:'); });
+        return t ? t.replace('set-brand:', '').trim() : '';
+      }
+      function getSetItemsFromAll(allItems, setKey) {
+        if (!setKey || !Array.isArray(allItems)) return [];
+        return allItems.filter(function (i) {
+          var k = getSetGroupKey(i);
+          return k && k.id === setKey.id;
+        });
+      }
+      function getSetsFromItems(items) {
+        const bySet = {};
+        items.forEach(function (item) {
+          const key = getSetGroupKey(item);
+          if (key) {
+            if (!bySet[key.id]) bySet[key.id] = { id: key.id, name: key.name, items: [] };
+            bySet[key.id].items.push(item);
+          }
+        });
+        return Object.keys(bySet).map(function (id) { return bySet[id]; }).filter(function (s) { return s.items.length >= 2; });
+      }
+      function itemMatchesSearch(item, q) {
+        if (!q || !String(q).trim()) return true;
+        const s = String(q).toLowerCase().trim();
+        const filename = (item.filename || '').toLowerCase();
+        const designer = (item.designer || '').toLowerCase();
+        const slot = (item.slotId || '').toLowerCase();
+        if (filename.indexOf(s) !== -1 || designer.indexOf(s) !== -1 || slot.indexOf(s) !== -1) return true;
+        const tags = (item.tags || []).filter(function (t) { return typeof t === 'string'; });
+        return tags.some(function (t) { return t.toLowerCase().indexOf(s) !== -1; });
+      }
+      function setMatchesSearch(set, q) {
+        if (!q || !String(q).trim()) return true;
+        const s = String(q).toLowerCase().trim();
+        const id = (set.id || '').toLowerCase();
+        if (id.indexOf(s) !== -1) return true;
+        return (set.items || []).some(function (it) { return itemMatchesSearch(it, s); });
+      }
+
+      function getFlatItemsFromSet(setItems) {
+        const backgrounds = [];
+        const layers = [];
+        setItems.forEach(function (item) {
+          if (item.background && item.background.filename) {
+            backgrounds.push({
+              src: '/Uploads/' + item.background.filename,
+              x: item.background.defaultX != null ? item.background.defaultX : 0,
+              y: item.background.defaultY != null ? item.background.defaultY : 0,
+              zIndex: item.background.defaultZ != null ? item.background.defaultZ : 0
+            });
+          }
+          const slotId = item.slotId || 'other-slot';
+          const slotOrder = SLOT_LAYER_ORDER[slotId] != null ? SLOT_LAYER_ORDER[slotId] : 11;
+          if (item.bundleParts && Array.isArray(item.bundleParts) && item.bundleParts.length > 0) {
+            item.bundleParts.forEach(function (part, idx) {
+              layers.push({
+                src: '/Uploads/' + (part.filename || ''),
+                x: part.defaultX != null ? part.defaultX : 0,
+                y: part.defaultY != null ? part.defaultY : 0,
+                zIndex: part.defaultZ != null ? part.defaultZ : slotOrder * 100 + idx,
+                slotId: slotId
+              });
+            });
+          } else {
+            layers.push({
+              src: '/Uploads/' + (item.filename || ''),
+              x: item.defaultX != null ? item.defaultX : 0,
+              y: item.defaultY != null ? item.defaultY : 0,
+              zIndex: item.defaultZ != null ? item.defaultZ : slotOrder * 100,
+              slotId: slotId
+            });
+          }
+        });
+        backgrounds.sort(function (a, b) { return a.zIndex - b.zIndex; });
+        layers.sort(function (a, b) { return a.zIndex - b.zIndex; });
+        const flat = [{ src: '/Uploads/character.png', x: 0, y: 0, slotId: 'body-slot', zIndex: -1 }];
+        backgrounds.forEach(function (b) { flat.push({ src: b.src, x: b.x, y: b.y, zIndex: b.zIndex, slotId: 'bg' }); });
+        layers.forEach(function (l) { flat.push(l); });
+        return flat.sort(function (a, b) { return (a.zIndex || 0) - (b.zIndex || 0); });
+      }
+
+      function compositeSetToImg(setItems, imgEl, extraImgEls) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 250;
+        canvas.height = 350;
+        const ctx = canvas.getContext('2d');
+        const W = 250, H = 350;
+        const items = getFlatItemsFromSet(setItems);
+        if (items.length === 0) {
+          imgEl.src = 'data:image/gif;base64,R0lGOODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+          if (extraImgEls) extraImgEls.forEach(function (el) { if (el) el.src = imgEl.src; });
+          return;
+        }
+        const loadedImages = [];
+        let loadedCount = 0;
+        function tryDraw() {
+          if (loadedCount !== items.length) return;
+          ctx.clearRect(0, 0, W, H);
+          for (let i = 0; i < items.length; i++) {
+            const img = loadedImages[i];
+            const it = items[i];
+            if (!img || !img.complete) continue;
+            const nw = img.naturalWidth || W, nh = img.naturalHeight || H;
+            const scale = Math.min(1, W / nw, H / nh);
+            const drawW = nw * scale, drawH = nh * scale;
+            const cx = 125 + (it.x || 0), cy = 175 + (it.y || 0);
+            ctx.drawImage(img, 0, 0, nw, nh, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
+          }
+          try {
+            const dataUrl = canvas.toDataURL('image/png');
+            imgEl.src = dataUrl;
+            if (extraImgEls && extraImgEls.length) extraImgEls.forEach(function (el) { if (el) el.src = dataUrl; });
+          } catch (e) {}
+        }
+        items.forEach(function (it, i) {
+          const img = new Image();
+          img.onload = function () { loadedImages[i] = img; loadedCount++; tryDraw(); };
+          img.onerror = function () { loadedCount++; tryDraw(); };
+          img.src = it.src || '';
+        });
+      }
+
+      function toggleWishlist(type, id) {
+        return fetch('/api/wishlist/toggle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: type, id: id }),
+          credentials: 'same-origin'
+        }).then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('Failed')); });
+      }
+
+      function render(wishlist, allItems, filterSets, filterItems) {
+        const setIds = wishlist.sets || [];
+        const itemIds = (wishlist.items || []).map(function (id) { return String(id); });
+        const allSets = getSetsFromItems(allItems);
+        let sets = allSets.filter(function (s) { return setIds.indexOf(s.id) !== -1; });
+        let items = allItems.filter(function (i) {
+          var fn = i && (i.filename != null ? String(i.filename) : '');
+          return fn && itemIds.indexOf(fn) !== -1;
+        });
+        if (filterSets != null && String(filterSets).trim() !== '') sets = sets.filter(function (s) { return setMatchesSearch(s, filterSets); });
+        if (filterItems != null && String(filterItems).trim() !== '') items = items.filter(function (i) { return itemMatchesSearch(i, filterItems); });
+
+        const setsEl = document.getElementById('wishlist-sets');
+        setsEl.innerHTML = '';
+        if (sets.length === 0) {
+          setsEl.innerHTML = '<div class="wishlist-empty">No wishlisted sets. Star sets in the store to add them here.</div>';
+        } else {
+          sets.forEach(function (set) {
+            const card = document.createElement('div');
+            card.className = 'wishlist-card set-card';
+            card.setAttribute('data-set-id', set.id);
+            card.draggable = true;
+            const hoverCard = document.createElement('div');
+            hoverCard.className = 'set-card-hover';
+            const hoverImg = document.createElement('img');
+            hoverImg.alt = set.id || '';
+            hoverImg.src = 'data:image/gif;base64,R0lGOODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+            hoverCard.appendChild(hoverImg);
+            card.appendChild(hoverCard);
+
+            const setViewUrl = './set-view.html?set=' + encodeURIComponent(set.id);
+            const thumbLink = document.createElement('a');
+            thumbLink.href = setViewUrl;
+            thumbLink.className = 'set-card-thumb-link';
+            thumbLink.style.display = 'block';
+            const thumb = document.createElement('img');
+            thumb.className = 'thumb';
+            thumb.alt = '';
+            thumb.src = 'data:image/gif;base64,R0lGOODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+            compositeSetToImg(set.items, thumb, [hoverImg]);
+            thumbLink.appendChild(thumb);
+            card.appendChild(thumbLink);
+
+            const infoStarWrap = document.createElement('div');
+            infoStarWrap.className = 'info-star-wrap';
+            const infoBtn = document.createElement('button');
+            infoBtn.type = 'button';
+            infoBtn.className = 'item-info-btn';
+            infoBtn.textContent = '=';
+            infoBtn.title = 'Set info';
+            infoBtn.setAttribute('aria-label', 'Set info');
+            infoBtn.addEventListener('mouseover', function (e) {
+              var firstItem = set.items && set.items[0];
+              if (firstItem) showItemInfoTooltip(e, firstItem, allItems);
+            });
+            infoBtn.addEventListener('mouseout', hideItemInfoTooltip);
+            infoStarWrap.appendChild(infoBtn);
+            const starBtn = document.createElement('button');
+            starBtn.type = 'button';
+            starBtn.className = 'wishlist-star-btn';
+            starBtn.title = 'Remove from wishlist';
+            starBtn.setAttribute('aria-label', 'Remove from wishlist');
+            const starImg = document.createElement('img');
+            starImg.className = 'wishlist-star';
+            starImg.src = '/img/star_true.svg';
+            starImg.alt = '';
+            starBtn.appendChild(starImg);
+            starBtn.addEventListener('click', function (e) {
+              e.preventDefault();
+              e.stopPropagation();
+              pendingSetRemovals.add(set.id);
+              currentWishlist.sets = (currentWishlist.sets || []).filter(function (id) { return id !== set.id; });
+              card.remove();
+              var left = setsEl.querySelectorAll('.wishlist-card.set-card').length;
+              if (left === 0) {
+                setsEl.innerHTML = '<div class="wishlist-empty">No wishlisted sets. Star sets in the store to add them here.</div>';
+              }
+              renderAddResults(addSearchInput ? addSearchInput.value : '');
+            });
+            infoStarWrap.appendChild(starBtn);
+            card.appendChild(infoStarWrap);
+            setsEl.appendChild(card);
+          });
+        }
+        setupDragOrderForGrid(setsEl, 'set');
+
+        const itemsEl = document.getElementById('wishlist-items');
+        itemsEl.innerHTML = '';
+        if (items.length === 0) {
+          itemsEl.innerHTML = '<div class="wishlist-empty">No wishlisted items. Star items in the store to add them here.</div>';
+        } else {
+          items.forEach(function (item) {
+            const card = document.createElement('div');
+            card.className = 'wishlist-card item-card';
+            card.setAttribute('data-item-id', item.filename || '');
+            card.draggable = true;
+            const thumbLink = document.createElement('a');
+            thumbLink.href = './store.html';
+            thumbLink.className = 'item-thumb-link';
+            const thumb = document.createElement('img');
+            thumb.className = 'thumb';
+            thumb.alt = item.filename || '';
+            thumb.src = '/Uploads/' + (item.filename || '');
+            thumb.onerror = function () { thumb.style.display = 'none'; };
+            thumbLink.appendChild(thumb);
+            card.appendChild(thumbLink);
+            const infoStarWrap = document.createElement('div');
+            infoStarWrap.className = 'info-star-wrap';
+            const infoBtn = document.createElement('button');
+            infoBtn.type = 'button';
+            infoBtn.className = 'item-info-btn';
+            infoBtn.textContent = '=';
+            infoBtn.title = 'Item info';
+            infoBtn.setAttribute('aria-label', 'Item info');
+            infoBtn.addEventListener('mouseover', function (e) {
+              showItemInfoTooltip(e, item, allItems);
+            });
+            infoBtn.addEventListener('mouseout', hideItemInfoTooltip);
+            infoStarWrap.appendChild(infoBtn);
+            const starBtn = document.createElement('button');
+            starBtn.type = 'button';
+            starBtn.className = 'wishlist-star-btn';
+            starBtn.title = 'Remove from wishlist';
+            starBtn.setAttribute('aria-label', 'Remove from wishlist');
+            const starImg = document.createElement('img');
+            starImg.className = 'wishlist-star';
+            starImg.src = '/img/star_true.svg';
+            starImg.alt = '';
+            starBtn.appendChild(starImg);
+            starBtn.addEventListener('click', function (e) {
+              e.preventDefault();
+              e.stopPropagation();
+              pendingItemRemovals.add(item.filename);
+              currentWishlist.items = (currentWishlist.items || []).filter(function (fn) { return fn !== item.filename; });
+              card.remove();
+              var left = itemsEl.querySelectorAll('.wishlist-card.item-card').length;
+              if (left === 0) {
+                itemsEl.innerHTML = '<div class="wishlist-empty">No wishlisted items. Star items in the store to add them here.</div>';
+              }
+              renderAddResults(addSearchInput ? addSearchInput.value : '');
+            });
+            infoStarWrap.appendChild(starBtn);
+            card.appendChild(infoStarWrap);
+            itemsEl.appendChild(card);
+          });
+        }
+        setupDragOrderForGrid(itemsEl, 'item');
+
+        var actionsEl = document.getElementById('wishlist-actions');
+        var hasCards = (setsEl.querySelectorAll('.wishlist-card.set-card').length + itemsEl.querySelectorAll('.wishlist-card.item-card').length) > 0;
+        if (actionsEl) actionsEl.style.display = hasCards ? 'flex' : 'none';
+      }
+
+      function renderAddResults(addQuery) {
+        const el = document.getElementById('add-search-results');
+        if (!el) return;
+        const wishlist = currentWishlist;
+        const allItems = currentAllItems;
+        const setIds = (wishlist.sets || []).map(function (x) { return String(x); });
+        const itemIds = (wishlist.items || []).map(function (x) { return String(x); });
+        const allSets = getSetsFromItems(allItems);
+        const setsToShow = allSets.filter(function (s) { return setIds.indexOf(s.id) === -1 && setMatchesSearch(s, addQuery); });
+        const itemsToShow = allItems.filter(function (i) {
+          var fn = i && (i.filename != null ? String(i.filename) : '');
+          if (!fn || itemIds.indexOf(fn) !== -1) return false;
+          return itemMatchesSearch(i, addQuery);
+        });
+        el.innerHTML = '';
+        if (!addQuery || String(addQuery).trim() === '') {
+          var empty = document.createElement('div');
+          empty.className = 'wishlist-empty';
+          empty.textContent = 'Type above to search for items or sets to add to your wishlist.';
+          el.appendChild(empty);
+          return;
+        }
+        if (setsToShow.length === 0 && itemsToShow.length === 0) {
+          var noMatch = document.createElement('div');
+          noMatch.className = 'wishlist-empty';
+          noMatch.textContent = 'No matching items or sets to add.';
+          el.appendChild(noMatch);
+          return;
+        }
+        setsToShow.forEach(function (set) {
+          const card = document.createElement('div');
+          card.className = 'wishlist-card set-card add-result-card';
+          const thumb = document.createElement('img');
+          thumb.className = 'thumb';
+          thumb.alt = set.id || '';
+          thumb.src = 'data:image/gif;base64,R0lGOODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+          compositeSetToImg(set.items, thumb);
+          card.appendChild(thumb);
+          const starBtn = document.createElement('button');
+          starBtn.type = 'button';
+          starBtn.className = 'add-star-btn';
+          starBtn.title = 'Add set to wishlist';
+          starBtn.setAttribute('aria-label', 'Add set to wishlist');
+          const starImg = document.createElement('img');
+          starImg.src = '/img/star_false.svg';
+          starImg.alt = '';
+          starBtn.appendChild(starImg);
+          starBtn.addEventListener('click', function () {
+            toggleWishlist('set', set.id).then(function (data) {
+              currentWishlist = { items: data.items || [], sets: data.sets || [] };
+              render(currentWishlist, currentAllItems, wishedSetsFilter, wishedItemsFilter);
+              renderAddResults(addSearchInput ? addSearchInput.value : '');
+            }).catch(function () {});
+          });
+          card.appendChild(starBtn);
+          el.appendChild(card);
+        });
+        itemsToShow.forEach(function (item) {
+          const card = document.createElement('div');
+          card.className = 'wishlist-card item-card add-result-card';
+          const thumb = document.createElement('img');
+          thumb.className = 'thumb';
+          thumb.alt = item.filename || '';
+          thumb.src = '/Uploads/' + (item.filename || '');
+          thumb.onerror = function () { thumb.style.display = 'none'; };
+          card.appendChild(thumb);
+          const starBtn = document.createElement('button');
+          starBtn.type = 'button';
+          starBtn.className = 'add-star-btn';
+          starBtn.title = 'Add item to wishlist';
+          starBtn.setAttribute('aria-label', 'Add item to wishlist');
+          const starImg = document.createElement('img');
+          starImg.src = '/img/star_false.svg';
+          starImg.alt = '';
+          starBtn.appendChild(starImg);
+          starBtn.addEventListener('click', function () {
+            toggleWishlist('item', item.filename).then(function (data) {
+              currentWishlist = { items: data.items || [], sets: data.sets || [] };
+              render(currentWishlist, currentAllItems, wishedSetsFilter, wishedItemsFilter);
+              renderAddResults(addSearchInput ? addSearchInput.value : '');
+            }).catch(function () {});
+          });
+          card.appendChild(starBtn);
+          el.appendChild(card);
+        });
+      }
+
+      var draggedCard = null;
+      var draggedGrid = null;
+      function setupDragOrderForGrid(gridEl, type) {
+        if (!gridEl || gridEl.querySelectorAll('.wishlist-card').length === 0) return;
+        function getCard(el) { return el && el.closest && el.closest('.wishlist-card'); }
+        function clearDragOver() { gridEl.querySelectorAll('.drag-over').forEach(function (c) { c.classList.remove('drag-over'); }); }
+        gridEl.addEventListener('dragstart', function (ev) {
+          var card = getCard(ev.target);
+          if (!card || !card.draggable) return;
+          draggedCard = card;
+          draggedGrid = gridEl;
+          card.classList.add('dragging');
+          var id = type === 'set' ? card.getAttribute('data-set-id') : card.getAttribute('data-item-id');
+          ev.dataTransfer.setData('application/json', JSON.stringify({ type: type, id: id }));
+          ev.dataTransfer.effectAllowed = 'move';
+        });
+        gridEl.addEventListener('dragend', function (ev) {
+          if (draggedCard) draggedCard.classList.remove('dragging');
+          draggedCard = null;
+          draggedGrid = null;
+          clearDragOver();
+        });
+        gridEl.addEventListener('dragover', function (ev) {
+          ev.preventDefault();
+          ev.dataTransfer.dropEffect = 'move';
+          var card = getCard(ev.target);
+          if (card && card !== draggedCard && card.parentNode === gridEl) {
+            clearDragOver();
+            card.classList.add('drag-over');
+          }
+        });
+        gridEl.addEventListener('dragleave', function (ev) {
+          var card = getCard(ev.relatedTarget);
+          if (!card || card.parentNode !== gridEl) clearDragOver();
+        });
+        gridEl.addEventListener('drop', function (ev) {
+          ev.preventDefault();
+          clearDragOver();
+          var target = getCard(ev.target);
+          if (!target || target === draggedCard || !draggedCard || draggedCard.parentNode !== gridEl || target.parentNode !== gridEl) return;
+          gridEl.insertBefore(draggedCard, target);
+        });
+      }
+
+      function getOrderFromGrid(gridEl, idAttr) {
+        var ids = [];
+        gridEl.querySelectorAll('.wishlist-card[' + idAttr + ']').forEach(function (c) {
+          var id = c.getAttribute(idAttr);
+          if (id != null) ids.push(id);
+        });
+        return ids;
+      }
+      function saveOrder() {
+        var setsEl = document.getElementById('wishlist-sets');
+        var itemsEl = document.getElementById('wishlist-items');
+        var btn = document.getElementById('save-order-btn');
+        var msg = document.getElementById('save-order-msg');
+        if (!btn || !msg) return;
+        var sets = getOrderFromGrid(setsEl, 'data-set-id');
+        var items = getOrderFromGrid(itemsEl, 'data-item-id');
+        btn.disabled = true;
+        msg.textContent = '';
+        msg.classList.remove('error');
+        fetch('/api/wishlist/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sets: sets, items: items }),
+          credentials: 'same-origin'
+        }).then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); }).then(function (result) {
+          btn.disabled = false;
+          if (result.ok) {
+            msg.textContent = 'Order saved.';
+            msg.classList.remove('error');
+            setTimeout(function () { msg.textContent = ''; }, 3000);
+          } else {
+            msg.textContent = result.data && result.data.error ? result.data.error : 'Failed to save order.';
+            msg.classList.add('error');
+          }
+        }).catch(function () {
+          btn.disabled = false;
+          msg.textContent = 'Failed to save order.';
+          msg.classList.add('error');
+        });
+      }
+      var saveOrderBtn = document.getElementById('save-order-btn');
+      if (saveOrderBtn) saveOrderBtn.addEventListener('click', saveOrder);
+
+      var addSearchInput = document.getElementById('add-search-input');
+      var addSearchTimeout;
+      if (addSearchInput) addSearchInput.addEventListener('input', function () {
+        clearTimeout(addSearchTimeout);
+        addSearchTimeout = setTimeout(function () { renderAddResults(addSearchInput.value); }, 180);
+      });
+      var wishedSetsSearch = document.getElementById('wished-sets-search');
+      if (wishedSetsSearch) wishedSetsSearch.addEventListener('input', function () {
+        wishedSetsFilter = this.value;
+        render(currentWishlist, currentAllItems, wishedSetsFilter, wishedItemsFilter);
+      });
+      var wishedItemsSearch = document.getElementById('wished-items-search');
+      if (wishedItemsSearch) wishedItemsSearch.addEventListener('input', function () {
+        wishedItemsFilter = this.value;
+        render(currentWishlist, currentAllItems, wishedSetsFilter, wishedItemsFilter);
+      });
+
+      var itemInfoTooltipEl = null;
+      function showItemInfoTooltip(e, item, allItems) {
+        itemInfoTooltipEl = document.getElementById('item-info-tooltip');
+        if (!itemInfoTooltipEl) return;
+        var setKey = getSetGroupKey(item);
+        var setItems = setKey ? getSetItemsFromAll(allItems || [], setKey) : [];
+        var designer = (item.designer || '').trim() || '—';
+        var brand = getBrandFromItem(item) || '—';
+        var html = '';
+        if (setItems.length > 0) {
+          html += '<div class="item-info-set-img-wrap"><img class="item-info-set-img" id="item-info-set-img" alt="" src="data:image/gif;base64,R0lGOODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></div>';
+          itemInfoTooltipEl.innerHTML = html + '<div class="item-info-line"><span class="item-info-label">Set:</span>' + (setKey ? setKey.id : '') + '</div><div class="item-info-line"><span class="item-info-label">Designer:</span>' + escapeHtml(designer) + '</div><div class="item-info-line"><span class="item-info-label">Brand:</span>' + escapeHtml(brand) + '</div>';
+          var imgEl = document.getElementById('item-info-set-img');
+          if (imgEl) compositeSetToImg(setItems, imgEl);
+        } else {
+          itemInfoTooltipEl.innerHTML = '<div class="item-info-line"><span class="item-info-label">Designer:</span>' + escapeHtml(designer) + '</div><div class="item-info-line"><span class="item-info-label">Brand:</span>' + escapeHtml(brand) + '</div>';
+        }
+        itemInfoTooltipEl.classList.add('visible');
+        itemInfoTooltipEl.setAttribute('aria-hidden', 'false');
+        var rect = (e.target && e.target.getBoundingClientRect) ? e.target.getBoundingClientRect() : { right: 0, top: 0 };
+        var x = rect.right + 8, y = rect.top;
+        if (x + itemInfoTooltipEl.offsetWidth > window.innerWidth - 8) x = rect.left - itemInfoTooltipEl.offsetWidth - 8;
+        if (x < 8) x = 8;
+        if (y + itemInfoTooltipEl.offsetHeight > window.innerHeight - 8) y = window.innerHeight - itemInfoTooltipEl.offsetHeight - 8;
+        if (y < 8) y = 8;
+        itemInfoTooltipEl.style.left = x + 'px';
+        itemInfoTooltipEl.style.top = y + 'px';
+      }
+      function hideItemInfoTooltip() {
+        if (itemInfoTooltipEl) {
+          itemInfoTooltipEl.classList.remove('visible');
+          itemInfoTooltipEl.setAttribute('aria-hidden', 'true');
+        }
+      }
+      function escapeHtml(s) {
+        if (s == null) return '—';
+        var str = String(s);
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+      document.body.addEventListener('mouseout', function (ev) {
+        var from = ev.target && ev.target.closest && ev.target.closest('.item-info-btn');
+        var to = ev.relatedTarget && ev.relatedTarget.closest && ev.relatedTarget.closest('.item-info-btn');
+        if (from && !to) hideItemInfoTooltip();
+      });
+
+      const errEl = document.getElementById('wishlist-error');
+      Promise.all([
+        fetch('/api/wishlist', { credentials: 'same-origin' }),
+        fetch('/api/items', { credentials: 'same-origin' })
+      ]).then(function (responses) {
+        const wishlistRes = responses[0];
+        const itemsRes = responses[1];
+        if (!wishlistRes.ok) {
+          errEl.textContent = 'Could not load wishlist. Make sure you are logged in.';
+          errEl.style.display = 'block';
+          document.getElementById('wishlist-sets').innerHTML = '';
+          document.getElementById('wishlist-items').innerHTML = '';
+          return Promise.resolve();
+        }
+        return Promise.all([wishlistRes.json(), itemsRes.ok ? itemsRes.json() : []]).then(function (data) {
+          const wishlist = data[0];
+          let allItems = data[1];
+          if (allItems && typeof allItems === 'object' && Array.isArray(allItems.items)) allItems = allItems.items;
+          if (Array.isArray(allItems) && allItems.length > 0 && allItems[0] && Array.isArray(allItems[0])) allItems = allItems.flat();
+          if (!Array.isArray(allItems)) allItems = [];
+          currentWishlist = { items: wishlist.items || [], sets: wishlist.sets || [] };
+          currentAllItems = allItems;
+          errEl.style.display = 'none';
+          render(currentWishlist, currentAllItems, wishedSetsFilter, wishedItemsFilter);
+          renderAddResults('');
+        });
+      }).catch(function () {
+        errEl.textContent = 'Could not load wishlist. Make sure you are logged in.';
+        errEl.style.display = 'block';
+        document.getElementById('wishlist-sets').innerHTML = '<div class="wishlist-empty">Could not load wishlist.</div>';
+        document.getElementById('wishlist-items').innerHTML = '';
+      });
+    })();
+  </script>
+  <script src="/js/header.js"></script>
+</body>
+</html>

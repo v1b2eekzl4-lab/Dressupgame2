@@ -1,0 +1,369 @@
+{
+  "1": [
+    {
+      "name": "outfit",
+      "items": {
+        "body-slot": [],
+        "shirt-slot": [],
+        "skirt-slot": [],
+        "dress-slot": [],
+        "hair-slot": [
+          {
+            "id": "hair-slot-1",
+            "slotId": "hair-slot",
+            "src": "http://localhost:3000/Uploads/1769873440289.png",
+            "alt": "aian5hbxqvn7czch8xrhgwxziqcsz1698012820.png",
+            "zIndex": 0,
+            "x": -3,
+            "y": -63,
+            "heart": false,
+            "tags": [
+              "set:DefaultSet"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "pp",
+      "items": {
+        "body-slot": [
+          {
+            "id": "dress-slot-0",
+            "slotId": "dress-slot",
+            "src": "http://localhost:3000/Uploads/1755025842811.png",
+            "alt": "wwltrhlegtc215j9n9ngmhkudsang.png",
+            "zIndex": 2,
+            "x": 0,
+            "y": 0,
+            "heart": true,
+            "tags": [
+              "set:DefaultSet",
+              "set:DefaultSet"
+            ]
+          },
+          {
+            "id": "body-slot-0",
+            "slotId": "body-slot",
+            "src": "http://localhost:3000/Uploads/1769879784069.png",
+            "alt": "ji6oz08tbuqwhfdbo2fjqcz3i1dhb11619618609.png",
+            "zIndex": 0,
+            "x": 0,
+            "y": 0,
+            "heart": true,
+            "tags": [
+              "set:DefaultSet"
+            ]
+          }
+        ],
+        "shirt-slot": [],
+        "skirt-slot": [],
+        "dress-slot": [],
+        "hair-slot": []
+      }
+    },
+    {
+      "name": "pp",
+      "items": {
+        "body-slot": [
+          {
+            "id": "dress-slot-0",
+            "slotId": "dress-slot",
+            "src": "http://localhost:3000/Uploads/1755025842811.png",
+            "alt": "wwltrhlegtc215j9n9ngmhkudsang.png",
+            "zIndex": 2,
+            "x": 0,
+            "y": -11,
+            "heart": true,
+            "tags": [
+              "set:DefaultSet",
+              "set:DefaultSet"
+            ]
+          },
+          {
+            "id": "body-slot-0",
+            "slotId": "body-slot",
+            "src": "http://localhost:3000/Uploads/1769879784069.png",
+            "alt": "ji6oz08tbuqwhfdbo2fjqcz3i1dhb11619618609.png",
+            "zIndex": 0,
+            "x": 0,
+            "y": 0,
+            "heart": true,
+            "tags": [
+              "set:DefaultSet"
+            ]
+          }
+        ],
+        "shirt-slot": [],
+        "skirt-slot": [],
+        "dress-slot": [],
+        "hair-slot": []
+      }
+    }
+  ],
+  "2": [
+    {
+      "name": "khjkjkj",
+      "items": {
+        "body-slot": [
+          {
+            "id": "body-slot-0",
+            "slotId": "body-slot",
+            "src": "/Uploads/1770577661176.png",
+            "alt": "2uove2q7 (1)",
+            "zIndex": 3,
+            "x": 0,
+            "y": 0,
+            "heart": false,
+            "tags": [
+              "set-id:my",
+              "set-name:My",
+              "set:My"
+            ]
+          }
+        ],
+        "shirt-slot": [],
+        "pants-slot": [],
+        "skirt-slot": [],
+        "dress-slot": [
+          {
+            "id": "dress-slot-0",
+            "slotId": "dress-slot",
+            "src": "/Uploads/1770758307056.png",
+            "alt": "xddd4pw9 (1)",
+            "zIndex": 4,
+            "x": -2,
+            "y": 14,
+            "heart": false,
+            "tags": [
+              "set-id:alice-in-wonderlandburton1",
+              "set-name:Alice in wonderland_burton_1",
+              "set:Alice in wonderland_burton_1"
+            ]
+          }
+        ],
+        "jacket-slot": [],
+        "shoes-slot": [
+          {
+            "id": "shoes-slot-0",
+            "slotId": "shoes-slot",
+            "src": "/Uploads/1770758928787.png",
+            "alt": "j6zzdaug (1)",
+            "zIndex": 5,
+            "x": 0,
+            "y": 95,
+            "heart": false,
+            "tags": [
+              "set-id:alice-in-wonderlandburton1",
+              "set-name:Alice in wonderland_burton_1",
+              "set:Alice in wonderland_burton_1"
+            ]
+          },
+          {
+            "id": "body-slot-0",
+            "slotId": "body-slot",
+            "src": "/Uploads/1770577417445.png",
+            "alt": "h75cut1q (1)",
+            "zIndex": 6,
+            "x": 0,
+            "y": -73,
+            "heart": false,
+            "tags": [
+              "set-id:my",
+              "set-name:My",
+              "set:My"
+            ]
+          }
+        ],
+        "hat-slot": [],
+        "makeup-slot": [],
+        "jewelry-slot": [],
+        "other-slot": [],
+        "hair-slot": [],
+        "socks-slot": []
+      },
+      "mergedImageUrl": "/Uploads/outfits/2-1770823077851.png",
+      "mergedFrameDuration": 150
+    },
+    {
+      "name": "h",
+      "items": {
+        "body-slot": [
+          {
+            "id": "body-slot-0",
+            "slotId": "body-slot",
+            "src": "/Uploads/1770577661176.png",
+            "alt": "2uove2q7 (1)",
+            "zIndex": 3,
+            "x": 0,
+            "y": 0,
+            "heart": false,
+            "tags": [
+              "set-id:my",
+              "set-name:My",
+              "set:My"
+            ]
+          }
+        ],
+        "shirt-slot": [],
+        "pants-slot": [],
+        "skirt-slot": [],
+        "dress-slot": [
+          {
+            "id": "dress-slot-0",
+            "slotId": "dress-slot",
+            "src": "/Uploads/1770758307056.png",
+            "alt": "xddd4pw9 (1)",
+            "zIndex": 4,
+            "x": -2,
+            "y": 14,
+            "heart": false,
+            "tags": [
+              "set-id:alice-in-wonderlandburton1",
+              "set-name:Alice in wonderland_burton_1",
+              "set:Alice in wonderland_burton_1"
+            ]
+          }
+        ],
+        "jacket-slot": [],
+        "shoes-slot": [
+          {
+            "id": "body-slot-1",
+            "slotId": "body-slot",
+            "src": "/Uploads/1770577417445.png",
+            "alt": "h75cut1q (1)",
+            "zIndex": 5,
+            "x": 0,
+            "y": -73,
+            "heart": false,
+            "tags": [
+              "set-id:my",
+              "set-name:My",
+              "set:My"
+            ]
+          },
+          {
+            "id": "shoes-slot-0",
+            "slotId": "shoes-slot",
+            "src": "/Uploads/1770758928787.png",
+            "alt": "j6zzdaug (1)",
+            "zIndex": 6,
+            "x": 0,
+            "y": 95,
+            "heart": false,
+            "tags": [
+              "set-id:alice-in-wonderlandburton1",
+              "set-name:Alice in wonderland_burton_1",
+              "set:Alice in wonderland_burton_1"
+            ]
+          }
+        ],
+        "hat-slot": [],
+        "makeup-slot": [],
+        "jewelry-slot": [],
+        "other-slot": [],
+        "hair-slot": [],
+        "socks-slot": []
+      },
+      "mergedImageUrl": "/Uploads/outfits/2-1770823435578.png",
+      "mergedFrameDuration": 150
+    },
+    {
+      "name": "ooooooooooo",
+      "items": {
+        "body-slot": [
+          {
+            "id": "body-slot-0",
+            "slotId": "body-slot",
+            "src": "http://localhost:3000/Uploads/1770577661176.png",
+            "alt": "2uove2q7 (1)",
+            "zIndex": 3,
+            "x": 0,
+            "y": 0,
+            "heart": false,
+            "tags": [
+              "set-id:my",
+              "set-name:My",
+              "set:My"
+            ]
+          }
+        ],
+        "shirt-slot": [],
+        "pants-slot": [],
+        "skirt-slot": [],
+        "dress-slot": [],
+        "jacket-slot": [],
+        "shoes-slot": [],
+        "hat-slot": [],
+        "makeup-slot": [],
+        "jewelry-slot": [],
+        "other-slot": [
+          {
+            "id": "other-slot-0",
+            "slotId": "other-slot",
+            "src": "http://localhost:3000/Uploads/1770928374244.png",
+            "alt": "sjzdsrp1 (1)",
+            "zIndex": 4,
+            "x": -1.5,
+            "y": 18,
+            "heart": false,
+            "tags": [
+              "set-id:j",
+              "set-name:j",
+              "set:j"
+            ]
+          },
+          {
+            "id": "other-slot-1",
+            "slotId": "other-slot",
+            "src": "http://localhost:3000/Uploads/1770928374353.png",
+            "alt": "n4m9op3r (1)",
+            "zIndex": 5,
+            "x": -0.5,
+            "y": -30,
+            "heart": false,
+            "tags": [
+              "set-id:j",
+              "set-name:j",
+              "set:j"
+            ]
+          },
+          {
+            "id": "body-slot-1",
+            "slotId": "body-slot",
+            "src": "http://localhost:3000/Uploads/1770577417445.png",
+            "alt": "h75cut1q (1)",
+            "zIndex": 6,
+            "x": 0,
+            "y": -73,
+            "heart": false,
+            "tags": [
+              "set-id:my",
+              "set-name:My",
+              "set:My"
+            ]
+          },
+          {
+            "id": "other-slot-3",
+            "slotId": "other-slot",
+            "src": "http://localhost:3000/Uploads/1770498601320.png",
+            "alt": "0102fad5",
+            "zIndex": 7,
+            "x": 0,
+            "y": 0,
+            "heart": false,
+            "tags": [
+              "set-id:misjada",
+              "set-name:misjada",
+              "set:misjada"
+            ]
+          }
+        ],
+        "hair-slot": [],
+        "socks-slot": []
+      },
+      "mergedImageUrl": "/Uploads/outfits/2-1770929069610.png",
+      "mergedFrameDuration": 150
+    }
+  ]
+}

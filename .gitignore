@@ -1,0 +1,12 @@
+node_modules/
+.env
+users.json
+*.log
+.cursor/
+
+# User uploads (recreate via app)
+Uploads/
+
+# OS files
+.DS_Store
+Thumbs.db

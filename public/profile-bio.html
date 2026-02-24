@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bio - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 600px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h1 { margin: 0 0 16px 0; font-size: 1.5rem; }
+    .bio-back { display: inline-block; margin-bottom: 16px; font-size: 14px; color: #ec4899; text-decoration: none; }
+    .bio-back:hover { text-decoration: underline; }
+    .profile-row { margin: 12px 0; color: #374151; }
+    .profile-row strong { display: inline-block; min-width: 100px; }
+    .profile-avatar { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #e5e7eb; display: block; margin-bottom: 8px; }
+    .profile-bio-error { color: #b91c1c; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <a href="#" id="bio-back-link" class="bio-back">← Profile</a>
+    <h1 id="bio-title">Bio</h1>
+    <div id="bio-content">
+      <p class="profile-row">Loading…</p>
+    </div>
+  </div>
+  <script src="/js/header.js"></script>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var userId = params.get('user');
+      var backLink = document.getElementById('bio-back-link');
+      var contentEl = document.getElementById('bio-content');
+      var titleEl = document.getElementById('bio-title');
+      function esc(s) { return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+      if (backLink && userId) backLink.href = '/profile?user=' + encodeURIComponent(userId);
+      if (!userId) {
+        contentEl.innerHTML = '<p class="profile-bio-error">No user specified.</p>';
+        return;
+      }
+      fetch('/api/users/' + encodeURIComponent(userId) + '/profile', { credentials: 'same-origin' })
+        .then(function (r) {
+          if (!r.ok) throw new Error('Profile not found');
+          return r.json();
+        })
+        .then(function (data) {
+          var name = (data.displayName && data.displayName.trim()) ? data.displayName.trim() : (data.username || '—');
+          if (titleEl) titleEl.textContent = name + ' — Bio';
+          contentEl.innerHTML =
+            (data.profilePictureUrl ? '<p class="profile-row"><img src="' + esc(data.profilePictureUrl) + '" alt="Avatar" class="profile-avatar"></p>' : '') +
+            '<p class="profile-row"><strong>Name:</strong> ' + esc(name) + '</p>' +
+            (data.bio ? '<p class="profile-row"><strong>Bio:</strong> ' + esc(data.bio) + '</p>' : '');
+        })
+        .catch(function () {
+          contentEl.innerHTML = '<p class="profile-bio-error">Could not load profile.</p>';
+        });
+    })();
+  </script>
+</body>
+</html>

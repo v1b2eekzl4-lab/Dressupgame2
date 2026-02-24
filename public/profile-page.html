@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile page</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; min-height: 100vh; }
+    .profile-page-bar { padding: 12px 20px; background: #111; border-bottom: 1px solid #333; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .profile-page-bar a { color: #f9a8d4; text-decoration: none; font-size: 14px; }
+    .profile-page-bar a:hover { text-decoration: underline; }
+    .profile-page-content { padding: 24px; max-width: 900px; margin: 0 auto; }
+    .profile-page-content a { color: #f9a8d4; }
+    .profile-page-empty { padding: 48px 24px; text-align: center; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="profile-page-bar">
+    <a href="#" id="back-link">← Back to profile</a>
+    <span id="user-name" class="profile-page-bar-name"></span>
+  </div>
+  <div id="profile-page-content" class="profile-page-content"></div>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var userId = params.get('user');
+      var backLink = document.getElementById('back-link');
+      var contentEl = document.getElementById('profile-page-content');
+      var nameEl = document.getElementById('user-name');
+      if (backLink && userId) backLink.href = '/profile?user=' + encodeURIComponent(userId);
+      if (!userId) {
+        contentEl.innerHTML = '<div class="profile-page-empty">No user specified. Add ?user=2 to the URL.</div>';
+        return;
+      }
+      fetch('/api/users/' + encodeURIComponent(userId) + '/profile', { credentials: 'same-origin' })
+        .then(function (r) {
+          if (!r.ok) throw new Error('Profile not found');
+          return r.json();
+        })
+        .then(function (data) {
+          var name = (data.displayName && data.displayName.trim()) ? data.displayName.trim() : (data.username || 'User');
+          if (nameEl) nameEl.textContent = name;
+          if (data.profilePageHtml && data.profilePageHtml.trim()) {
+            contentEl.innerHTML = data.profilePageHtml;
+          } else {
+            contentEl.innerHTML = '<div class="profile-page-empty">This user has not set up a profile page yet.</div>';
+          }
+        })
+        .catch(function () {
+          contentEl.innerHTML = '<div class="profile-page-empty">Could not load profile.</div>';
+        });
+    })();
+  </script>
+</body>
+</html>

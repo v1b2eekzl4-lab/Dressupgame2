@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Item – Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .item-view-container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .item-view-container .back-link { display: inline-block; margin-bottom: 16px; color: #ec4899; text-decoration: none; }
+    .item-view-container .back-link:hover { text-decoration: underline; }
+    .item-view-container h1 { margin: 0 0 8px 0; font-size: 1.5rem; }
+    .item-view-container .meta { font-size: 14px; color: #6b7280; margin-bottom: 16px; }
+    .item-view-container .item-link { font-size: 14px; }
+    .item-view-container .item-link a { color: #ec4899; text-decoration: none; }
+    .item-view-container .item-link a:hover { text-decoration: underline; }
+    #item-preview-character {
+      position: relative;
+      width: 250px;
+      height: 350px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+    #item-preview-character .item-preview-bg,
+    #item-preview-character .item-preview-base,
+    #item-preview-character .item-preview-layer {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      image-rendering: pixelated;
+      object-fit: none;
+      max-width: 250px;
+      max-height: 350px;
+    }
+    #item-preview-character .item-preview-base { width: 250px; height: 350px; z-index: 1; pointer-events: none; }
+    #item-preview-character .item-preview-bg { z-index: 0; pointer-events: none; }
+    #item-preview-backgrounds { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+    #item-preview-layers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+    #item-preview-character .item-preview-layer.body-slot { object-fit: cover; object-position: top center; }
+    .item-empty { padding: 24px; text-align: center; color: #6b7280; }
+    .item-loading { padding: 24px; text-align: center; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="item-view-container">
+    <a href="./wishlist.html" class="back-link">← Back to Wishlist</a>
+    <h1 id="item-title">Item</h1>
+    <p id="item-meta" class="meta"></p>
+    <p id="item-link" class="item-link" style="display:none;"></p>
+    <div id="item-preview-wrap" style="display:none;">
+      <div id="item-preview-character">
+        <div id="item-preview-backgrounds"></div>
+        <img id="item-preview-base" src="/Uploads/character.png" alt="Character base" class="item-preview-base">
+        <div id="item-preview-layers"></div>
+      </div>
+    </div>
+    <p id="item-empty" class="item-empty" style="display:none;">Item not found.</p>
+    <p id="item-loading" class="item-loading">Loading…</p>
+  </div>
+  <script src="/js/slots.js"></script>
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const filename = params.get('filename');
+      const titleEl = document.getElementById('item-title');
+      const metaEl = document.getElementById('item-meta');
+      const linkEl = document.getElementById('item-link');
+      const previewWrap = document.getElementById('item-preview-wrap');
+      const previewBg = document.getElementById('item-preview-backgrounds');
+      const previewLayers = document.getElementById('item-preview-layers');
+      const emptyEl = document.getElementById('item-empty');
+      const loadingEl = document.getElementById('item-loading');
+
+      async function load() {
+        if (!filename) {
+          loadingEl.style.display = 'none';
+          emptyEl.style.display = 'block';
+          emptyEl.textContent = 'No item specified.';
+          return;
+        }
+        try {
+          const res = await fetch('/api/items', { credentials: 'same-origin' });
+          if (!res.ok) throw new Error('Failed to load items');
+          let items = await res.json();
+          if (Array.isArray(items[0])) items = items.flat();
+          const item = items.find(function (i) { return i && i.filename === filename; });
+          loadingEl.style.display = 'none';
+          if (!item) {
+            emptyEl.style.display = 'block';
+            return;
+          }
+          const name = item.name || item.filename || 'Item';
+          titleEl.textContent = name;
+          const metaParts = [];
+          if (item.slotId) metaParts.push((item.slotId + '').replace('-slot', '') || 'other');
+          if (item.designer && String(item.designer).trim()) metaParts.push('Designer: ' + String(item.designer).trim());
+          metaEl.textContent = metaParts.length ? metaParts.join(' · ') : '';
+          linkEl.innerHTML = '<a href="./store.html">View in store</a>';
+          linkEl.style.display = 'block';
+
+          previewWrap.style.display = 'block';
+          previewBg.innerHTML = '';
+          previewLayers.innerHTML = '';
+          const SLOT_LAYER_ORDER = window.SLOT_LAYER_ORDER || { 'body-slot': 0, 'pants-slot': 1, 'skirt-slot': 2, 'dress-slot': 3, 'shirt-slot': 4, 'jacket-slot': 5, 'socks-slot': 6, 'shoes-slot': 7, 'hat-slot': 8, 'jewelry-slot': 9, 'hair-slot': 10, 'other-slot': 11 };
+          const slotId = item.slotId || 'other-slot';
+          const slotOrder = SLOT_LAYER_ORDER[slotId] != null ? SLOT_LAYER_ORDER[slotId] : 11;
+          const backgrounds = [];
+          const layers = [];
+          if (item.background && item.background.filename) {
+            backgrounds.push({
+              src: '/Uploads/' + item.background.filename,
+              defaultX: item.background.defaultX != null ? item.background.defaultX : 0,
+              defaultY: item.background.defaultY != null ? item.background.defaultY : 0,
+              defaultZ: item.background.defaultZ != null ? item.background.defaultZ : 0
+            });
+          }
+          if (item.bundleParts && Array.isArray(item.bundleParts) && item.bundleParts.length > 0) {
+            item.bundleParts.forEach(function (part, idx) {
+              layers.push({
+                src: '/Uploads/' + (part.filename || ''),
+                defaultX: part.defaultX != null ? part.defaultX : 0,
+                defaultY: part.defaultY != null ? part.defaultY : 0,
+                defaultZ: part.defaultZ != null ? part.defaultZ : slotOrder * 100 + idx,
+                slotId: part.slotId || slotId
+              });
+            });
+          } else {
+            layers.push({
+              src: '/Uploads/' + (item.filename || ''),
+              defaultX: item.defaultX != null ? item.defaultX : 0,
+              defaultY: item.defaultY != null ? item.defaultY : 0,
+              defaultZ: item.defaultZ != null ? item.defaultZ : slotOrder * 100,
+              slotId: slotId
+            });
+          }
+          backgrounds.sort(function (a, b) { return (a.defaultZ || 0) - (b.defaultZ || 0); });
+          backgrounds.forEach(function (bg) {
+            const img = document.createElement('img');
+            img.src = bg.src;
+            img.alt = '';
+            img.className = 'item-preview-bg';
+            img.style.zIndex = bg.defaultZ;
+            img.style.transform = 'translate(-50%, -50%) translate(' + bg.defaultX + 'px, ' + bg.defaultY + 'px)';
+            img.onerror = function () { img.style.display = 'none'; };
+            previewBg.appendChild(img);
+          });
+          layers.forEach(function (lay, idx) {
+            const img = document.createElement('img');
+            img.src = lay.src;
+            img.alt = '';
+            img.className = 'item-preview-layer ' + (lay.slotId || '');
+            img.style.zIndex = 2 + idx;
+            img.style.transform = 'translate(-50%, -50%) translate(' + lay.defaultX + 'px, ' + lay.defaultY + 'px)';
+            img.onerror = function () { img.style.display = 'none'; };
+            previewLayers.appendChild(img);
+          });
+        } catch (e) {
+          loadingEl.style.display = 'none';
+          emptyEl.style.display = 'block';
+          emptyEl.textContent = 'Could not load item: ' + (e.message || 'error');
+        }
+      }
+      load();
+    })();
+  </script>
+  <script src="/js/header.js"></script>
+</body>
+</html>

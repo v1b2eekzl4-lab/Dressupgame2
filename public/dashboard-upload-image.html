@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload dashboard image - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { padding-top: 76px; min-height: 100vh; background: #f3f4f6; }
+    .container { max-width: 520px; margin: 0 auto; padding: 24px; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h1 { margin: 0 0 8px 0; font-size: 1.5rem; }
+    p { margin: 0 0 16px 0; color: #374151; font-size: 14px; }
+    .back-link { display: inline-block; margin-bottom: 16px; font-size: 14px; color: #2563eb; text-decoration: none; }
+    .back-link:hover { text-decoration: underline; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+    input[type="file"] { margin-bottom: 12px; font-size: 14px; }
+    .btn { padding: 10px 20px; background: #3b82f6; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .btn:hover { background: #2563eb; }
+    .btn:disabled { background: #9ca3af; cursor: not-allowed; }
+    .url-result { margin-top: 16px; padding: 12px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; }
+    .url-result.hidden { display: none; }
+    .url-result label { margin-bottom: 4px; }
+    .url-result input { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px; box-sizing: border-box; }
+    .url-result .copy-row { margin-top: 8px; display: flex; gap: 8px; align-items: center; }
+    .btn-copy { padding: 6px 12px; background: #059669; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .btn-copy:hover { background: #047857; }
+    .msg { margin-top: 8px; font-size: 13px; }
+    .msg.error { color: #dc2626; }
+    .msg.success { color: #059669; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <a href="./dashboard-edit.html" class="back-link">← Back to Edit dashboard slides</a>
+    <h1>Upload dashboard image</h1>
+    <p>Choose an image from your computer. It will be saved to the server folder (<code>/Uploads/dashboard/</code>). Copy the URL below and paste it into the slide editor as the background or image URL. This page uses the file picker once; the slide editor itself does not open any file dialogs.</p>
+    <label for="file-input">Image file (PNG, JPG, GIF, WebP)</label>
+    <input type="file" id="file-input" accept="image/png,image/jpeg,image/gif,image/webp">
+    <button type="button" id="upload-btn" class="btn" disabled>Upload</button>
+    <p id="msg" class="msg"></p>
+    <div id="url-result" class="url-result hidden">
+      <label for="url-output">Image URL (paste this in the slide editor)</label>
+      <input type="text" id="url-output" readonly>
+      <div class="copy-row">
+        <button type="button" id="copy-btn" class="btn-copy">Copy URL</button>
+        <span id="copy-feedback"></span>
+      </div>
+    </div>
+  </div>
+  <script src="/js/header.js"></script>
+  <script>
+(function () {
+  var fileInput = document.getElementById('file-input');
+  var uploadBtn = document.getElementById('upload-btn');
+  var msgEl = document.getElementById('msg');
+  var urlResult = document.getElementById('url-result');
+  var urlOutput = document.getElementById('url-output');
+  var copyBtn = document.getElementById('copy-btn');
+  var copyFeedback = document.getElementById('copy-feedback');
+
+  fileInput.addEventListener('change', function () {
+    uploadBtn.disabled = !(fileInput.files && fileInput.files[0]);
+    msgEl.textContent = '';
+    msgEl.className = 'msg';
+  });
+
+  uploadBtn.addEventListener('click', function () {
+    if (!fileInput.files || !fileInput.files[0]) return;
+    msgEl.textContent = 'Uploading…';
+    msgEl.className = 'msg';
+    urlResult.classList.add('hidden');
+    uploadBtn.disabled = true;
+    var form = new FormData();
+    form.append('image', fileInput.files[0]);
+    fetch('/api/dashboard/upload', { method: 'POST', credentials: 'same-origin', body: form })
+      .then(function (r) {
+        if (!r.ok) throw new Error(r.statusText || 'Upload failed');
+        return r.json();
+      })
+      .then(function (data) {
+        if (data && data.url) {
+          urlOutput.value = data.url;
+          urlResult.classList.remove('hidden');
+          msgEl.textContent = 'Image saved to server. Copy the URL above and paste it in the slide editor.';
+          msgEl.className = 'msg success';
+        } else {
+          msgEl.textContent = 'Upload failed: no URL returned.';
+          msgEl.className = 'msg error';
+        }
+        fileInput.value = '';
+      })
+      .catch(function (err) {
+        msgEl.textContent = 'Upload failed: ' + (err.message || 'error');
+        msgEl.className = 'msg error';
+      })
+      .finally(function () {
+        uploadBtn.disabled = true;
+      });
+  });
+
+  copyBtn.addEventListener('click', function () {
+    urlOutput.select();
+    try {
+      document.execCommand('copy');
+      copyFeedback.textContent = 'Copied!';
+      setTimeout(function () { copyFeedback.textContent = ''; }, 2000);
+    } catch (e) {
+      copyFeedback.textContent = 'Select and copy manually.';
+    }
+  });
+})();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arcade - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 800px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h1 { margin: 0 0 16px 0; font-size: 1.5rem; }
+    p { margin: 0 0 12px 0; color: #374151; }
+    .game-wrap { margin: 16px 0; text-align: center; }
+    .game-wrap canvas { display: block; margin: 0 auto; border: 2px solid #e5e7eb; border-radius: 8px; background: #87ceeb; cursor: pointer; }
+    .game-wrap p.hint { font-size: 12px; color: #6b7280; margin-top: 8px; }
+    .game-thumb-grid { display: flex; flex-wrap: wrap; gap: 16px; margin: 16px 0; }
+    .game-thumb { display: block; width: 120px; height: 120px; border-radius: 8px; border: 2px solid #e5e7eb; background: linear-gradient(180deg, #87ceeb 0%, #b8e0f0 100%); box-shadow: 0 2px 4px rgba(0,0,0,0.08); text-decoration: none; color: #1f2937; font-weight: 600; font-size: 14px; text-align: center; padding-top: 28px; box-sizing: border-box; transition: transform 0.2s, box-shadow 0.2s; }
+    .game-thumb:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.12); }
+    .game-thumb.snake-thumb { background: linear-gradient(180deg, #22c55e 0%, #4ade80 100%); }
+    .game-thumb.berry-thumb { background: linear-gradient(180deg, #dc2626 0%, #f87171 100%); color: #fff; }
+    .game-thumb .icon { font-size: 36px; display: block; margin-bottom: 6px; line-height: 1; }
+    .game-section { display: none; margin: 16px 0; text-align: center; }
+    .game-section.active { display: block; }
+    .game-section .back-link { display: inline-block; margin-bottom: 12px; font-size: 14px; color: #ec4899; text-decoration: none; }
+    .game-section .back-link:hover { text-decoration: underline; }
+    #snake-canvas { border: 2px solid #e5e7eb; border-radius: 8px; background: #1a1a2e; display: block; margin: 0 auto; }
+    .snake-controls { display: flex; flex-direction: column; align-items: center; margin-top: 12px; gap: 4px; }
+    .snake-dpad-row { display: flex; gap: 4px; align-items: center; justify-content: center; }
+    .snake-dpad-btn { width: 56px; height: 56px; border: none; border-radius: 12px; background: #22c55e; color: #fff; font-size: 24px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); user-select: none; -webkit-tap-highlight-color: transparent; }
+    .snake-dpad-btn:hover { background: var(--btn-pink-gradient); }
+    .snake-dpad-btn:active { transform: scale(0.95); }
+    .snake-dpad-btn.empty { width: 56px; height: 56px; background: transparent; box-shadow: none; cursor: default; pointer-events: none; }
+    #berry-canvas { border: 2px solid #e5e7eb; border-radius: 8px; background: #fef3c7; display: block; margin: 0 auto; }
+    .game-thumb.cake-thumb { background: linear-gradient(180deg, #f472b6 0%, #fbcfe8 100%); color: #831843; }
+    #cake-match-board { display: inline-block; padding: 16px; background: #fdf2f8; border-radius: 12px; border: 2px solid #e5e7eb; }
+    .cake-match-row { display: flex; gap: 12px; margin-bottom: 12px; justify-content: center; }
+    .cake-match-row:last-child { margin-bottom: 0; }
+    .cake-plate { width: 90px; height: 90px; background: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%); border: 3px solid #d97706; border-radius: 50%; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px; padding: 8px; box-sizing: border-box; }
+    .cake-slot { width: 22px; height: 22px; border-radius: 50%; cursor: grab; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: transform 0.15s; }
+    .cake-slot:hover { transform: scale(1.1); }
+    .cake-slot.dragging { cursor: grabbing; opacity: 0.7; }
+    .cake-slot.drag-over { outline: 3px dashed #6366f1; outline-offset: 2px; }
+    .cake-match-score { font-weight: bold; font-size: 18px; margin-bottom: 12px; }
+    .cake-slot.cake-red { background: #ef4444; }
+    .cake-slot.cake-green { background: #22c55e; }
+    .cake-slot.cake-blue { background: #3b82f6; }
+    .cake-slot.cake-yellow { background: #eab308; }
+    .cake-slot.cake-purple { background: #a855f7; }
+    .cake-slot.cake-empty { background: #e5e7eb; cursor: default; box-shadow: none; }
+    .cake-slot.cake-empty:hover { transform: none; }
+    .cake-slot.cake-empty.drag-over { background: #c7d2fe; cursor: copy; }
+    .game-thumb.game-2048-thumb { background: linear-gradient(180deg, #f59e0b 0%, #fbbf24 100%); color: #1f2937; }
+    #game-2048 .game-2048-board { display: inline-block; padding: 12px; background: #bbada0; border-radius: 8px; margin: 12px 0; }
+    .game-2048-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .game-2048-row:last-child { margin-bottom: 0; }
+    .game-2048-cell { width: 72px; height: 72px; border-radius: 6px; background: rgba(238, 228, 218, 0.35); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 28px; color: #776e65; transition: transform 0.1s; }
+    .game-2048-cell.tile-2 { background: #eee4da; }
+    .game-2048-cell.tile-4 { background: #ede0c8; }
+    .game-2048-cell.tile-8 { background: #f2b179; color: #f9f6f2; }
+    .game-2048-cell.tile-16 { background: #f59563; color: #f9f6f2; }
+    .game-2048-cell.tile-32 { background: #f67c5f; color: #f9f6f2; }
+    .game-2048-cell.tile-64 { background: #f65e3b; color: #f9f6f2; }
+    .game-2048-cell.tile-128 { background: #edcf72; color: #f9f6f2; font-size: 24px; }
+    .game-2048-cell.tile-256 { background: #edcc61; color: #f9f6f2; font-size: 24px; }
+    .game-2048-cell.tile-512 { background: #edc850; color: #f9f6f2; font-size: 24px; }
+    .game-2048-cell.tile-1024 { background: #edc53f; color: #f9f6f2; font-size: 20px; }
+    .game-2048-cell.tile-2048 { background: #edc22e; color: #f9f6f2; font-size: 20px; }
+    .game-2048-cell.tile-super { background: #3c3a32; color: #f9f6f2; font-size: 18px; }
+    .game-2048-score { font-weight: bold; font-size: 18px; margin-bottom: 8px; }
+    .game-2048-overlay { position: absolute; inset: 0; background: rgba(238, 228, 218, 0.7); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    #game-2048 .game-2048-wrap { position: relative; display: inline-block; }
+
+    .game-scoreboard-wrap {
+      margin-top: 20px;
+      padding: 16px;
+      background: #f9fafb;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      max-width: 360px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .game-scoreboard-wrap h3 {
+      margin: 0 0 12px 0;
+      font-size: 1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #374151;
+    }
+    .game-scoreboard-list {
+      margin: 0;
+      padding-left: 24px;
+      font-size: 14px;
+      color: #1f2937;
+    }
+    .game-scoreboard-list li {
+      margin-bottom: 4px;
+    }
+    .game-scoreboard-list li .score-rank { font-weight: 700; color: #6b7280; margin-right: 8px; }
+    .game-scoreboard-list li .score-name { font-weight: 600; }
+    .game-scoreboard-list li .score-value { color: #059669; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <h1>Arcade</h1>
+    <p>Play mini-games and more.</p>
+
+    <div class="game-thumb-grid" id="games-thumb-grid">
+      <a href="#jumpy-bird" class="game-thumb" data-game="jumpy-bird">
+        <span class="icon">🐦</span>
+        Jumpy Bird
+      </a>
+      <a href="#snake" class="game-thumb snake-thumb" data-game="snake">
+        <span class="icon">🐍</span>
+        Snake
+      </a>
+      <a href="#berry-catch" class="game-thumb berry-thumb" data-game="berry-catch">
+        <span class="icon">🫐</span>
+        Berry Catch
+      </a>
+      <a href="#cake-match" class="game-thumb cake-thumb" data-game="cake-match">
+        <span class="icon">🎂</span>
+        Cake Match
+      </a>
+      <a href="#2048" class="game-thumb game-2048-thumb" data-game="2048">
+        <span class="icon">🔢</span>
+        2048
+      </a>
+    </div>
+
+    <div class="game-section game-wrap" id="game-jumpy-bird">
+      <a href="#" class="back-link" id="back-from-bird">← Back to Arcade</a>
+      <h2 style="margin: 0 0 8px 0; font-size: 1.2rem;">Jumpy Bird</h2>
+      <canvas id="bird-canvas" width="400" height="500" aria-label="Jumpy Bird game - click or tap to jump in an arc, avoid pipes"></canvas>
+      <p class="hint">Click or tap (or Space/W) to jump in an arc. Avoid the pipes!</p>
+      <div class="game-scoreboard-wrap" id="scoreboard-jumpy-bird" style="display:none;">
+        <h3>Community scoreboard</h3>
+        <ol class="game-scoreboard-list" id="scoreboard-list-jumpy-bird"></ol>
+      </div>
+    </div>
+
+    <div class="game-section game-wrap" id="game-snake">
+      <a href="#" class="back-link" id="back-from-snake">← Back to Arcade</a>
+      <h2 style="margin: 0 0 8px 0; font-size: 1.2rem;">Snake</h2>
+      <canvas id="snake-canvas" width="400" height="400" aria-label="Snake game - arrow keys or WASD or on-screen buttons to move"></canvas>
+      <div class="snake-controls" id="snake-dpad" aria-label="Direction buttons">
+        <div class="snake-dpad-row"><span class="snake-dpad-btn empty"></span><button type="button" class="snake-dpad-btn" id="snake-btn-up" aria-label="Up">↑</button><span class="snake-dpad-btn empty"></span></div>
+        <div class="snake-dpad-row"><button type="button" class="snake-dpad-btn" id="snake-btn-left" aria-label="Left">←</button><span class="snake-dpad-btn empty"></span><button type="button" class="snake-dpad-btn" id="snake-btn-right" aria-label="Right">→</button></div>
+        <div class="snake-dpad-row"><span class="snake-dpad-btn empty"></span><button type="button" class="snake-dpad-btn" id="snake-btn-down" aria-label="Down">↓</button><span class="snake-dpad-btn empty"></span></div>
+      </div>
+      <p class="hint">Arrow keys or WASD (or tap the buttons above) to move. Eat the red food — don't hit the walls or your tail. Speed increases as you score!</p>
+      <div class="game-scoreboard-wrap" id="scoreboard-snake" style="display:none;">
+        <h3>Community scoreboard</h3>
+        <ol class="game-scoreboard-list" id="scoreboard-list-snake"></ol>
+      </div>
+    </div>
+
+    <div class="game-section game-wrap" id="game-berry-catch">
+      <a href="#" class="back-link" id="back-from-berry">← Back to Arcade</a>
+      <h2 style="margin: 0 0 8px 0; font-size: 1.2rem;">Berry Catch</h2>
+      <canvas id="berry-canvas" width="400" height="500" aria-label="Berry Catch game - move basket to catch berries"></canvas>
+      <p class="hint">Click or Space/W to start. 5 lives — lose one per rotten fruit. Move the mouse or use A/D (or arrow keys) to move the basket. Empty / half / full basket shown.</p>
+      <div class="game-scoreboard-wrap" id="scoreboard-berry-catch" style="display:none;">
+        <h3>Community scoreboard</h3>
+        <ol class="game-scoreboard-list" id="scoreboard-list-berry-catch"></ol>
+      </div>
+    </div>
+
+    <div class="game-section" id="game-cake-match">
+      <a href="#" class="back-link" id="back-from-cake">← Back to Arcade</a>
+      <h2 style="margin: 0 0 8px 0; font-size: 1.2rem;">Cake Match</h2>
+      <p class="cake-match-score" id="cake-match-score">Score: 0</p>
+      <div id="cake-match-board" aria-label="Cake Match - 3 rows of 4 plates, drag cakes to match colors">
+        <!-- 3 rows x 4 plates, each plate has 3 cake slots; filled by JS -->
+      </div>
+      <p class="hint" style="margin-top: 12px;">Drag a cake onto an empty spot (gray) to move it. You can only drop on empty spots. Get all 3 cakes on a plate the same color to score and clear the plate; new cakes appear.</p>
+    </div>
+
+    <div class="game-section" id="game-2048">
+      <a href="#" class="back-link" id="back-from-2048">← Back to Arcade</a>
+      <h2 style="margin: 0 0 8px 0; font-size: 1.2rem;">2048</h2>
+      <p class="game-2048-score" id="game-2048-score">Score: 0</p>
+      <div class="game-2048-wrap">
+        <div id="game-2048-board" class="game-2048-board" aria-label="2048 - 4x4 grid, use arrow keys or WASD or swipe to merge tiles">
+          <!-- 4x4 grid filled by JS -->
+        </div>
+        <div id="game-2048-overlay" class="game-2048-overlay" style="display: none;">
+          <p id="game-2048-overlay-text" style="margin: 0; font-size: 1.2rem; font-weight: bold;"></p>
+          <div style="margin-top: 12px; display: flex; gap: 8px;">
+            <button type="button" id="game-2048-keep-playing" style="padding: 8px 16px; font-size: 16px; cursor: pointer; display: none;">Keep playing</button>
+            <button type="button" id="game-2048-restart" style="padding: 8px 16px; font-size: 16px; cursor: pointer;">Try again</button>
+          </div>
+        </div>
+      </div>
+      <div class="game-scoreboard-wrap" id="scoreboard-2048" style="display:none;">
+        <h3>Community scoreboard</h3>
+        <ol class="game-scoreboard-list" id="scoreboard-list-2048"></ol>
+      </div>
+      <p class="hint" style="margin-top: 12px;">Use arrow keys, WASD, or swipe to move tiles. Same numbers merge into one. Reach 2048!</p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var gridEl = document.getElementById('games-thumb-grid');
+      var birdSection = document.getElementById('game-jumpy-bird');
+      var snakeSection = document.getElementById('game-snake');
+      var berrySection = document.getElementById('game-berry-catch');
+      var cakeSection = document.getElementById('game-cake-match');
+      var game2048Section = document.getElementById('game-2048');
+
+      function showGame() {
+        var hash = (window.location.hash || '').toLowerCase();
+        var inGame = hash === '#jumpy-bird' || hash === '#snake' || hash === '#berry-catch' || hash === '#cake-match' || hash === '#2048';
+        if (hash !== '#jumpy-bird' && window._birdRafId != null) {
+          cancelAnimationFrame(window._birdRafId);
+          window._birdRafId = null;
+        }
+        if (hash !== '#snake' && window._snakeTickId != null) {
+          clearTimeout(window._snakeTickId);
+          window._snakeTickId = null;
+        }
+        if (hash !== '#berry-catch' && window._berryRafId != null) {
+          cancelAnimationFrame(window._berryRafId);
+          window._berryRafId = null;
+        }
+        gridEl.style.display = inGame ? 'none' : 'flex';
+        birdSection.classList.toggle('active', hash === '#jumpy-bird');
+        snakeSection.classList.toggle('active', hash === '#snake');
+        berrySection.classList.toggle('active', hash === '#berry-catch');
+        cakeSection.classList.toggle('active', hash === '#cake-match');
+        game2048Section.classList.toggle('active', hash === '#2048');
+        if (hash === '#jumpy-bird') startBirdGame();
+        if (hash === '#snake') startSnakeGame();
+        if (hash === '#berry-catch') startBerryGame();
+        if (hash === '#cake-match') startCakeMatchGame();
+        if (hash === '#2048') start2048Game();
+      }
+
+      window.addEventListener('hashchange', showGame);
+      document.getElementById('back-from-bird').addEventListener('click', function (e) { e.preventDefault(); window.location.hash = ''; });
+      document.getElementById('back-from-snake').addEventListener('click', function (e) { e.preventDefault(); window.location.hash = ''; });
+      document.getElementById('back-from-berry').addEventListener('click', function (e) { e.preventDefault(); window.location.hash = ''; });
+      document.getElementById('back-from-cake').addEventListener('click', function (e) { e.preventDefault(); window.location.hash = ''; });
+      document.getElementById('back-from-2048').addEventListener('click', function (e) { e.preventDefault(); window.location.hash = ''; });
+      showGame();
+
+      function showGameScoreboard(gameId, score) {
+        var wrap = document.getElementById('scoreboard-' + gameId);
+        var listEl = document.getElementById('scoreboard-list-' + gameId);
+        if (!wrap || !listEl) return;
+        wrap.style.display = 'block';
+        listEl.innerHTML = '<li>Loading…</li>';
+        fetch('/api/game-scores?game=' + encodeURIComponent(gameId) + '&limit=10', { credentials: 'same-origin' })
+          .then(function (r) { return r.ok ? r.json() : { scores: [] }; })
+          .catch(function () { return { scores: [] }; })
+          .then(function (data) {
+            var scores = data.scores || [];
+            listEl.innerHTML = '';
+            if (scores.length === 0) listEl.innerHTML = '<li>No scores yet. Be the first!</li>';
+            else scores.forEach(function (entry, i) {
+              var li = document.createElement('li');
+              var name = (entry.username || entry.name || 'Guest').replace(/</g, '&lt;');
+              li.innerHTML = '<span class="score-rank">' + (i + 1) + '.</span><span class="score-name">' + name + '</span> <span class="score-value">' + (entry.score || 0) + '</span>';
+              listEl.appendChild(li);
+            });
+          });
+        fetch('/api/game-scores', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ game: gameId, score: score })
+        }).catch(function () {});
+      }
+      function hideGameScoreboard(gameId) {
+        var wrap = document.getElementById('scoreboard-' + gameId);
+        if (wrap) wrap.style.display = 'none';
+      }
+
+      function startBirdGame() {
+        if (window._birdStarted) return;
+        window._birdStarted = true;
+        runBirdGame();
+      }
+
+      function runBirdGame() {
+        var canvas = document.getElementById('bird-canvas');
+        if (!canvas) return;
+        var ctx = canvas.getContext('2d');
+        var W = canvas.width;
+        var H = canvas.height;
+
+        var bird = { x: 80, y: H / 2 - 15, w: 30, h: 24, vy: 0 };
+        var gravity = 1300;
+        var jumpImpulse = -420;
+        var maxFallSpeed = 420;
+        var pipes = [];
+        var pipeW = 55;
+        var gap = 150;
+        var pipeSpacing = 220;
+        var scrollSpeed = 180;
+        var score = 0;
+        var bestScore = parseInt(localStorage.getItem('jumpyBirdBestScore') || '0', 10);
+        var state = 'start';
+        var lastTime = 0;
+        var birdScoreboardShown = false;
+        var hitboxInset = 4;
+        var pipeHitboxInset = 3;
+
+        function rand(min, max) { return min + Math.random() * (max - min); }
+        function addPipe() {
+          var x = pipes.length === 0 ? W : (pipes[pipes.length - 1].x + pipeSpacing);
+          var gapY = rand(gap / 2 + 50, H - gap / 2 - 50);
+          pipes.push({ x: x, top: 0, topH: gapY - gap / 2, bottom: gapY + gap / 2, bottomH: H - (gapY + gap / 2), passed: false });
+        }
+        function drawBird() {
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillRect(bird.x, bird.y, bird.w, bird.h);
+          ctx.strokeStyle = '#b45309';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(bird.x, bird.y, bird.w, bird.h);
+          ctx.fillStyle = '#1f2937';
+          ctx.fillRect(bird.x + 20, bird.y + 8, 6, 6);
+        }
+        function drawPipes() {
+          ctx.fillStyle = '#22c55e';
+          ctx.strokeStyle = '#15803d';
+          ctx.lineWidth = 2;
+          pipes.forEach(function (p) {
+            ctx.fillRect(p.x, p.top, pipeW, p.topH);
+            ctx.strokeRect(p.x, p.top, pipeW, p.topH);
+            ctx.fillRect(p.x, p.bottom, pipeW, p.bottomH);
+            ctx.strokeRect(p.x, p.bottom, pipeW, p.bottomH);
+          });
+        }
+        function drawGround() {
+          var groundY = H - 30;
+          ctx.fillStyle = '#84cc16';
+          ctx.fillRect(0, groundY, W, 30);
+          ctx.strokeStyle = '#65a30d';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(0, groundY, W, 30);
+        }
+        function aabbOverlap(aLeft, aTop, aRight, aBottom, bLeft, bTop, bRight, bBottom) {
+          return aLeft < bRight && aRight > bLeft && aTop < bBottom && aBottom > bTop;
+        }
+        function hitTest() {
+          var bx = bird.x + hitboxInset;
+          var by = bird.y + hitboxInset;
+          var bw = bird.w - hitboxInset * 2;
+          var bh = bird.h - hitboxInset * 2;
+          var groundY = H - 30;
+          if (by + bh >= groundY || by <= 0) return true;
+          var ins = pipeHitboxInset;
+          for (var i = 0; i < pipes.length; i++) {
+            var p = pipes[i];
+            var px = p.x + ins;
+            var pw = pipeW - ins * 2;
+            if (aabbOverlap(bx, by, bx + bw, by + bh, px, 0, px + pw, p.topH)) return true;
+            if (aabbOverlap(bx, by, bx + bw, by + bh, px, p.bottom, px + pw, H)) return true;
+          }
+          return false;
+        }
+        function loop(now) {
+          now = now || performance.now();
+          if (lastTime === 0) lastTime = now;
+          var dt = Math.min((now - lastTime) / 1000, 0.1);
+          lastTime = now;
+          if (!birdSection.classList.contains('active')) return;
+          var sky = ctx.createLinearGradient(0, 0, 0, H);
+          sky.addColorStop(0, '#87ceeb');
+          sky.addColorStop(1, '#b8e0f0');
+          ctx.fillStyle = sky;
+          ctx.fillRect(0, 0, W, H);
+          drawGround();
+          if (state === 'start') {
+            drawBird();
+            drawPipes();
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Click or Space/W to jump in an arc', W / 2, H / 2 - 25);
+            ctx.font = '16px Arial';
+            ctx.fillText('Click or Space/W to start', W / 2, H / 2 + 5);
+            ctx.fillText('Best: ' + bestScore, W / 2, H / 2 + 30);
+            window._birdRafId = requestAnimationFrame(loop);
+            return window._birdRafId;
+          }
+          if (state === 'start' && lastTime === 0) lastTime = now;
+          if (state === 'play') {
+            bird.vy = Math.min(maxFallSpeed, bird.vy + gravity * dt);
+            bird.y += bird.vy * dt;
+            for (var i = 0; i < pipes.length; i++) pipes[i].x -= scrollSpeed * dt;
+            while (pipes.length && pipes[0].x + pipeW < 0) pipes.shift();
+            if (pipes.length === 0 || pipes[pipes.length - 1].x <= W - pipeSpacing) addPipe();
+            pipes.forEach(function (p) {
+              if (!p.passed && p.x + pipeW < bird.x) {
+                p.passed = true;
+                score++;
+                if (score > bestScore) {
+                  bestScore = score;
+                  try { localStorage.setItem('jumpyBirdBestScore', String(bestScore)); } catch (e) {}
+                }
+              }
+            });
+            if (hitTest()) state = 'over';
+          }
+          drawPipes();
+          drawBird();
+          ctx.fillStyle = '#1f2937';
+          ctx.font = 'bold 20px Arial';
+          ctx.textAlign = 'left';
+          ctx.fillText('Score: ' + score, 10, 28);
+          if (state === 'over') {
+            if (!birdScoreboardShown) {
+              birdScoreboardShown = true;
+              showGameScoreboard('jumpy-bird', score);
+            }
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(0, 0, W, H);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 28px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Game Over', W / 2, H / 2 - 30);
+            ctx.font = '18px Arial';
+            ctx.fillText('Score: ' + score + '  Best: ' + bestScore, W / 2, H / 2);
+            ctx.fillText('Click or Space/W to play again', W / 2, H / 2 + 40);
+            window._birdRafId = requestAnimationFrame(loop);
+            return window._birdRafId;
+          }
+          window._birdRafId = requestAnimationFrame(loop);
+        }
+        function doJump() {
+          if (state !== 'play') return;
+          bird.vy = jumpImpulse;
+        }
+        function startGame() {
+          if (state === 'start' || state === 'over') {
+            birdScoreboardShown = false;
+            hideGameScoreboard('jumpy-bird');
+            state = 'play';
+            bird.y = H / 2 - 15;
+            bird.vy = 0;
+            score = 0;
+            pipes = [];
+            lastTime = performance.now();
+          }
+        }
+        canvas.addEventListener('mousedown', function (e) {
+          e.preventDefault();
+          if (state === 'start' || state === 'over') startGame();
+          else doJump();
+        });
+        canvas.addEventListener('touchstart', function (e) {
+          e.preventDefault();
+          if (state === 'start' || state === 'over') startGame();
+          else doJump();
+        }, { passive: false });
+        document.addEventListener('keydown', function (e) {
+          if ((e.code === 'Space' || e.code === 'KeyW') && birdSection.classList.contains('active')) {
+            e.preventDefault();
+            if (state === 'start' || state === 'over') startGame();
+            else doJump();
+          }
+        });
+        addPipe();
+        window._birdRafId = requestAnimationFrame(loop);
+      }
+
+      function startSnakeGame() {
+        if (window._snakeStarted) return;
+        window._snakeStarted = true;
+        runSnakeGame();
+      }
+
+      function runSnakeGame() {
+        var canvas = document.getElementById('snake-canvas');
+        if (!canvas) return;
+        var ctx = canvas.getContext('2d');
+        var size = 20;
+        var cols = Math.floor(400 / size);
+        var rows = Math.floor(400 / size);
+        var snake = [{ x: Math.floor(cols / 2), y: Math.floor(rows / 2) }];
+        var dir = { x: 1, y: 0 };
+        var nextDir = { x: 1, y: 0 };
+        var food = { x: 0, y: 0 };
+        var score = 0;
+        var bestScore = parseInt(localStorage.getItem('snakeBestScore') || '0', 10);
+        var state = 'start';
+        var gameOver = false;
+        var tickInterval = 0;
+        var snakeScoreboardShown = false;
+        function getTickDelay() { return Math.max(80, 150 - Math.floor(score / 5) * 10); }
+
+        function placeFood() {
+          var empty = [];
+          for (var y = 0; y < rows; y++) for (var x = 0; x < cols; x++) {
+            var onSnake = snake.some(function (s) { return s.x === x && s.y === y; });
+            if (!onSnake) empty.push({ x: x, y: y });
+          }
+          if (empty.length) {
+            var c = empty[Math.floor(Math.random() * empty.length)];
+            food.x = c.x;
+            food.y = c.y;
+          }
+        }
+        placeFood();
+
+        function tick() {
+          if (!snakeSection.classList.contains('active')) return;
+          if (gameOver) {
+            requestAnimationFrame(draw);
+            window._snakeTickId = setTimeout(tick, getTickDelay());
+            return;
+          }
+          if (state === 'start') {
+            requestAnimationFrame(draw);
+            window._snakeTickId = setTimeout(tick, getTickDelay());
+            return;
+          }
+          dir.x = nextDir.x;
+          dir.y = nextDir.y;
+          var head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+          if (head.x < 0 || head.x >= cols || head.y < 0 || head.y >= rows) {
+            gameOver = true;
+            requestAnimationFrame(draw);
+            window._snakeTickId = setTimeout(tick, getTickDelay());
+            return;
+          }
+          for (var i = 0; i < snake.length; i++) {
+            if (snake[i].x === head.x && snake[i].y === head.y) {
+              gameOver = true;
+              requestAnimationFrame(draw);
+              window._snakeTickId = setTimeout(tick, getTickDelay());
+              return;
+            }
+          }
+          snake.unshift(head);
+          if (head.x === food.x && head.y === food.y) {
+            score++;
+            if (score > bestScore) {
+              bestScore = score;
+              try { localStorage.setItem('snakeBestScore', String(bestScore)); } catch (e) {}
+            }
+            placeFood();
+          } else {
+            snake.pop();
+          }
+          requestAnimationFrame(draw);
+          window._snakeTickId = setTimeout(tick, getTickDelay());
+        }
+
+        function draw() {
+          if (!snakeSection.classList.contains('active')) return;
+          ctx.fillStyle = '#1a1a2e';
+          ctx.fillRect(0, 0, 400, 400);
+          var cellW = 400 / cols;
+          var cellH = 400 / rows;
+          ctx.fillStyle = '#22c55e';
+          snake.forEach(function (s, i) {
+            ctx.fillRect(s.x * cellW + 1, s.y * cellH + 1, cellW - 2, cellH - 2);
+          });
+          ctx.fillStyle = '#ef4444';
+          ctx.fillRect(food.x * cellW + 2, food.y * cellH + 2, cellW - 4, cellH - 4);
+          ctx.fillStyle = '#e5e7eb';
+          ctx.font = 'bold 16px Arial';
+          ctx.textAlign = 'left';
+          ctx.fillText('Score: ' + score, 8, 20);
+          if (state === 'start') {
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(0, 0, 400, 400);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 22px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Click or Space/W to start', 200, 195);
+          ctx.fillText('Then use arrow keys or WASD (or tap the buttons)', 200, 218);
+          }
+          if (gameOver) {
+            if (!snakeScoreboardShown) {
+              snakeScoreboardShown = true;
+              showGameScoreboard('snake', score);
+            }
+            var cw = 400;
+            var ch = 400;
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(0, 0, cw, ch);
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            var cy = ch / 2;
+            ctx.font = 'bold 26px Arial';
+            ctx.fillText('Game Over', cw / 2, cy - 40);
+            ctx.font = '16px Arial';
+            ctx.fillText('Score: ' + score, cw / 2, cy - 10);
+            ctx.fillText('Click or Space/W to play again', cw / 2, cy + 25);
+            ctx.textBaseline = 'alphabetic';
+          }
+        }
+
+        function snakeRestart() {
+          snakeScoreboardShown = false;
+          hideGameScoreboard('snake');
+          snake = [{ x: Math.floor(cols / 2), y: Math.floor(rows / 2) }];
+          dir = { x: 1, y: 0 };
+          nextDir = { x: 1, y: 0 };
+          score = 0;
+          gameOver = false;
+          state = 'play';
+          placeFood();
+        }
+        document.addEventListener('keydown', function (e) {
+          if (!snakeSection.classList.contains('active')) return;
+          if (gameOver && (e.code === 'Space' || e.code === 'KeyW')) {
+            e.preventDefault();
+            snakeRestart();
+            return;
+          }
+          if (state === 'start' && (e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'ArrowLeft' || e.code === 'ArrowRight' || e.code === 'KeyW' || e.code === 'KeyA' || e.code === 'KeyS' || e.code === 'KeyD' || e.code === 'Space')) {
+            state = 'play';
+            e.preventDefault();
+          }
+          if (state !== 'play') return;
+          e.preventDefault();
+          if ((e.code === 'ArrowUp' || e.code === 'KeyW') && dir.y !== 1) nextDir = { x: 0, y: -1 };
+          if ((e.code === 'ArrowDown' || e.code === 'KeyS') && dir.y !== -1) nextDir = { x: 0, y: 1 };
+          if ((e.code === 'ArrowLeft' || e.code === 'KeyA') && dir.x !== 1) nextDir = { x: -1, y: 0 };
+          if ((e.code === 'ArrowRight' || e.code === 'KeyD') && dir.x !== -1) nextDir = { x: 1, y: 0 };
+        });
+
+        function setDirFromButton(dx, dy) {
+          if (gameOver) return;
+          if (state === 'start') state = 'play';
+          if (state !== 'play') return;
+          if (dx === 0 && dy === -1 && dir.y !== 1) nextDir = { x: 0, y: -1 };
+          if (dx === 0 && dy === 1 && dir.y !== -1) nextDir = { x: 0, y: 1 };
+          if (dx === -1 && dy === 0 && dir.x !== 1) nextDir = { x: -1, y: 0 };
+          if (dx === 1 && dy === 0 && dir.x !== -1) nextDir = { x: 1, y: 0 };
+        }
+        var btnUp = document.getElementById('snake-btn-up');
+        var btnDown = document.getElementById('snake-btn-down');
+        var btnLeft = document.getElementById('snake-btn-left');
+        var btnRight = document.getElementById('snake-btn-right');
+        if (btnUp) btnUp.addEventListener('click', function () { setDirFromButton(0, -1); });
+        if (btnDown) btnDown.addEventListener('click', function () { setDirFromButton(0, 1); });
+        if (btnLeft) btnLeft.addEventListener('click', function () { setDirFromButton(-1, 0); });
+        if (btnRight) btnRight.addEventListener('click', function () { setDirFromButton(1, 0); });
+
+        function setDirFromPointer(px, py) {
+          var rect = canvas.getBoundingClientRect();
+          var scaleX = canvas.width / rect.width;
+          var scaleY = canvas.height / rect.height;
+          var cx = (px - rect.left) * scaleX;
+          var cy = (py - rect.top) * scaleY;
+          var centerX = canvas.width / 2;
+          var centerY = canvas.height / 2;
+          var relX = cx - centerX;
+          var relY = cy - centerY;
+          if (Math.abs(relX) > Math.abs(relY)) {
+            setDirFromButton(relX > 0 ? 1 : -1, 0);
+          } else {
+            setDirFromButton(0, relY > 0 ? 1 : -1);
+          }
+        }
+        canvas.addEventListener('mousedown', function (e) {
+          e.preventDefault();
+          if (!snakeSection.classList.contains('active')) return;
+          if (gameOver) {
+            snakeRestart();
+            return;
+          }
+          setDirFromPointer(e.clientX, e.clientY);
+        });
+        canvas.addEventListener('touchstart', function (e) {
+          e.preventDefault();
+          if (!snakeSection.classList.contains('active') || !e.touches.length) return;
+          if (gameOver) {
+            snakeRestart();
+            return;
+          }
+          setDirFromPointer(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: false });
+        canvas.addEventListener('contextmenu', function (e) {
+          if (!snakeSection.classList.contains('active')) return;
+          if (gameOver) {
+            e.preventDefault();
+            snakeRestart();
+          }
+        });
+        snakeSection.addEventListener('mousedown', function (e) {
+          if (!snakeSection.classList.contains('active')) return;
+          if (e.target.closest('a')) return;
+          if (gameOver) {
+            snakeRestart();
+            e.preventDefault();
+            return;
+          }
+          if (state === 'start') {
+            state = 'play';
+            e.preventDefault();
+          }
+        });
+        snakeSection.addEventListener('touchstart', function (e) {
+          if (!snakeSection.classList.contains('active')) return;
+          if (e.target.closest('a')) return;
+          if (gameOver) {
+            snakeRestart();
+            return;
+          }
+          if (state === 'start') {
+            state = 'play';
+          }
+        }, { passive: true });
+
+        draw();
+        window._snakeTickId = setTimeout(tick, getTickDelay());
+      }
+
+      function startBerryGame() {
+        if (window._berryStarted) return;
+        window._berryStarted = true;
+        runBerryCatchGame();
+      }
+
+      function runBerryCatchGame() {
+        var canvas = document.getElementById('berry-canvas');
+        if (!canvas) return;
+        var ctx = canvas.getContext('2d');
+        var W = 400;
+        var H = 500;
+        var basketW = 80;
+        var basketH = 24;
+        var basketY = H - 50;
+        var basketX = (W - basketW) / 2;
+        var moveSpeed = 10;
+        var berries = [];
+        var berryR = 14;
+        var berrySpeed = 2.5;
+        var berrySpawnInterval = 45;
+        var score = 0;
+        var state = 'start';
+        var gameOver = false;
+        var roundEndTime = 0;
+        var lastSpawn = 0;
+        var earnedMessage = '';
+        var plusOneFloats = [];
+        var basketState = 'idle';
+        var lastBasketX = basketX;
+        var lives = 5;
+        var basketFill = 0;
+        var baseSpawnInterval = 45;
+        var berryScoreboardShown = false;
+
+        function rand(min, max) { return min + Math.random() * (max - min); }
+
+        function getElapsed() { return roundEndTime > 0 ? roundEndTime - Date.now() / 1000 : 0; }
+        function getDifficultyMultiplier() {
+          var elapsed = 60 - Math.max(0, getElapsed());
+          return 1 + (elapsed / 60) * 1.2;
+        }
+
+        function spawnBerry() {
+          var elapsed = 60 - Math.max(0, getElapsed());
+          var rottenChance = 0.15 + (elapsed / 60) * 0.15;
+          var goldChance = 0.2;
+          var rnd = Math.random();
+          var type = rnd < rottenChance ? 'rotten' : (rnd < rottenChance + goldChance ? 'gold' : 'normal');
+          var speedMult = getDifficultyMultiplier();
+          berries.push({
+            x: rand(berryR, W - berryR),
+            y: -berryR,
+            r: berryR,
+            type: type,
+            speed: rand(1.2, 4) * speedMult
+          });
+        }
+
+        function drawBasket() {
+          var tilt = basketState === 'left' ? -0.12 : (basketState === 'right' ? 0.12 : 0);
+          var fillState = basketFill < 34 ? 'empty' : (basketFill < 67 ? 'half' : 'full');
+          ctx.save();
+          ctx.translate(basketX + basketW / 2, basketY + basketH / 2);
+          ctx.rotate(tilt);
+          ctx.translate(-(basketX + basketW / 2), -(basketY + basketH / 2));
+          ctx.fillStyle = '#16a34a';
+          ctx.fillRect(basketX, basketY, basketW, basketH);
+          ctx.strokeStyle = '#15803d';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(basketX, basketY, basketW, basketH);
+          if (fillState === 'half') {
+            ctx.fillStyle = '#7c3aed';
+            ctx.beginPath();
+            ctx.arc(basketX + basketW * 0.35, basketY + basketH * 0.6, 6, 0, Math.PI * 2);
+            ctx.arc(basketX + basketW * 0.65, basketY + basketH * 0.55, 5, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (fillState === 'full') {
+            ctx.fillStyle = '#7c3aed';
+            ctx.beginPath();
+            ctx.arc(basketX + basketW * 0.25, basketY + basketH * 0.6, 5, 0, Math.PI * 2);
+            ctx.arc(basketX + basketW * 0.5, basketY + basketH * 0.5, 6, 0, Math.PI * 2);
+            ctx.arc(basketX + basketW * 0.75, basketY + basketH * 0.6, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.arc(basketX + basketW * 0.4, basketY + basketH * 0.65, 4, 0, Math.PI * 2);
+            ctx.arc(basketX + basketW * 0.65, basketY + basketH * 0.58, 4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+
+        function drawBerries() {
+          berries.forEach(function (b) {
+            if (b.type === 'gold') {
+              ctx.fillStyle = '#fbbf24';
+              ctx.strokeStyle = '#b45309';
+            } else if (b.type === 'rotten') {
+              ctx.fillStyle = '#78716c';
+              ctx.strokeStyle = '#57534e';
+            } else {
+              ctx.fillStyle = '#7c3aed';
+              ctx.strokeStyle = '#5b21b6';
+            }
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          });
+        }
+
+        function loop() {
+          if (!berrySection.classList.contains('active')) return;
+          ctx.fillStyle = '#fef3c7';
+          ctx.fillRect(0, 0, W, H);
+          drawBerries();
+          drawBasket();
+          var now = Date.now();
+          plusOneFloats = plusOneFloats.filter(function (f) {
+            if (now - f.t > 800) return false;
+            var dy = (now - f.t) / 400;
+            ctx.fillStyle = f.points >= 0 ? '#16a34a' : '#dc2626';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText((f.points >= 0 ? '+' : '') + f.points + ' ◎', f.x, f.y - dy * 30);
+            return true;
+          });
+          ctx.fillStyle = '#1f2937';
+          ctx.font = 'bold 18px Arial';
+          ctx.textAlign = 'left';
+          ctx.fillText('Score: ' + score + '  ◎', 10, 24);
+          ctx.fillText('Lives: ' + lives, 10, 44);
+          ctx.textAlign = 'right';
+          var timeLeft = state === 'play' && !gameOver ? Math.max(0, roundEndTime - Date.now() / 1000) : 0;
+          ctx.fillText('Time: ' + Math.ceil(timeLeft) + 's', W - 10, 24);
+
+          if (state === 'start') {
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.fillRect(0, 0, W, H);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 22px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Berry Catch', W / 2, H / 2 - 40);
+            ctx.font = '16px Arial';
+            ctx.fillText('Move mouse or use A/D or arrow keys to move the basket.', W / 2, H / 2 - 5);
+            ctx.fillText('60 seconds — score is added as candies (◎) to your balance.', W / 2, H / 2 + 30);
+            ctx.fillText('Click or Space/W to start', W / 2, H / 2 + 65);
+            window._berryRafId = requestAnimationFrame(loop);
+            return;
+          }
+
+          if (basketX < lastBasketX) basketState = 'left';
+          else if (basketX > lastBasketX) basketState = 'right';
+          else basketState = 'idle';
+          lastBasketX = basketX;
+
+          if (gameOver) {
+            if (!berryScoreboardShown) {
+              berryScoreboardShown = true;
+              showGameScoreboard('berry-catch', score);
+            }
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(0, 0, W, H);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 26px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(lives <= 0 ? 'Out of lives!' : 'Time\'s up!', W / 2, H / 2 - 50);
+            ctx.font = '18px Arial';
+            ctx.fillText('You earned ' + score + ' ◎', W / 2, H / 2 - 10);
+            if (earnedMessage) ctx.fillText(earnedMessage, W / 2, H / 2 + 28);
+            ctx.font = '16px Arial';
+            ctx.fillText('Click or Space/W to play again', W / 2, H / 2 + 70);
+            window._berryRafId = requestAnimationFrame(loop);
+            return;
+          }
+
+          basketFill = Math.max(0, basketFill - 0.4);
+
+          var now = Date.now() / 1000;
+          if (lastSpawn === 0) lastSpawn = now;
+          var spawnIntervalSec = (baseSpawnInterval / 60) / getDifficultyMultiplier();
+          if (now - lastSpawn >= spawnIntervalSec) {
+            spawnBerry();
+            lastSpawn = now;
+          }
+          if (Date.now() / 1000 >= roundEndTime && lives > 0) {
+            gameOver = true;
+            fetch('/api/earn-currency', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ amount: score }),
+              credentials: 'same-origin'
+            }).then(function (r) {
+              if (!r.ok) throw new Error(r.statusText || 'Request failed');
+              return r.json();
+            }).then(function (data) {
+              if (data && data.currency != null) earnedMessage = 'Balance: ' + data.currency + ' ◎';
+            }).catch(function (err) {
+              earnedMessage = '';
+              if (typeof window.showError === 'function') window.showError('Could not add currency: ' + (err.message || 'network error'));
+            });
+            window._berryRafId = requestAnimationFrame(loop);
+            return;
+          }
+
+          for (var i = berries.length - 1; i >= 0; i--) {
+            berries[i].y += berries[i].speed;
+            if (berries[i].y + berries[i].r >= basketY && berries[i].y - berries[i].r <= basketY + basketH &&
+                berries[i].x + berries[i].r >= basketX && berries[i].x - berries[i].r <= basketX + basketW) {
+              var pts = berries[i].type === 'gold' ? 3 : (berries[i].type === 'rotten' ? -1 : 1);
+              if (berries[i].type === 'rotten') {
+                lives--;
+                if (lives <= 0) gameOver = true;
+              } else {
+                score = Math.max(0, score + pts);
+                basketFill = Math.min(100, basketFill + 12);
+              }
+              plusOneFloats.push({ x: berries[i].x, y: berries[i].y, t: Date.now(), points: pts });
+              berries.splice(i, 1);
+            } else if (berries[i].y > H + berryR) {
+              berries.splice(i, 1);
+            }
+          }
+
+          window._berryRafId = requestAnimationFrame(loop);
+        }
+
+        function getCanvasMouseX(e) {
+          var rect = canvas.getBoundingClientRect();
+          var scaleX = canvas.width / rect.width;
+          return (e.clientX - rect.left) * scaleX;
+        }
+        canvas.addEventListener('mousedown', function (e) {
+          if (e.button !== 0) return;
+          e.preventDefault();
+          if (state === 'start') {
+            state = 'play';
+            roundEndTime = Date.now() / 1000 + 60;
+            lives = 5;
+            basketFill = 0;
+            return;
+          }
+          if (gameOver) {
+            berryScoreboardShown = false;
+            hideGameScoreboard('berry-catch');
+            state = 'play';
+            gameOver = false;
+            score = 0;
+            berries = [];
+            lastSpawn = 0;
+            earnedMessage = '';
+            plusOneFloats = [];
+            lives = 5;
+            basketFill = 0;
+            roundEndTime = Date.now() / 1000 + 60;
+            return;
+          }
+        });
+        canvas.addEventListener('mousemove', function (e) {
+          if (state !== 'play' || gameOver) return;
+          var mx = getCanvasMouseX(e);
+          basketX = Math.max(0, Math.min(W - basketW, mx - basketW / 2));
+        });
+        canvas.addEventListener('mouseenter', function (e) {
+          if (state === 'play' && !gameOver) {
+            var mx = getCanvasMouseX(e);
+            basketX = Math.max(0, Math.min(W - basketW, mx - basketW / 2));
+          }
+        });
+
+        document.addEventListener('keydown', function (e) {
+          if (!berrySection.classList.contains('active')) return;
+          if (state === 'start' && (e.code === 'Space' || e.code === 'KeyW')) {
+            e.preventDefault();
+            state = 'play';
+            roundEndTime = Date.now() / 1000 + 60;
+            lives = 5;
+            basketFill = 0;
+            return;
+          }
+          if (gameOver && (e.code === 'Space' || e.code === 'KeyW')) {
+            e.preventDefault();
+            berryScoreboardShown = false;
+            hideGameScoreboard('berry-catch');
+            state = 'play';
+            gameOver = false;
+            score = 0;
+            berries = [];
+            lastSpawn = 0;
+            earnedMessage = '';
+            lives = 5;
+            basketFill = 0;
+            roundEndTime = Date.now() / 1000 + 60;
+            return;
+          }
+          if (state !== 'play' || gameOver) return;
+          e.preventDefault();
+          if (e.code === 'ArrowLeft' || e.code === 'KeyA') basketX = Math.max(0, basketX - moveSpeed);
+          if (e.code === 'ArrowRight' || e.code === 'KeyD') basketX = Math.min(W - basketW, basketX + moveSpeed);
+        });
+
+        requestAnimationFrame(loop);
+      }
+
+      var CAKE_COLORS = ['red', 'green', 'blue', 'yellow', 'purple'];
+
+      function startCakeMatchGame() {
+        if (window._cakeMatchStarted) return;
+        window._cakeMatchStarted = true;
+        runCakeMatchGame();
+      }
+
+      function runCakeMatchGame() {
+        var board = document.getElementById('cake-match-board');
+        var scoreEl = document.getElementById('cake-match-score');
+        if (!board || !scoreEl) return;
+
+        var score = 0;
+        var dragSource = null;
+
+        function randColor() {
+          return CAKE_COLORS[Math.floor(Math.random() * CAKE_COLORS.length)];
+        }
+
+        function isSlotEmpty(slotEl) {
+          return slotEl.getAttribute('data-color') === 'empty';
+        }
+
+        function setSlotColor(slotEl, color) {
+          slotEl.classList.remove('cake-empty');
+          CAKE_COLORS.forEach(function (c) { slotEl.classList.remove('cake-' + c); });
+          slotEl.classList.add('cake-' + color);
+          slotEl.setAttribute('data-color', color);
+          slotEl.setAttribute('draggable', 'true');
+        }
+
+        function setSlotEmpty(slotEl) {
+          CAKE_COLORS.forEach(function (c) { slotEl.classList.remove('cake-' + c); });
+          slotEl.classList.add('cake-empty');
+          slotEl.setAttribute('data-color', 'empty');
+          slotEl.setAttribute('draggable', 'false');
+        }
+
+        function buildBoard() {
+          board.innerHTML = '';
+          for (var row = 0; row < 3; row++) {
+            var rowEl = document.createElement('div');
+            rowEl.className = 'cake-match-row';
+            for (var col = 0; col < 4; col++) {
+              var plateEl = document.createElement('div');
+              plateEl.className = 'cake-plate';
+              plateEl.setAttribute('data-row', String(row));
+              plateEl.setAttribute('data-col', String(col));
+              var slotOrder = [0, 1, 2];
+              for (var i = 0; i < 3; i++) {
+                var j = Math.floor(Math.random() * (3 - i)) + i;
+                var t = slotOrder[i]; slotOrder[i] = slotOrder[j]; slotOrder[j] = t;
+              }
+              for (var s = 0; s < 3; s++) {
+                var slotEl = document.createElement('div');
+                slotEl.className = 'cake-slot';
+                slotEl.setAttribute('data-slot', String(s));
+                if (slotOrder[0] === s) {
+                  setSlotEmpty(slotEl);
+                } else {
+                  setSlotColor(slotEl, randColor());
+                }
+                plateEl.appendChild(slotEl);
+              }
+              rowEl.appendChild(plateEl);
+            }
+            board.appendChild(rowEl);
+          }
+        }
+
+        function getPlateSlots(plateEl) {
+          var slots = plateEl.querySelectorAll('.cake-slot');
+          return Array.prototype.slice.call(slots);
+        }
+
+        function checkAndClearMatches() {
+          var plates = board.querySelectorAll('.cake-plate');
+          var anyCleared = false;
+          plates.forEach(function (plateEl) {
+            var slots = getPlateSlots(plateEl);
+            var colors = slots.map(function (s) { return s.getAttribute('data-color'); });
+            if (colors[0] !== 'empty' && colors[1] !== 'empty' && colors[2] !== 'empty' &&
+                colors[0] === colors[1] && colors[1] === colors[2]) {
+              score++;
+              anyCleared = true;
+              slots.forEach(function (slotEl) { setSlotColor(slotEl, randColor()); });
+            }
+          });
+          if (anyCleared) {
+            scoreEl.textContent = 'Score: ' + score;
+            checkAndClearMatches();
+          }
+        }
+
+        function moveCakeToEmpty(fromSlot, toSlot) {
+          var color = fromSlot.getAttribute('data-color');
+          if (color === 'empty') return;
+          setSlotColor(toSlot, color);
+          setSlotEmpty(fromSlot);
+        }
+
+        board.addEventListener('dragstart', function (e) {
+          var slot = e.target;
+          if (!slot.classList.contains('cake-slot') || isSlotEmpty(slot)) return;
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', '');
+          dragSource = slot;
+          slot.classList.add('dragging');
+        });
+
+        board.addEventListener('dragend', function (e) {
+          if (e.target.classList.contains('cake-slot')) e.target.classList.remove('dragging');
+          board.querySelectorAll('.cake-slot').forEach(function (s) { s.classList.remove('drag-over'); });
+          dragSource = null;
+        });
+
+        board.addEventListener('dragover', function (e) {
+          e.preventDefault();
+          var slot = e.target;
+          if (!slot.classList.contains('cake-slot') || !isSlotEmpty(slot) || slot === dragSource) return;
+          e.dataTransfer.dropEffect = 'move';
+          board.querySelectorAll('.cake-slot').forEach(function (s) { s.classList.remove('drag-over'); });
+          slot.classList.add('drag-over');
+        });
+
+        board.addEventListener('drop', function (e) {
+          e.preventDefault();
+          var slot = e.target;
+          if (!slot.classList.contains('cake-slot') || !dragSource || slot === dragSource) return;
+          if (!isSlotEmpty(slot)) return;
+          slot.classList.remove('drag-over');
+          moveCakeToEmpty(dragSource, slot);
+          checkAndClearMatches();
+        });
+
+        buildBoard();
+        scoreEl.textContent = 'Score: 0';
+      }
+
+      function start2048Game() {
+        if (window._game2048Started) return;
+        window._game2048Started = true;
+        run2048Game();
+      }
+
+      function run2048Game() {
+        var boardEl = document.getElementById('game-2048-board');
+        var scoreEl = document.getElementById('game-2048-score');
+        var overlayEl = document.getElementById('game-2048-overlay');
+        var overlayText = document.getElementById('game-2048-overlay-text');
+        var restartBtn = document.getElementById('game-2048-restart');
+        if (!boardEl || !scoreEl) return;
+
+        var size = 4;
+        var grid = [];
+        var score = 0;
+        var bestScore = parseInt(localStorage.getItem('game2048BestScore') || '0', 10);
+        var state = 'play';
+        var won2048 = false;
+        var touchStartX = 0, touchStartY = 0;
+        var keepPlayingBtn = document.getElementById('game-2048-keep-playing');
+
+        function initGrid() {
+          grid = [];
+          for (var r = 0; r < size; r++) {
+            grid[r] = [];
+            for (var c = 0; c < size; c++) grid[r][c] = 0;
+          }
+        }
+
+        function emptyCells() {
+          var out = [];
+          for (var r = 0; r < size; r++)
+            for (var c = 0; c < size; c++)
+              if (grid[r][c] === 0) out.push({ r: r, c: c });
+          return out;
+        }
+
+        function spawnTile() {
+          var empty = emptyCells();
+          if (empty.length === 0) return;
+          var cell = empty[Math.floor(Math.random() * empty.length)];
+          grid[cell.r][cell.c] = Math.random() < 0.9 ? 2 : 4;
+        }
+
+        function buildDOM() {
+          boardEl.innerHTML = '';
+          for (var r = 0; r < size; r++) {
+            var rowEl = document.createElement('div');
+            rowEl.className = 'game-2048-row';
+            for (var c = 0; c < size; c++) {
+              var cellEl = document.createElement('div');
+              cellEl.className = 'game-2048-cell';
+              cellEl.setAttribute('data-r', String(r));
+              cellEl.setAttribute('data-c', String(c));
+              rowEl.appendChild(cellEl);
+            }
+            boardEl.appendChild(rowEl);
+          }
+        }
+
+        function tileClass(val) {
+          if (val === 0) return '';
+          if (val > 2048) return 'tile-super';
+          return 'tile-' + val;
+        }
+
+        function render() {
+          for (var r = 0; r < size; r++) {
+            for (var c = 0; c < size; c++) {
+              var cellEl = boardEl.querySelector('[data-r="' + r + '"][data-c="' + c + '"]');
+              if (!cellEl) continue;
+              var val = grid[r][c];
+              cellEl.textContent = val === 0 ? '' : String(val);
+              cellEl.className = 'game-2048-cell ' + tileClass(val);
+            }
+          }
+          scoreEl.textContent = 'Score: ' + score + (bestScore > 0 ? '  Best: ' + bestScore : '');
+        }
+
+        function slideRow(row) {
+          var arr = row.filter(function (v) { return v !== 0; });
+          var newRow = [];
+          var i = 0;
+          while (i < arr.length) {
+            if (i + 1 < arr.length && arr[i] === arr[i + 1]) {
+              newRow.push(arr[i] * 2);
+              score += arr[i] * 2;
+              i += 2;
+            } else {
+              newRow.push(arr[i]);
+              i += 1;
+            }
+          }
+          while (newRow.length < size) newRow.push(0);
+          return newRow;
+        }
+
+        function moveLeft() {
+          var changed = false;
+          for (var r = 0; r < size; r++) {
+            var row = grid[r].slice();
+            var newRow = slideRow(row);
+            for (var c = 0; c < size; c++) {
+              if (grid[r][c] !== newRow[c]) changed = true;
+              grid[r][c] = newRow[c];
+            }
+          }
+          return changed;
+        }
+
+        function moveRight() {
+          var changed = false;
+          for (var r = 0; r < size; r++) {
+            var row = grid[r].slice().reverse();
+            var newRow = slideRow(row).reverse();
+            for (var c = 0; c < size; c++) {
+              if (grid[r][c] !== newRow[c]) changed = true;
+              grid[r][c] = newRow[c];
+            }
+          }
+          return changed;
+        }
+
+        function moveUp() {
+          var changed = false;
+          for (var c = 0; c < size; c++) {
+            var col = [];
+            for (var r = 0; r < size; r++) col.push(grid[r][c]);
+            var newCol = slideRow(col);
+            for (var r = 0; r < size; r++) {
+              if (grid[r][c] !== newCol[r]) changed = true;
+              grid[r][c] = newCol[r];
+            }
+          }
+          return changed;
+        }
+
+        function moveDown() {
+          var changed = false;
+          for (var c = 0; c < size; c++) {
+            var col = [];
+            for (var r = 0; r < size; r++) col.push(grid[r][c]);
+            col.reverse();
+            var newCol = slideRow(col).reverse();
+            for (var r = 0; r < size; r++) {
+              if (grid[r][c] !== newCol[r]) changed = true;
+              grid[r][c] = newCol[r];
+            }
+          }
+          return changed;
+        }
+
+        function canMove() {
+          for (var r = 0; r < size; r++) {
+            for (var c = 0; c < size; c++) {
+              if (grid[r][c] === 0) return true;
+              if (c + 1 < size && grid[r][c] === grid[r][c + 1]) return true;
+              if (r + 1 < size && grid[r][c] === grid[r + 1][c]) return true;
+            }
+          }
+          return false;
+        }
+
+        function has2048() {
+          for (var r = 0; r < size; r++)
+            for (var c = 0; c < size; c++)
+              if (grid[r][c] === 2048) return true;
+          return false;
+        }
+
+        function doMove(dir) {
+          if (state !== 'play') return;
+          var changed = false;
+          if (dir === 'left') changed = moveLeft();
+          if (dir === 'right') changed = moveRight();
+          if (dir === 'up') changed = moveUp();
+          if (dir === 'down') changed = moveDown();
+          if (changed) {
+            spawnTile();
+            render();
+            if (score > bestScore) {
+              bestScore = score;
+              try { localStorage.setItem('game2048BestScore', String(bestScore)); } catch (e) {}
+            }
+            save2048State();
+            if (!canMove()) {
+              state = 'over';
+              clear2048SavedState();
+              overlayText.textContent = 'Game Over! Score: ' + score;
+              keepPlayingBtn.style.display = 'none';
+              overlayEl.style.display = 'flex';
+              showGameScoreboard('2048', score);
+            } else if (has2048() && !won2048) {
+              won2048 = true;
+              overlayText.textContent = 'You reached 2048! Score: ' + score;
+              keepPlayingBtn.style.display = 'block';
+              overlayEl.style.display = 'flex';
+              showGameScoreboard('2048', score);
+            }
+          }
+        }
+
+        function save2048State() {
+          if (state !== 'play') return;
+          try {
+            localStorage.setItem('game2048State', JSON.stringify({
+              grid: grid.map(function (row) { return row.slice(); }),
+              score: score,
+              state: state,
+              won2048: won2048
+            }));
+          } catch (e) {}
+        }
+
+        function clear2048SavedState() {
+          try { localStorage.removeItem('game2048State'); } catch (e) {}
+        }
+
+        function load2048State() {
+          try {
+            var raw = localStorage.getItem('game2048State');
+            if (!raw) return null;
+            var data = JSON.parse(raw);
+            if (!data || data.state !== 'play' || !Array.isArray(data.grid)) return null;
+            if (data.grid.length !== size) return null;
+            for (var r = 0; r < size; r++)
+              if (!Array.isArray(data.grid[r]) || data.grid[r].length !== size) return null;
+            return data;
+          } catch (e) { return null; }
+        }
+
+        function restart() {
+          clear2048SavedState();
+          hideGameScoreboard('2048');
+          initGrid();
+          score = 0;
+          state = 'play';
+          won2048 = false;
+          spawnTile();
+          spawnTile();
+          render();
+          overlayEl.style.display = 'none';
+          keepPlayingBtn.style.display = 'none';
+        }
+
+        if (keepPlayingBtn) keepPlayingBtn.addEventListener('click', function () {
+          overlayEl.style.display = 'none';
+          keepPlayingBtn.style.display = 'none';
+        });
+
+        buildDOM();
+        (function () {
+          var loaded = load2048State();
+          if (loaded) {
+            grid = loaded.grid.map(function (row) { return row.slice(); });
+            score = loaded.score;
+            state = loaded.state;
+            won2048 = loaded.won2048;
+            render();
+          } else {
+            initGrid();
+            spawnTile();
+            spawnTile();
+            render();
+          }
+        })();
+
+        window.addEventListener('visibilitychange', function () {
+          if (document.hidden) save2048State();
+        });
+        window.addEventListener('pagehide', function () {
+          save2048State();
+        });
+
+        document.addEventListener('keydown', function (e) {
+          if (!game2048Section.classList.contains('active') || state === 'over') return;
+          if (e.code === 'ArrowLeft' || e.code === 'KeyA') { e.preventDefault(); doMove('left'); }
+          if (e.code === 'ArrowRight' || e.code === 'KeyD') { e.preventDefault(); doMove('right'); }
+          if (e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); doMove('up'); }
+          if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); doMove('down'); }
+        });
+
+        boardEl.addEventListener('touchstart', function (e) {
+          if (e.touches.length) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+          }
+        }, { passive: true });
+        boardEl.addEventListener('touchend', function (e) {
+          if (e.changedTouches.length === 0) return;
+          var dx = e.changedTouches[0].clientX - touchStartX;
+          var dy = e.changedTouches[0].clientY - touchStartY;
+          var minSwipe = 30;
+          if (Math.abs(dx) > Math.abs(dy)) {
+            if (dx > minSwipe) doMove('right');
+            else if (dx < -minSwipe) doMove('left');
+          } else {
+            if (dy > minSwipe) doMove('down');
+            else if (dy < -minSwipe) doMove('up');
+          }
+        }, { passive: true });
+
+        if (restartBtn) restartBtn.addEventListener('click', function () {
+          overlayEl.style.display = 'none';
+          restart();
+        });
+      }
+    })();
+  </script>
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+</body>
+</html>

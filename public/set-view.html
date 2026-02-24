@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Set – Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .set-view-container { max-width: 900px; margin: 0 auto; padding: 20px; }
+    .set-view-container h1 { margin: 0 0 8px 0; font-size: 1.5rem; }
+    .set-view-container .back-link { display: inline-block; margin-bottom: 16px; color: #ec4899; text-decoration: none; }
+    .set-view-container .back-link:hover { text-decoration: underline; }
+    .set-items-grid { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 16px; }
+    .set-item-card { width: 120px; padding: 10px; background: #fff; border-radius: 8px; border: 1px solid #e5e7eb; text-align: center; text-decoration: none; color: inherit; }
+    .set-item-card:hover { border-color: #ec4899; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .set-item-card img { width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; border-radius: 6px; display: block; margin: 0 auto 8px; }
+    .set-item-card .name { font-size: 12px; font-weight: 600; color: #374151; }
+    .set-item-card .slot { font-size: 11px; color: #6b7280; margin-top: 2px; }
+    .set-item-card { position: relative; }
+    .set-item-card .set-item-wishlist-star { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; padding: 0; border: none; background: rgba(255,255,255,0.9); border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 5; box-shadow: 0 0 0 1px rgba(0,0,0,0.1); }
+    .set-item-card .set-item-wishlist-star img { width: 16px; height: 16px; display: block; }
+    .set-item-card .set-item-link { display: block; text-decoration: none; color: inherit; }
+    .set-empty { padding: 24px; text-align: center; color: #6b7280; }
+    .set-loading { padding: 24px; text-align: center; color: #6b7280; }
+    .set-preview-wrap { margin: 20px 0; }
+    .set-preview-label { font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px; }
+    #set-preview-character { position: relative; width: 250px; height: 350px; border: 2px solid #ccc; border-radius: 8px; background: #fff; overflow: hidden; }
+    #set-preview-character .set-preview-bg, #set-preview-character .set-preview-base, #set-preview-character .set-preview-layer { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); image-rendering: pixelated; object-fit: none; max-width: 250px; max-height: 350px; }
+    #set-preview-character .set-preview-base { width: 250px; height: 350px; z-index: 1; pointer-events: none; }
+    #set-preview-character .set-preview-bg { z-index: 0; pointer-events: none; }
+    #set-preview-backgrounds { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+    #set-preview-layers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+    #set-preview-character .set-preview-layer.body-slot { object-fit: cover; object-position: top center; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="set-view-container">
+    <a href="./wishlist.html" class="back-link" id="set-view-back">← Back to Wishlist</a>
+    <h1 id="set-title">Set</h1>
+    <p id="set-count" style="margin:0;color:#6b7280;font-size:14px;"></p>
+    <div id="set-preview-wrap" class="set-preview-wrap" style="display:none;">
+      <div class="set-preview-label">Full set preview (base + all items)</div>
+      <div id="set-preview-character">
+        <div id="set-preview-backgrounds"></div>
+        <img id="set-preview-base" src="/Uploads/character.png" alt="Character base" class="set-preview-base">
+        <div id="set-preview-layers"></div>
+      </div>
+    </div>
+    <div id="set-items" class="set-items-grid"></div>
+    <p id="set-empty" class="set-empty" style="display:none;">No items in this set, or set not found.</p>
+    <p id="set-loading" class="set-loading">Loading…</p>
+  </div>
+  <script src="/js/slots.js"></script>
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const setId = params.get('set');
+      const titleEl = document.getElementById('set-title');
+      const countEl = document.getElementById('set-count');
+      const gridEl = document.getElementById('set-items');
+      const emptyEl = document.getElementById('set-empty');
+      const loadingEl = document.getElementById('set-loading');
+
+      function getSetId(item) {
+        if (!item || !Array.isArray(item.tags)) return null;
+        const tag = item.tags.find(function (t) { return typeof t === 'string' && t.startsWith('set-id:'); });
+        return tag ? tag.replace('set-id:', '').trim() : null;
+      }
+      function getSetName(item) {
+        if (!item || !Array.isArray(item.tags)) return null;
+        const tag = item.tags.find(function (t) { return typeof t === 'string' && t.startsWith('set-name:'); });
+        return tag ? tag.replace('set-name:', '').trim() : null;
+      }
+
+      async function load() {
+        if (!setId) {
+          loadingEl.style.display = 'none';
+          emptyEl.style.display = 'block';
+          titleEl.textContent = 'Set';
+          return;
+        }
+        try {
+          const res = await fetch('/api/items', { credentials: 'same-origin' });
+          if (!res.ok) throw new Error('Failed to load items');
+          let items = await res.json();
+          if (Array.isArray(items[0])) items = items.flat();
+          let setItems;
+          if (setId === 'DefaultSet' || setId === 'tag_DefaultSet') {
+            setItems = [];
+          } else if (setId.startsWith('tag_')) {
+            const tagName = setId.replace(/^tag_/, '');
+            setItems = items.filter(function (item) {
+              if (!item || !Array.isArray(item.tags)) return false;
+              const setTag = item.tags.find(function (t) { return typeof t === 'string' && t.startsWith('set:'); });
+              return setTag ? setTag.replace('set:', '').trim() === tagName : false;
+            });
+          } else {
+            setItems = items.filter(function (item) { return getSetId(item) === setId; });
+          }
+          loadingEl.style.display = 'none';
+          if (setItems.length === 0) {
+            emptyEl.style.display = 'block';
+            titleEl.textContent = 'Set';
+            return;
+          }
+          const setName = getSetName(setItems[0]) || setId;
+          titleEl.textContent = setName;
+          countEl.textContent = setItems.length + ' item(s) in this set.';
+
+          const previewWrap = document.getElementById('set-preview-wrap');
+          const previewBg = document.getElementById('set-preview-backgrounds');
+          const previewLayers = document.getElementById('set-preview-layers');
+          if (previewWrap && previewBg && previewLayers) {
+            previewWrap.style.display = 'block';
+            previewBg.innerHTML = '';
+            previewLayers.innerHTML = '';
+            const SLOT_LAYER_ORDER = window.SLOT_LAYER_ORDER || { 'body-slot': 0, 'pants-slot': 1, 'skirt-slot': 2, 'dress-slot': 3, 'shirt-slot': 4, 'jacket-slot': 5, 'socks-slot': 6, 'shoes-slot': 7, 'hat-slot': 8, 'jewelry-slot': 9, 'hair-slot': 10, 'other-slot': 11 };
+            const backgrounds = [];
+            const layers = [];
+            setItems.forEach(function (item) {
+              if (item.background && item.background.filename) {
+                backgrounds.push({ src: '/Uploads/' + item.background.filename, defaultX: item.background.defaultX != null ? item.background.defaultX : 0, defaultY: item.background.defaultY != null ? item.background.defaultY : 0, defaultZ: item.background.defaultZ != null ? item.background.defaultZ : 0 });
+              }
+              const slotId = item.slotId || 'other-slot';
+              const slotOrder = SLOT_LAYER_ORDER[slotId] != null ? SLOT_LAYER_ORDER[slotId] : 11;
+              if (item.bundleParts && Array.isArray(item.bundleParts) && item.bundleParts.length > 0) {
+                item.bundleParts.forEach(function (part, idx) {
+                  layers.push({ src: '/Uploads/' + (part.filename || ''), defaultX: part.defaultX != null ? part.defaultX : 0, defaultY: part.defaultY != null ? part.defaultY : 0, defaultZ: part.defaultZ != null ? part.defaultZ : slotOrder * 100 + idx, slotId: slotId });
+                });
+              } else {
+                layers.push({ src: '/Uploads/' + (item.filename || ''), defaultX: item.defaultX != null ? item.defaultX : 0, defaultY: item.defaultY != null ? item.defaultY : 0, defaultZ: item.defaultZ != null ? item.defaultZ : slotOrder * 100, slotId: slotId });
+              }
+            });
+            backgrounds.sort(function (a, b) { return a.defaultZ - b.defaultZ; });
+            layers.sort(function (a, b) { return a.defaultZ - b.defaultZ; });
+            backgrounds.forEach(function (bg) {
+              const img = document.createElement('img');
+              img.src = bg.src;
+              img.alt = '';
+              img.className = 'set-preview-bg';
+              img.style.zIndex = bg.defaultZ;
+              img.style.transform = 'translate(-50%, -50%) translate(' + bg.defaultX + 'px, ' + bg.defaultY + 'px)';
+              img.onerror = function () { img.style.display = 'none'; };
+              previewBg.appendChild(img);
+            });
+            layers.forEach(function (lay, idx) {
+              const img = document.createElement('img');
+              img.src = lay.src;
+              img.alt = '';
+              img.className = 'set-preview-layer ' + (lay.slotId || '');
+              img.style.zIndex = 2 + idx;
+              img.style.transform = 'translate(-50%, -50%) translate(' + lay.defaultX + 'px, ' + lay.defaultY + 'px)';
+              img.onerror = function () { img.style.display = 'none'; };
+              previewLayers.appendChild(img);
+            });
+          }
+
+          let wishlistItems = [];
+          try {
+            const wlRes = await fetch('/api/wishlist', { credentials: 'same-origin' });
+            if (wlRes.ok) {
+              const wl = await wlRes.json();
+              wishlistItems = Array.isArray(wl.items) ? wl.items : [];
+            }
+          } catch (err) {}
+          setItems.forEach(function (item) {
+            const card = document.createElement('div');
+            card.className = 'set-item-card';
+            const starBtn = document.createElement('button');
+            starBtn.type = 'button';
+            starBtn.className = 'set-item-wishlist-star';
+            starBtn.title = wishlistItems.indexOf(item.filename) !== -1 ? 'Remove from wishlist' : 'Add to wishlist';
+            starBtn.setAttribute('aria-label', starBtn.title);
+            const starImg = document.createElement('img');
+            starImg.src = wishlistItems.indexOf(item.filename) !== -1 ? '/img/star_true.svg' : '/img/star_false.svg';
+            starImg.alt = '';
+            starBtn.appendChild(starImg);
+            starBtn.addEventListener('click', function (e) {
+              e.preventDefault();
+              e.stopPropagation();
+              fetch('/api/wishlist/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'item', id: item.filename }),
+                credentials: 'same-origin'
+              }).then(function (r) { return r.json(); }).then(function (data) {
+                wishlistItems = Array.isArray(data.items) ? data.items : [];
+                starImg.src = wishlistItems.indexOf(item.filename) !== -1 ? '/img/star_true.svg' : '/img/star_false.svg';
+                starBtn.title = wishlistItems.indexOf(item.filename) !== -1 ? 'Remove from wishlist' : 'Add to wishlist';
+                starBtn.setAttribute('aria-label', starBtn.title);
+              }).catch(function () {});
+            });
+            card.appendChild(starBtn);
+            const link = document.createElement('a');
+            link.href = './store.html';
+            link.className = 'set-item-link';
+            const img = document.createElement('img');
+            img.src = '/Uploads/' + (item.filename || '');
+            img.alt = item.name || item.filename || '';
+            img.onerror = function () { img.style.display = 'none'; };
+            link.appendChild(img);
+            const nameEl = document.createElement('div');
+            nameEl.className = 'name';
+            nameEl.textContent = item.name || item.filename || 'Item';
+            link.appendChild(nameEl);
+            const slotEl = document.createElement('div');
+            slotEl.className = 'slot';
+            slotEl.textContent = (item.slotId || '').replace('-slot', '') || 'other';
+            link.appendChild(slotEl);
+            card.appendChild(link);
+            gridEl.appendChild(card);
+          });
+        } catch (e) {
+          loadingEl.style.display = 'none';
+          emptyEl.style.display = 'block';
+          emptyEl.textContent = 'Could not load set: ' + (e.message || 'error');
+          titleEl.textContent = 'Set';
+        }
+      }
+      load();
+    })();
+  </script>
+  <script src="/js/header.js"></script>
+</body>
+</html>

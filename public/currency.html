@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buy currency - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f5f0e8; margin: 0; padding-top: 76px; min-height: 100vh; color: #1f2937; }
+    .back { display: inline-block; margin-bottom: 16px; color: #ec4899; text-decoration: none; font-size: 14px; }
+    .back:hover { text-decoration: underline; }
+
+    /* Hero banner */
+    .currency-hero {
+      display: flex;
+      max-width: 1100px;
+      margin: 0 auto 24px;
+      border: 3px solid #4a5d4a;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .currency-hero-left {
+      flex: 1;
+      background: #4a5d4a;
+      padding: 32px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .currency-hero-left .star { font-size: 48px; margin-bottom: 8px; line-height: 1; }
+    .currency-hero-left h1 {
+      font-size: clamp(1.5rem, 4vw, 2.25rem);
+      font-weight: 800;
+      color: #111;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      line-height: 1.15;
+      margin: 0 0 12px 0;
+    }
+    .currency-hero-left p {
+      color: #e5e7eb;
+      font-size: 15px;
+      margin: 0 0 20px 0;
+      max-width: 320px;
+    }
+    .currency-hero-cta {
+      display: inline-block;
+      background: #111;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 13px;
+      letter-spacing: 0.03em;
+      text-decoration: none;
+      align-self: flex-start;
+    }
+    .currency-hero-cta:hover { background: #333; color: #fff; }
+    .currency-hero-right {
+      flex: 1;
+      min-height: 220px;
+      background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 50%, #f9a8d4 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .currency-hero-right .icons { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; justify-content: center; }
+    .currency-hero-right .icons img { width: 80px; height: 80px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15)); }
+
+    /* Marquee separator */
+    .currency-marquee {
+      background: #f5f0e8;
+      padding: 12px 0;
+      margin-bottom: 24px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+    }
+    .currency-marquee-inner {
+      display: flex;
+      gap: 24px;
+      animation: marquee 25s linear infinite;
+      white-space: nowrap;
+    }
+    .currency-marquee-inner span { font-size: 12px; text-transform: uppercase; letter-spacing: 0.15em; color: #6b7280; font-weight: 600; }
+    @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+    /* Packages section */
+    .currency-packages-wrap { max-width: 1100px; margin: 0 auto 32px; padding: 0 8px; }
+    .currency-packages-wrap h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      text-align: center;
+      margin: 0 0 20px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #374151;
+    }
+    .currency-carousel-layout {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      position: relative;
+    }
+    .currency-arrow {
+      flex-shrink: 0;
+      width: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: #4a5d4a;
+      font-size: 28px;
+      padding: 0;
+      transition: color 0.2s, transform 0.2s;
+    }
+    .currency-arrow:hover { color: #2d3a2d; transform: scale(1.1); }
+    .currency-arrow:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+    .currency-carousel-viewport {
+      flex: 1;
+      overflow: hidden;
+    }
+    .currency-carousel-track {
+      display: flex;
+      gap: 20px;
+      transition: transform 0.35s ease-out;
+      padding: 8px 0;
+    }
+    .currency-package-card {
+      flex: 0 0 280px;
+      background: #fff;
+      border: 2px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .currency-top-pick-badge {
+      position: absolute;
+      top: -1px;
+      right: 12px;
+      background: #f9a8d4;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 0 0 8px 8px;
+      letter-spacing: 0.05em;
+    }
+    .currency-package-card h3 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 0 0 16px 0;
+      color: #111;
+    }
+    .currency-package-card .card-icons {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      min-height: 64px;
+    }
+    .currency-package-card .card-icons img { width: 48px; height: 48px; object-fit: contain; }
+    .currency-package-card .card-content { font-size: 14px; color: #6b7280; margin-bottom: 16px; text-align: center; }
+    .currency-qty {
+      display: flex;
+      align-items: center;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      background: #fff;
+    }
+    .currency-qty button {
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: #f9fafb;
+      font-size: 18px;
+      cursor: pointer;
+      color: #374151;
+    }
+    .currency-qty button:hover { background: #f3f4f6; }
+    .currency-qty input {
+      width: 48px;
+      text-align: center;
+      border: none;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .currency-package-card .btn-add {
+      width: 100%;
+      background: #111;
+      color: #fff;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .currency-package-card .btn-add:hover { background: #333; }
+    .currency-package-card .btn-add:disabled { opacity: 0.7; cursor: not-allowed; }
+
+    /* Membership deals */
+    .membership-deals-wrap { max-width: 1100px; margin: 0 auto 32px; padding: 0 8px; }
+    .membership-deals-wrap h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      text-align: center;
+      margin: 0 0 20px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #374151;
+    }
+    .membership-deals-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 900px) {
+      .membership-deals-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .membership-deals-grid { grid-template-columns: 1fr; }
+    }
+    .membership-deal-card {
+      background: #fff;
+      border: 2px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .membership-deal-card:hover { border-color: #d97706; box-shadow: 0 4px 12px rgba(217,119,6,0.15); }
+    .membership-deal-card .deal-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 50%, #f59e0b 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+    .membership-deal-card h3 {
+      font-size: 1rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin: 0 0 8px 0;
+      color: #111;
+    }
+    .membership-deal-card .deal-duration {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+    .membership-deal-card .btn-membership {
+      width: 100%;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #fff;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .membership-deal-card .btn-membership:hover { background: linear-gradient(135deg, #d97706, #b45309); }
+    .membership-deal-card .btn-membership:disabled { opacity: 0.7; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="currency-packages-wrap" style="padding-top: 8px;">
+    <a href="./home.html" class="back">← Back to Home</a>
+  </div>
+
+  <section class="currency-hero" aria-label="Hero banner">
+    <div class="currency-hero-left">
+      <span class="star" aria-hidden="true">✨</span>
+      <h1>Discover new styles</h1>
+      <p>Get more coins and candies to unlock items in the Shopping and dress up your character.</p>
+      <a href="#currency-packages" class="currency-hero-cta">View packages</a>
+    </div>
+    <div class="currency-hero-right">
+      <div class="icons">
+        <img src="/img/currency-coin.svg" alt="">
+        <img src="/img/currency-gem.png" alt="" class="currency-gem-icon">
+      </div>
+    </div>
+  </section>
+
+  <div class="currency-marquee">
+    <div class="currency-marquee-inner">
+      <span>Coins</span><span>Candies</span><span>Style</span><span>Fun</span>
+      <span>Coins</span><span>Candies</span><span>Style</span><span>Fun</span>
+      <span>Coins</span><span>Candies</span><span>Style</span><span>Fun</span>
+    </div>
+  </div>
+
+  <section class="membership-deals-wrap" id="membership-deals">
+    <h2>Membership deals</h2>
+    <div class="membership-deals-grid">
+      <div class="membership-deal-card" data-duration="2w">
+        <div class="deal-icon" aria-hidden="true">★</div>
+        <h3>2 weeks</h3>
+        <p class="deal-duration">14 days of membership</p>
+        <button type="button" class="btn-membership" disabled>Coming soon</button>
+      </div>
+      <div class="membership-deal-card" data-duration="2m">
+        <div class="deal-icon" aria-hidden="true">★</div>
+        <h3>2 months</h3>
+        <p class="deal-duration">60 days of membership</p>
+        <button type="button" class="btn-membership" disabled>Coming soon</button>
+      </div>
+      <div class="membership-deal-card" data-duration="6m">
+        <div class="deal-icon" aria-hidden="true">★</div>
+        <h3>6 months</h3>
+        <p class="deal-duration">180 days of membership</p>
+        <button type="button" class="btn-membership" disabled>Coming soon</button>
+      </div>
+      <div class="membership-deal-card" data-duration="1y">
+        <div class="deal-icon" aria-hidden="true">★</div>
+        <h3>1 year</h3>
+        <p class="deal-duration">365 days of membership</p>
+        <button type="button" class="btn-membership" disabled>Coming soon</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="currency-packages-wrap" id="currency-debug-section" style="display: none; margin-bottom: 24px; padding: 16px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 12px;">
+    <h2 style="font-size: 1rem; margin: 0 0 12px 0; color: #92400e;">Debug: Add currency</h2>
+    <p style="font-size: 13px; color: #b45309; margin: 0 0 12px 0;">Admin/moderator only. Add any amount of coins and candies for testing.</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+      <label style="display: flex; align-items: center; gap: 6px;">
+        <span style="font-size: 14px;">Coins:</span>
+        <input type="number" id="debug-coins" value="1000" min="0" style="width: 100px; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+      </label>
+      <label style="display: flex; align-items: center; gap: 6px;">
+        <span style="font-size: 14px;">Candies:</span>
+        <input type="number" id="debug-gems" value="100" min="0" style="width: 100px; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+      </label>
+      <button type="button" id="debug-add-btn" style="padding: 8px 16px; background: #b45309; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Add</button>
+    </div>
+    <p id="debug-currency-msg" style="font-size: 13px; margin: 8px 0 0 0; color: #92400e;"></p>
+  </section>
+
+  <section class="currency-packages-wrap" id="currency-packages">
+    <h2>Currency packages</h2>
+    <div class="currency-carousel-layout">
+      <button type="button" class="currency-arrow" id="currency-prev" aria-label="Previous packages">‹</button>
+      <div class="currency-carousel-viewport">
+        <div class="currency-carousel-track" id="currency-track">
+          <!-- Cards injected by JS -->
+        </div>
+      </div>
+      <button type="button" class="currency-arrow" id="currency-next" aria-label="Next packages">›</button>
+    </div>
+  </section>
+
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+  <script>
+(function () {
+  var packages = [
+    { id: '1', name: 'Starter', coins: 100, gems: 0, price: '$2', topPick: false },
+    { id: '2', name: 'Value', coins: 500, gems: 10, price: '$8', topPick: true },
+    { id: '3', name: 'Premium', coins: 1500, gems: 50, price: '$20', topPick: false },
+    { id: '4', name: 'Mega', coins: 4000, gems: 120, price: '$45', topPick: false },
+    { id: '5', name: 'Ultimate', coins: 10000, gems: 300, price: '$99', topPick: false }
+  ];
+
+  var track = document.getElementById('currency-track');
+  var prevBtn = document.getElementById('currency-prev');
+  var nextBtn = document.getElementById('currency-next');
+  var cardWidth = 300;
+  var visibleCount = 3;
+  var index = 0;
+  var maxIndex = Math.max(0, packages.length - visibleCount);
+
+  function renderCards() {
+    track.innerHTML = packages.map(function (p) {
+      var coinText = p.coins + ' coins';
+      var gemText = p.gems > 0 ? p.gems + ' candies' : '';
+      var content = coinText + (gemText ? ' + ' + gemText : '');
+      var topPickClass = p.topPick ? ' top-pick' : '';
+      var topPickBadge = p.topPick ? '<span class="currency-top-pick-badge">TOP PICK</span>' : '';
+      return '<div class="currency-package-card' + topPickClass + '" data-id="' + p.id + '">' +
+        topPickBadge +
+        '<h3>' + (p.name || '').replace(/</g, '&lt;') + '</h3>' +
+        '<div class="card-icons">' +
+        '<img src="/img/currency-coin.svg" alt="Coins">' +
+        '<img src="/img/currency-gem.png" alt="Candies" class="currency-gem-icon">' +
+        '</div>' +
+        '<div class="card-content">' + content.replace(/</g, '&lt;') + '</div>' +
+        '<div class="currency-qty">' +
+        '<button type="button" class="qty-minus" aria-label="Decrease quantity">−</button>' +
+        '<input type="number" class="qty-input" value="1" min="1" max="99" readonly>' +
+        '<button type="button" class="qty-plus" aria-label="Increase quantity">+</button>' +
+        '</div>' +
+        '<button type="button" class="btn-add" disabled>Coming soon – ' + (p.price || '').replace(/</g, '&lt;') + '</button>' +
+        '</div>';
+    }).join('');
+
+    track.querySelectorAll('.currency-package-card').forEach(function (card, i) {
+      var p = packages[i];
+      var minus = card.querySelector('.qty-minus');
+      var plus = card.querySelector('.qty-plus');
+      var input = card.querySelector('.qty-input');
+      if (minus && plus && input) {
+        minus.addEventListener('click', function () {
+          var v = parseInt(input.value, 10) || 1;
+          if (v > 1) input.value = v - 1;
+        });
+        plus.addEventListener('click', function () {
+          var v = parseInt(input.value, 10) || 1;
+          if (v < 99) input.value = v + 1;
+        });
+      }
+    });
+  }
+
+  function updateTransform() {
+    var offset = -index * cardWidth;
+    track.style.transform = 'translateX(' + offset + 'px)';
+    if (prevBtn) prevBtn.disabled = index <= 0;
+    if (nextBtn) nextBtn.disabled = index >= maxIndex;
+  }
+
+  function updateVisibleCount() {
+    var w = track && track.parentElement ? track.parentElement.offsetWidth : 1100;
+    visibleCount = Math.max(1, Math.floor((w + 20) / cardWidth));
+    maxIndex = Math.max(0, packages.length - visibleCount);
+    index = Math.min(index, maxIndex);
+    updateTransform();
+  }
+
+  renderCards();
+  if (prevBtn) prevBtn.addEventListener('click', function () { index = Math.max(0, index - 1); updateTransform(); });
+  if (nextBtn) nextBtn.addEventListener('click', function () { index = Math.min(maxIndex, index + 1); updateTransform(); });
+  window.addEventListener('resize', updateVisibleCount);
+  updateVisibleCount();
+
+  fetch('/api/me', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }).then(function (me) {
+    var roles = (me && me.roles) || [];
+    var canDebug = roles.indexOf('admin') !== -1 || roles.indexOf('moderator') !== -1;
+    var section = document.getElementById('currency-debug-section');
+    if (section && canDebug) section.style.display = 'block';
+    var addBtn = document.getElementById('debug-add-btn');
+    var coinsInp = document.getElementById('debug-coins');
+    var gemsInp = document.getElementById('debug-gems');
+    var msgEl = document.getElementById('debug-currency-msg');
+    if (addBtn && coinsInp && gemsInp) {
+      addBtn.addEventListener('click', function () {
+        var coins = parseInt(coinsInp.value, 10) || 0;
+        var gems = parseInt(gemsInp.value, 10) || 0;
+        if (coins <= 0 && gems <= 0) {
+          if (msgEl) msgEl.textContent = 'Enter at least one positive amount.';
+          return;
+        }
+        addBtn.disabled = true;
+        fetch('/api/debug-add-currency', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ coins: coins, gems: gems })
+        }).then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || 'Failed'); return d; }); }).then(function (d) {
+          if (msgEl) msgEl.textContent = 'Added. Coins: ' + (d.currency != null ? d.currency : '—') + ', Candies: ' + (d.currency2 != null ? d.currency2 : '—');
+          if (typeof window.updateHeaderCurrency === 'function') window.updateHeaderCurrency();
+        }).catch(function (e) {
+          if (msgEl) msgEl.textContent = e.message || 'Failed to add currency.';
+        }).finally(function () { addBtn.disabled = false; });
+      });
+    }
+  });
+})();
+  </script>
+</body>
+</html>

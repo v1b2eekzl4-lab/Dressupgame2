@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customize bulletin board post - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 560px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h1 { margin: 0 0 8px 0; font-size: 1.5rem; }
+    p.desc { margin: 0 0 20px 0; color: #374151; font-size: 14px; }
+    a.back { color: #ec4899; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 16px; }
+    a.back:hover { text-decoration: underline; }
+    label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 14px; }
+    input[type="text"], input[type="url"], select { width: 100%; max-width: 320px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; margin-bottom: 12px; }
+    input[type="color"] { width: 48px; height: 32px; padding: 2px; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; vertical-align: middle; margin-right: 8px; }
+    .color-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .color-row input[type="text"] { max-width: 100px; margin-bottom: 0; }
+    .btn { padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; font-size: 14px; }
+.btn-primary { background: var(--btn-pink-gradient); color: white; border: var(--btn-pink-border); box-shadow: var(--btn-pink-shadow); }
+.btn-primary:hover { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); }
+    .btn-secondary { background: #e5e7eb; color: #374151; margin-left: 8px; }
+    .btn-secondary:hover { background: #d1d5db; }
+    .btn-sm { padding: 6px 12px; font-size: 13px; }
+    .message { margin-top: 12px; padding: 10px 12px; border-radius: 6px; font-size: 14px; display: none; }
+    .message.success { background: #d1fae5; color: #065f46; display: block; }
+    .message.error { background: #fee2e2; color: #991b1b; display: block; }
+    .blinkies-list { margin-top: 8px; }
+    .blinky-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .blinky-row img { height: 20px; width: auto; vertical-align: middle; }
+    .blinky-row input { flex: 1; max-width: none; margin-bottom: 0; }
+    .add-blinky-row { display: flex; gap: 8px; margin-top: 8px; }
+    .add-blinky-row input { flex: 1; margin-bottom: 0; }
+    .section { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #e5e7eb; }
+    .section:last-of-type { border-bottom: none; }
+    /* Preview: mirror forum post card */
+    .forum-preview-section { margin-bottom: 28px; }
+    .forum-preview-section h2 { font-size: 1.1rem; margin: 0 0 10px 0; color: #374151; }
+    .forum-preview-card {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 0;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+    .forum-preview-card.forum-preview-has-color {
+      background-color: var(--forum-preview-bg) !important;
+      border-color: var(--forum-preview-accent) !important;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
+    .forum-preview-card .forum-custom-header {
+      font-size: 0.9rem; font-weight: 600; color: #4b5563; margin: 0; padding: 8px 1rem 4px; border-bottom: 1px solid #e5e7eb;
+    }
+    .forum-preview-card.forum-preview-has-color .forum-custom-header { border-bottom-color: var(--forum-preview-accent) !important; }
+    .forum-preview-card .forum-post-header {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
+      padding: 0.5rem 1rem 0.75rem; margin: 0; border-bottom: 1px solid #e5e7eb; font-size: 0.95rem;
+    }
+    .forum-preview-card.forum-preview-has-color .forum-post-header { border-bottom-color: var(--forum-preview-accent) !important; }
+    .forum-preview-card .forum-post-header-left { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .forum-preview-card .forum-post-header-name { font-weight: 600; color: #1f2937; }
+    .forum-preview-card .forum-post-header-date { color: #6b7280; font-size: 0.9rem; }
+    .forum-preview-card .forum-post-footer { padding: 0.5rem 1rem; border-top: 1px solid #e5e7eb; }
+    .forum-preview-card.forum-preview-has-color .forum-post-footer { border-top-color: var(--forum-preview-accent) !important; }
+    .forum-preview-card .forum-blinky { height: auto; width: auto; max-height: none; vertical-align: middle; margin-left: 4px; image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; }
+    .forum-preview-card .forum-post-header.forum-post-header-has-graphic { position: relative; height: 52px; min-height: 52px; overflow: hidden; flex-shrink: 0; }
+    .forum-preview-card .forum-post-header.forum-post-header-has-graphic .forum-header-graphic { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; z-index: 0; display: block; pointer-events: none; }
+    .forum-preview-card .forum-post-header.forum-post-header-has-graphic > *:not(.forum-header-graphic) { position: relative; z-index: 1; }
+    .forum-preview-card .forum-post-header.forum-post-header-has-graphic .forum-post-header-name,
+    .forum-preview-card .forum-post-header.forum-post-header-has-graphic .forum-post-header-date { text-shadow: 0 1px 3px rgba(0,0,0,0.8); color: #fff !important; }
+    .forum-preview-card .forum-post-card-inner { display: flex; align-items: flex-start; gap: 1rem; padding: 1rem; }
+    .forum-preview-card .forum-avatar-box {
+      width: 60px; height: 60px; border-radius: 6px; border: 1px solid #e5e7eb; flex-shrink: 0;
+      background: #f3f4f6; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 0.75rem;
+    }
+    .forum-preview-card.forum-preview-has-color .forum-avatar-box { border-color: var(--forum-preview-accent) !important; }
+    .forum-preview-card .forum-post-content { flex: 1; min-width: 0; }
+    .forum-preview-card .forum-post-body { margin-top: 0; }
+    .forum-preview-card .forum-message { font-size: 0.95rem; color: #374151; line-height: 1.5; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <a href="./create.html" class="back">← Back to Create</a>
+    <h1>Customize bulletin board post</h1>
+    <p class="desc">Set a custom header, post color, name style, and blinkies for your bulletin board posts. Only visible to members with exclusive access.</p>
+
+    <div id="message" class="message" role="alert"></div>
+
+    <div class="forum-preview-section">
+      <h2>Preview</h2>
+      <div id="forum-preview-card" class="forum-preview-card">
+        <div id="forum-preview-custom-header" class="forum-custom-header" style="display: none;"></div>
+        <div id="forum-preview-post-header" class="forum-post-header">
+          <div class="forum-post-header-left">
+            <span id="forum-preview-name" class="forum-post-header-name">Your name</span>
+            <span class="forum-post-header-date">2/5/2025, 3:00 PM</span>
+          </div>
+        </div>
+        <div class="forum-post-card-inner">
+          <div class="forum-avatar-box">Avatar</div>
+          <div class="forum-post-content">
+            <div class="forum-post-body">
+              <div class="forum-message">This is how your bulletin board post will look with your current settings.</div>
+            </div>
+          </div>
+        </div>
+        <div id="forum-preview-blinkies-wrap" class="forum-post-footer" style="display: none;"></div>
+      </div>
+    </div>
+
+    <form id="customize-form">
+      <div class="section">
+        <label for="forum-post-header">Custom header (text above your post)</label>
+        <input type="text" id="forum-post-header" placeholder="e.g. My cool title" maxlength="200">
+      </div>
+
+      <div class="section">
+        <label for="forum-header-graphic">Header graphic (image in the row with username and date)</label>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+          <input type="text" id="forum-header-graphic" placeholder="https://... or /Uploads/... (or use Upload from PC)" maxlength="500" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+          <button type="button" id="forum-header-graphic-upload-btn" class="btn btn-secondary btn-sm">Upload from PC</button>
+        </div>
+        <input type="file" id="forum-header-graphic-file" accept="image/*" style="display: none;">
+      </div>
+
+      <div class="section">
+        <label>Bulletin board post background color</label>
+        <div class="color-row">
+          <input type="color" id="forum-post-color-picker" value="#ffffff" title="Pick color">
+          <input type="text" id="forum-post-color" placeholder="#hex or leave blank for default" maxlength="7">
+        </div>
+      </div>
+
+      <div class="section">
+        <label>Name color (when displayed on bulletin board)</label>
+        <div class="color-row">
+          <input type="color" id="forum-name-color-picker" value="#1f2937" title="Pick color">
+          <input type="text" id="forum-name-color" placeholder="#hex or leave blank for default" maxlength="7">
+        </div>
+      </div>
+
+      <div class="section">
+        <label for="forum-name-font">Name font</label>
+        <select id="forum-name-font">
+          <option value="">Default</option>
+          <option value="Arial">Arial</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Verdana">Verdana</option>
+          <option value="Courier New">Courier New</option>
+          <option value="Comic Sans MS">Comic Sans MS</option>
+          <option value="Trebuchet MS">Trebuchet MS</option>
+          <option value="Impact">Impact</option>
+          <option value="Lucida Sans">Lucida Sans</option>
+          <option value="Palatino">Palatino</option>
+        </select>
+      </div>
+
+      <div id="blinkies" class="section">
+        <label>Blinkies (small images next to your name, e.g. GIF URLs)</label>
+        <p class="desc" style="margin-bottom: 8px;">Add up to 10 image URLs. They will appear in the footer of your bulletin board posts.</p>
+        <div id="blinkies-list" class="blinkies-list"></div>
+        <div class="add-blinky-row">
+          <input type="url" id="new-blinky-url" placeholder="https://... or /Uploads/...">
+          <button type="button" class="btn btn-secondary btn-sm" id="add-blinky-btn">Add</button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Save customization</button>
+      <a href="./create.html" class="btn btn-secondary">Cancel</a>
+    </form>
+  </div>
+  <script src="/js/header.js"></script>
+  <script>
+    (function () {
+      var form = document.getElementById('customize-form');
+      var messageEl = document.getElementById('message');
+      var blinkiesList = document.getElementById('blinkies-list');
+      var newBlinkyInput = document.getElementById('new-blinky-url');
+      var addBlinkyBtn = document.getElementById('add-blinky-btn');
+      var postColorPicker = document.getElementById('forum-post-color-picker');
+      var postColorInput = document.getElementById('forum-post-color');
+      var nameColorPicker = document.getElementById('forum-name-color-picker');
+      var nameColorInput = document.getElementById('forum-name-color');
+
+      var blinkies = [];
+
+      function forumPostAccentColor(hex) {
+        if (!hex || !/^#[0-9A-Fa-f]{3,6}$/.test(hex)) return '#c4c8cc';
+        var h = hex.slice(1);
+        if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+        var r = parseInt(h.slice(0, 2), 16) / 255, g = parseInt(h.slice(2, 4), 16) / 255, b = parseInt(h.slice(4, 6), 16) / 255;
+        var max = Math.max(r, g, b), min = Math.min(r, g, b);
+        var L = (max + min) / 2, S = 0, H = 0;
+        if (max !== min) {
+          var d = max - min;
+          S = L > 0.5 ? d / (2 - max - min) : d / (max + min);
+          if (max === r) H = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+          else if (max === g) H = ((b - r) / d + 2) / 6;
+          else H = ((r - g) / d + 4) / 6;
+          if (H < 0) H += 1;
+          if (H > 1) H -= 1;
+        }
+        L = Math.max(0, Math.min(1, L * 0.72));
+        S = Math.max(0, Math.min(1, S * 0.5));
+        var c = (1 - Math.abs(2 * L - 1)) * S, x = c * (1 - Math.abs((H * 6) % 2 - 1)), m = L - c / 2;
+        var rr = 0, gg = 0, bb = 0;
+        if (H < 1/6) { rr = c; gg = x; }
+        else if (H < 2/6) { rr = x; gg = c; }
+        else if (H < 3/6) { gg = c; bb = x; }
+        else if (H < 4/6) { gg = x; bb = c; }
+        else if (H < 5/6) { rr = x; bb = c; }
+        else { rr = c; bb = x; }
+        return '#' + [rr + m, gg + m, bb + m].map(function(v) { var n = Math.round(Math.max(0, Math.min(1, v)) * 255); return (n < 16 ? '0' : '') + n.toString(16); }).join('');
+      }
+
+      function updatePreview() {
+        var card = document.getElementById('forum-preview-card');
+        var customHeaderEl = document.getElementById('forum-preview-custom-header');
+        var headerEl = document.getElementById('forum-preview-post-header');
+        var nameEl = document.getElementById('forum-preview-name');
+        var blinkiesWrap = document.getElementById('forum-preview-blinkies-wrap');
+        var headerVal = (document.getElementById('forum-post-header').value || '').trim().slice(0, 200);
+        var headerGraphicUrl = (document.getElementById('forum-header-graphic').value || '').trim().slice(0, 500);
+        var postColor = (postColorInput.value || '').trim();
+        if (!/^#[0-9A-Fa-f]{3,6}$/.test(postColor)) postColor = '';
+        var nameColor = (nameColorInput.value || '').trim();
+        if (!/^#[0-9A-Fa-f]{3,6}$/.test(nameColor)) nameColor = '';
+        var nameFont = (document.getElementById('forum-name-font').value || '').trim();
+
+        if (headerVal) {
+          customHeaderEl.style.display = 'block';
+          customHeaderEl.textContent = headerVal;
+        } else {
+          customHeaderEl.style.display = 'none';
+        }
+
+        if (headerGraphicUrl && headerEl) {
+          headerEl.classList.add('forum-post-header-has-graphic');
+          var img = headerEl.querySelector('.forum-header-graphic');
+          if (!img) {
+            img = document.createElement('img');
+            img.className = 'forum-header-graphic';
+            img.alt = '';
+            headerEl.insertBefore(img, headerEl.firstChild);
+          }
+          img.src = headerGraphicUrl;
+          img.style.display = '';
+          img.onerror = function() { this.style.display = 'none'; };
+        } else if (headerEl) {
+          headerEl.classList.remove('forum-post-header-has-graphic');
+          var oldImg = headerEl.querySelector('.forum-header-graphic');
+          if (oldImg) oldImg.remove();
+        }
+
+        var nameStyle = '';
+        if (nameColor) nameStyle += 'color:' + nameColor + ';';
+        if (nameFont) nameStyle += 'font-family:' + nameFont + ';';
+        nameEl.style.cssText = nameStyle || '';
+
+        if (postColor) {
+          card.classList.add('forum-preview-has-color');
+          card.style.setProperty('--forum-preview-bg', postColor);
+          card.style.setProperty('--forum-preview-accent', forumPostAccentColor(postColor));
+        } else {
+          card.classList.remove('forum-preview-has-color');
+          card.style.removeProperty('--forum-preview-bg');
+          card.style.removeProperty('--forum-preview-accent');
+        }
+
+        if (blinkiesWrap) {
+          blinkiesWrap.innerHTML = '';
+          if (blinkies.length) {
+            blinkiesWrap.style.display = '';
+            blinkies.forEach(function(url) {
+              var img = document.createElement('img');
+              img.src = url;
+              img.alt = '';
+              img.className = 'forum-blinky';
+              img.onerror = function() { img.style.display = 'none'; };
+              blinkiesWrap.appendChild(img);
+            });
+          } else {
+            blinkiesWrap.style.display = 'none';
+          }
+        }
+      }
+
+      function showMessage(text, isError) {
+        messageEl.textContent = text;
+        messageEl.className = 'message ' + (isError ? 'error' : 'success');
+        messageEl.style.display = 'block';
+      }
+
+      function syncColorFromPicker(picker, textInput) {
+        if (picker && textInput && textInput.value === '') textInput.value = picker.value;
+      }
+      function syncPickerFromInput(picker, textInput) {
+        if (!picker || !textInput) return;
+        var v = textInput.value.trim();
+        if (/^#[0-9A-Fa-f]{3,6}$/.test(v)) picker.value = v;
+      }
+      postColorPicker.addEventListener('input', function () { postColorInput.value = postColorPicker.value; updatePreview(); });
+      nameColorPicker.addEventListener('input', function () { nameColorInput.value = nameColorPicker.value; updatePreview(); });
+      postColorInput.addEventListener('input', updatePreview);
+      postColorInput.addEventListener('change', function () { syncPickerFromInput(postColorPicker, postColorInput); updatePreview(); });
+      nameColorInput.addEventListener('input', updatePreview);
+      nameColorInput.addEventListener('change', function () { syncPickerFromInput(nameColorPicker, nameColorInput); updatePreview(); });
+      document.getElementById('forum-post-header').addEventListener('input', updatePreview);
+      document.getElementById('forum-header-graphic').addEventListener('input', updatePreview);
+      document.getElementById('forum-header-graphic').addEventListener('change', updatePreview);
+      document.getElementById('forum-name-font').addEventListener('change', updatePreview);
+
+      (function () {
+        var uploadBtn = document.getElementById('forum-header-graphic-upload-btn');
+        var fileInput = document.getElementById('forum-header-graphic-file');
+        var urlInput = document.getElementById('forum-header-graphic');
+        if (!uploadBtn || !fileInput || !urlInput) return;
+        uploadBtn.addEventListener('click', function () { fileInput.click(); });
+        fileInput.addEventListener('change', function () {
+          var file = fileInput.files && fileInput.files[0];
+          if (!file) return;
+          var fd = new FormData();
+          fd.append('file', file);
+          uploadBtn.disabled = true;
+          fetch('/api/forum/upload', { method: 'POST', credentials: 'same-origin', body: fd })
+            .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || 'Upload failed'); return d; }); })
+            .then(function (d) {
+              if (d && d.url) {
+                urlInput.value = d.url;
+                updatePreview();
+                showMessage('Image uploaded. Save customization to keep it.', false);
+              }
+            })
+            .catch(function (e) { showMessage(e.message || 'Upload failed.', true); })
+            .finally(function () { uploadBtn.disabled = false; fileInput.value = ''; });
+        });
+      })();
+
+      function renderBlinkies() {
+        blinkiesList.innerHTML = '';
+        blinkies.forEach(function (url, i) {
+          var row = document.createElement('div');
+          row.className = 'blinky-row';
+          var img = document.createElement('img');
+          img.src = url;
+          img.alt = '';
+          img.onerror = function () { img.style.display = 'none'; };
+          var inp = document.createElement('input');
+          inp.type = 'url';
+          inp.value = url;
+          inp.readOnly = true;
+          var rm = document.createElement('button');
+          rm.type = 'button';
+          rm.className = 'btn btn-secondary btn-sm';
+          rm.textContent = 'Remove';
+          rm.onclick = function () {
+            blinkies.splice(i, 1);
+            renderBlinkies();
+            updatePreview();
+          };
+          row.appendChild(img);
+          row.appendChild(inp);
+          row.appendChild(rm);
+          blinkiesList.appendChild(row);
+        });
+      }
+
+      addBlinkyBtn.addEventListener('click', function () {
+        var url = (newBlinkyInput.value || '').trim();
+        if (!url) return;
+        if (blinkies.length >= 10) {
+          showMessage('Maximum 10 blinkies.', true);
+          return;
+        }
+        blinkies.push(url);
+        newBlinkyInput.value = '';
+        renderBlinkies();
+        updatePreview();
+      });
+
+      function load() {
+        fetch('/api/forum-post-customization', { credentials: 'same-origin' })
+          .then(function (r) {
+            if (r.status === 401) throw new Error('Please log in.');
+            if (r.status === 403) throw new Error('Exclusive membership required.');
+            return r.json();
+          })
+          .then(function (data) {
+            if (data.error) throw new Error(data.error);
+            document.getElementById('forum-post-header').value = data.forumPostHeader || '';
+            document.getElementById('forum-header-graphic').value = data.forumHeaderGraphic || '';
+            document.getElementById('forum-post-color').value = data.forumPostColor || '';
+            document.getElementById('forum-name-color').value = data.forumNameColor || '';
+            if (data.forumPostColor && /^#[0-9A-Fa-f]{3,6}$/.test(data.forumPostColor)) postColorPicker.value = data.forumPostColor;
+            if (data.forumNameColor && /^#[0-9A-Fa-f]{3,6}$/.test(data.forumNameColor)) nameColorPicker.value = data.forumNameColor;
+            document.getElementById('forum-name-font').value = data.forumNameFont || '';
+            blinkies = Array.isArray(data.forumBlinkies) ? data.forumBlinkies.slice() : [];
+            renderBlinkies();
+            updatePreview();
+          })
+          .catch(function (err) {
+            showMessage(err.message || 'Could not load settings.', true);
+          });
+      }
+
+      updatePreview();
+      load();
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var payload = {
+          forumPostHeader: (document.getElementById('forum-post-header').value || '').trim().slice(0, 200),
+          forumHeaderGraphic: (document.getElementById('forum-header-graphic').value || '').trim().slice(0, 500),
+          forumPostColor: (document.getElementById('forum-post-color').value || '').trim(),
+          forumNameColor: (document.getElementById('forum-name-color').value || '').trim(),
+          forumNameFont: (document.getElementById('forum-name-font').value || '').trim().slice(0, 80),
+          forumBlinkies: blinkies.slice(0, 10)
+        };
+        if (payload.forumPostColor && !/^#[0-9A-Fa-f]{3,6}$/.test(payload.forumPostColor)) payload.forumPostColor = '';
+        if (payload.forumNameColor && !/^#[0-9A-Fa-f]{3,6}$/.test(payload.forumNameColor)) payload.forumNameColor = '';
+
+        fetch('/api/forum-post-customization', {
+          method: 'PUT',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+          .then(function (result) {
+            if (result.ok) {
+              showMessage('Customization saved. Your next bulletin board posts will use these settings.');
+            } else {
+              showMessage(result.data && result.data.error ? result.data.error : 'Failed to save.', true);
+            }
+          })
+          .catch(function () {
+            showMessage('Failed to save.', true);
+          });
+      });
+    })();
+  </script>
+</body>
+</html>

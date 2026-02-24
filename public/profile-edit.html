@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Profile - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 600px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .container.profile-custom { border-top: 4px solid var(--profile-accent, #ec4899); }
+    h1 { margin: 0 0 16px 0; font-size: 1.5rem; }
+    .profile-row { margin: 12px 0; color: #374151; }
+    .profile-row strong { display: inline-block; min-width: 140px; }
+    .profile-error { color: #b91c1c; }
+    .profile-section { margin: 20px 0; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+    .profile-section:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+    .profile-section-title { font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .profile-avatar { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #e5e7eb; display: block; margin-bottom: 8px; }
+    .profile-avatar-placeholder { width: 80px; height: 80px; border-radius: 50%; background: #e5e7eb; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 12px; margin-bottom: 8px; }
+    .profile-save { padding: 8px 20px; background: var(--profile-accent, #ec4899); color: white; border: var(--btn-pink-border); border-radius: 6px; cursor: pointer; font-weight: 600; box-shadow: var(--btn-pink-shadow); }
+    .profile-save:hover { filter: brightness(1.1); }
+    input[type="text"], input[type="color"], textarea { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+    input[type="color"] { width: 44px; height: 44px; padding: 2px; cursor: pointer; vertical-align: middle; }
+    .profile-page-section { margin-top: 16px; }
+    .profile-page-section .hint { font-size: 12px; color: #6b7280; margin-bottom: 8px; }
+    .profile-page-editor { width: 100%; min-height: 160px; font-family: var(--font-mono), Consolas, "Courier New", monospace; font-size: 13px; box-sizing: border-box; }
+    .profile-edit-back { display: inline-block; margin-bottom: 16px; font-size: 14px; color: #ec4899; text-decoration: none; font-weight: 500; }
+    .profile-edit-back:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container" id="profile-edit-container">
+    <a href="/profile" class="profile-edit-back">← Profile</a>
+    <h1>Edit profile</h1>
+    <div id="profile-edit-content">
+      <p class="profile-row"><strong>Loading…</strong></p>
+    </div>
+  </div>
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+  <script>
+    (function () {
+      const el = document.getElementById('profile-edit-content');
+      const container = document.getElementById('profile-edit-container');
+      function esc(s) { return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+      fetch('/api/profile', { credentials: 'same-origin' })
+        .then(function (r) {
+          if (!r.ok) throw new Error(r.status === 401 ? 'Not logged in' : 'Failed to load profile');
+          return r.json();
+        })
+        .then(function (data) {
+          if (container && (data.accentColor || '').trim()) container.style.setProperty('--profile-accent', data.accentColor.trim());
+          var displayName = (data.displayName != null ? data.displayName : '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+          var bioSafe = (data.bio != null ? data.bio : '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+          var accentColor = (data.accentColor && /^#[0-9A-Fa-f]{3,6}$/.test(data.accentColor)) ? data.accentColor : '#ec4899';
+          el.innerHTML =
+            '<div class="profile-section">' +
+            '<div class="profile-section-title">Customize</div>' +
+            (data.profilePictureUrl
+              ? '<img src="' + esc(data.profilePictureUrl) + '" alt="Your avatar" class="profile-avatar" id="profile-avatar-preview">'
+              : '<div class="profile-avatar-placeholder" id="profile-avatar-preview">No photo</div>') +
+            '<p class="profile-row"><a href="/profile-picture" class="text-pink-600 hover:underline text-sm">Change profile picture</a></p>' +
+            '<p class="profile-row"><strong>Display name</strong> <span class="text-gray-500 text-sm">(optional, max 50 chars)</span></p>' +
+            '<input type="text" id="profile-display-name" maxlength="50" placeholder="Leave blank to use username" value="' + displayName + '" style="width:100%;max-width:280px;margin-bottom:12px;box-sizing:border-box;">' +
+            '<p class="profile-row"><strong>Accent color</strong> <span class="text-gray-500 text-sm">(for your profile page)</span></p>' +
+            '<p class="profile-row"><input type="color" id="profile-accent-color" value="' + accentColor + '" aria-label="Accent color"> <input type="text" id="profile-accent-hex" value="' + accentColor + '" placeholder="#ec4899" maxlength="7" style="width:90px;margin-left:8px;">' +
+            '<p class="profile-row"><strong>Bio</strong></p>' +
+            '<textarea id="profile-bio" rows="3" style="width:100%;max-width:400px;box-sizing:border-box;margin-bottom:12px;">' + bioSafe + '</textarea>' +
+            '<div class="profile-section profile-page-section">' +
+            '<div class="profile-section-title">Profile page (what others see)</div>' +
+            '<p class="profile-row hint">Customize the profile page shown to visitors (the box in the middle). Use simple HTML (e.g. &lt;p&gt;, &lt;a href="..."&gt;, &lt;img src="..."&gt;, &lt;h1&gt;).</p>' +
+            '<textarea id="profile-page-html" class="profile-page-editor" placeholder="<h1>Welcome</h1><p>Your content here...</p>" rows="8"></textarea>' +
+            '<p class="profile-row"><button type="button" id="profile-save" class="profile-save">Save customization</button></p>' +
+            '</div></div>';
+          var profilePageEl = document.getElementById('profile-page-html');
+          if (profilePageEl) profilePageEl.value = (data.profilePageHtml != null ? data.profilePageHtml : '');
+          var accentColorEl = document.getElementById('profile-accent-color');
+          var accentHexEl = document.getElementById('profile-accent-hex');
+          function syncAccentFromPicker() { if (accentHexEl && accentColorEl) accentHexEl.value = accentColorEl.value; }
+          function syncAccentFromHex() {
+            if (!accentHexEl || !accentColorEl) return;
+            var v = (accentHexEl.value || '').trim();
+            if (/^#[0-9A-Fa-f]{3,6}$/.test(v)) accentColorEl.value = v;
+          }
+          if (accentColorEl) accentColorEl.addEventListener('input', syncAccentFromPicker);
+          if (accentHexEl) accentHexEl.addEventListener('input', syncAccentFromHex);
+          document.getElementById('profile-save').addEventListener('click', function () {
+            var bioEl = document.getElementById('profile-bio');
+            var displayNameEl = document.getElementById('profile-display-name');
+            var newBio = (bioEl && bioEl.value) ? bioEl.value : '';
+            var newDisplayName = (displayNameEl && displayNameEl.value) ? displayNameEl.value.trim() : '';
+            var newAccent = (accentHexEl && accentHexEl.value) ? accentHexEl.value.trim() : '';
+            if (newAccent && !/^#[0-9A-Fa-f]{3,6}$/.test(newAccent)) newAccent = '';
+            var newProfilePageHtml = (profilePageEl && profilePageEl.value) ? profilePageEl.value : '';
+            fetch('/api/profile', {
+              method: 'PUT',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ bio: newBio, displayName: newDisplayName, accentColor: newAccent, profilePageHtml: newProfilePageHtml })
+            }).then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+              .then(function (res) {
+                if (container) container.style.setProperty('--profile-accent', (res.accentColor || '').trim() || '#ec4899');
+                if (typeof showToast === 'function') showToast('Profile saved.');
+                else alert('Profile saved.');
+                window.location.href = '/profile';
+              })
+              .catch(function () { if (typeof showToast === 'function') showToast('Could not save profile.', true); else alert('Could not save profile.'); });
+          });
+        })
+        .catch(function () {
+          el.innerHTML = '<p class="profile-row profile-error">Could not load profile. <a href="/profile">Back to profile</a></p>';
+        });
+    })();
+  </script>
+</body>
+</html>

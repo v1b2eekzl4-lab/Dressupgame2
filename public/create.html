@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 800px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h1 { margin: 0 0 16px 0; font-size: 1.5rem; }
+    p { margin: 0 0 12px 0; color: #374151; }
+    .create-thumb-grid { display: flex; flex-wrap: wrap; gap: 16px; margin: 16px 0; }
+    .create-thumb { display: block; width: 140px; height: 140px; border-radius: 8px; border: 2px solid #e5e7eb; background: linear-gradient(180deg, #e0e7ff 0%, #c7d2fe 100%); box-shadow: 0 2px 4px rgba(0,0,0,0.08); text-decoration: none; color: #1f2937; font-weight: 600; font-size: 14px; text-align: center; padding-top: 36px; box-sizing: border-box; transition: transform 0.2s, box-shadow 0.2s; }
+    .create-thumb:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.12); }
+    .create-thumb.projects-thumb { background: linear-gradient(180deg, #fce4ec 0%, #f9a8d4 100%); }
+    .create-thumb.room-thumb { background: linear-gradient(180deg, #fce7f3 0%, #f9a8d4 100%); }
+    .create-thumb.dashboard-edit-thumb { background: linear-gradient(180deg, #e9d5ff 0%, #d8b4fe 100%); }
+    .create-thumb.item-debug-thumb { background: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%); }
+    .create-thumb.spritesheet-thumb { background: linear-gradient(180deg, #a5f3fc 0%, #67e8f9 100%); }
+    .create-thumb.walking-spritesheet-thumb { background: linear-gradient(180deg, #b4e7ce 0%, #7dd3a0 100%); }
+    .create-thumb.create-slide-thumb { background: linear-gradient(180deg, #e9d5ff 0%, #c4b5fd 100%); }
+    .create-thumb .icon { font-size: 36px; display: block; margin-bottom: 8px; line-height: 1; }
+    .create-thumb-with-sublink { padding-top: 24px !important; }
+    .create-sublink { font-size: 12px; font-weight: 500; color: #5b21b6; text-decoration: none; }
+    .create-sublink:hover { text-decoration: underline; }
+    .create-debug-section { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+    .create-debug-heading { font-size: 1.1rem; color: #6b7280; margin: 0 0 4px 0; }
+    .create-debug-desc { font-size: 12px; color: #9ca3af; margin: 0 0 12px 0; }
+    .create-thumb.holo-overlay-thumb { background: linear-gradient(180deg, #c4b5fd 0%, #a78bfa 100%); color: #fff; }
+    #holo-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+    #holo-overlay.visible { display: flex; }
+    #holo-overlay .holo-card { background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-width: 420px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 20px; }
+    #holo-overlay .holo-card h2 { margin: 0 0 16px 0; font-size: 1.25rem; }
+    #holo-overlay .holo-preview-wrap { position: relative; width: 200px; height: 200px; margin: 0 auto 16px; border-radius: 12px; overflow: hidden; background: #1a1a2e; display: flex; align-items: center; justify-content: center; }
+    #holo-overlay .holo-preview { width: 100%; height: 100%; border-radius: inherit; position: relative; }
+    #holo-overlay .holo-mask-wrap { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; }
+    #holo-overlay .holo-mask-wrap.mask-none { -webkit-mask-image: none; mask-image: none; }
+    #holo-overlay .holo-mask-wrap.mask-radial { -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, black 40%, transparent 70%); mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, black 40%, transparent 70%); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+    #holo-overlay .holo-mask-wrap.mask-linear-v { -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 80%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 80%, transparent 100%); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+    #holo-overlay .holo-mask-wrap.mask-linear-h { -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 25%, black 75%, transparent 100%); mask-image: linear-gradient(90deg, transparent 0%, black 25%, black 75%, transparent 100%); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+    #holo-overlay .holo-layer { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
+    #holo-overlay .holo-grad-1 { background: conic-gradient(from 0deg at 50% 50%, #ff0080, #ff8c00, #40e0d0, #9d4edd, #ff0080); mix-blend-mode: overlay; animation: holo-spin 8s linear infinite; }
+    #holo-overlay .holo-grad-2 { background: linear-gradient(135deg, #fbbf24 0%, #a78bfa 50%, #06b6d4 100%); mix-blend-mode: overlay; opacity: 0.8; }
+    #holo-overlay .holo-grad-3 { background: radial-gradient(ellipse 80% 80% at 50% 50%, #f472b6, transparent 60%); mix-blend-mode: overlay; opacity: 0.6; }
+    #holo-overlay .holo-pattern-1 { background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.12) 8px, rgba(255,255,255,0.12) 16px); mix-blend-mode: overlay; opacity: 0.7; }
+    #holo-overlay .holo-pattern-2 { background: radial-gradient(circle at center, rgba(255,255,255,0.2) 1px, transparent 1px); background-size: 12px 12px; mix-blend-mode: overlay; opacity: 0.6; }
+    #holo-overlay .holo-pattern-3 { background: repeating-linear-gradient(0deg, transparent 0, transparent 6px, rgba(255,255,255,0.08) 6px, rgba(255,255,255,0.08) 12px), repeating-linear-gradient(90deg, transparent 0, transparent 6px, rgba(255,255,255,0.08) 6px, rgba(255,255,255,0.08) 12px); mix-blend-mode: overlay; opacity: 0.5; }
+    #holo-overlay .holo-reflect { position: absolute; inset: 0; border-radius: inherit; mix-blend-mode: overlay; pointer-events: none; -webkit-mask-size: 32px 32px; mask-size: 32px 32px; -webkit-mask-repeat: repeat; mask-repeat: repeat; -webkit-mask-position: 0 0; mask-position: 0 0; }
+    #holo-overlay .holo-reflect-hearts { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E"); }
+    #holo-overlay .holo-reflect-stars { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E"); }
+    #holo-overlay .holo-reflect-prisms { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2L2 12l10 10 10-10L12 2z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2L2 12l10 10 10-10L12 2z'/%3E%3C/svg%3E"); }
+    #holo-overlay .holo-reflect-hearts { background: conic-gradient(from 0deg at 50% 50%, #ff0080, #ff8c00, #40e0d0, #9d4edd, #ff0080); opacity: 0.8; }
+    #holo-overlay .holo-reflect-stars { background: conic-gradient(from 120deg at 50% 50%, #ff0080, #ff8c00, #40e0d0, #9d4edd, #ff0080); opacity: 0.8; }
+    #holo-overlay .holo-reflect-prisms { background: conic-gradient(from 240deg at 50% 50%, #ff0080, #ff8c00, #40e0d0, #9d4edd, #ff0080); opacity: 0.8; }
+    #holo-overlay .holo-foil-shimmer { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.2) 30%, rgba(255,255,255,0.45) 45%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.45) 55%, rgba(255,255,255,0.2) 70%, transparent 100%); background-size: 200% 200%; animation: holo-shimmer 4s ease-in-out infinite; pointer-events: none; }
+    @keyframes holo-spin { to { transform: rotate(360deg); } }
+    @keyframes holo-shimmer { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+    #holo-overlay .holo-controls { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+    #holo-overlay .holo-controls label { font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
+    #holo-overlay .holo-controls .holo-control-row { width: 100%; margin-top: 4px; }
+    #holo-overlay .holo-close { margin-top: 16px; padding: 8px 16px; background: #e5e7eb; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    #holo-overlay .holo-close:hover { background: #d1d5db; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <h1>Create</h1>
+    <p>Upload items, or open your room. Choose an option below.</p>
+
+    <div class="create-thumb-grid">
+      <a href="/projects" class="create-thumb projects-thumb">
+        <span class="icon">⬆️</span>
+        Upload Items
+      </a>
+      <a href="./design-projects.html" class="create-thumb" style="background: linear-gradient(180deg, #86efac 0%, #4ade80 100%);">
+        <span class="icon">🎨</span>
+        Design Tool
+      </a>
+      <a href="./room.html" class="create-thumb room-thumb">
+        <span class="icon">🏠</span>
+        Room
+      </a>
+      <a href="./tile-map-editor.html" class="create-thumb" style="background: linear-gradient(180deg, #ddd6fe 0%, #a78bfa 100%);">
+        <span class="icon">🗺️</span>
+        Tile Map Editor
+      </a>
+    </div>
+
+    <div id="create-membership-section" class="create-debug-section" style="display: none;">
+      <h2 class="create-debug-heading">Exclusive membership functionalities</h2>
+      <p class="create-debug-desc">Features for members with exclusive access.</p>
+      <div class="create-thumb-grid">
+        <a href="./brand-label-projects.html" class="create-thumb" style="background: linear-gradient(180deg, #fecaca 0%, #fca5a5 100%);">
+          <span class="icon">🏷️</span>
+          Brand Label
+        </a>
+        <a href="./brands.html" class="create-thumb" style="background: linear-gradient(180deg, #fecaca 0%, #fca5a5 100%);">
+          <span class="icon">🏢</span>
+          My Brands
+        </a>
+        <a href="./create-slide.html" class="create-thumb create-slide-thumb">
+          <span class="icon">📽️</span>
+          Create Slide
+        </a>
+        <a href="./upload-emotes.html" class="create-thumb" style="background: linear-gradient(180deg, #fde68a 0%, #fcd34d 100%);">
+          <span class="icon">😀</span>
+          Upload emoticons
+        </a>
+        <a href="./upload-gifs.html" class="create-thumb" style="background: linear-gradient(180deg, #a5f3fc 0%, #67e8f9 100%);">
+          <span class="icon">🎞️</span>
+          Upload GIF
+        </a>
+        <a href="./create-advertisement.html" class="create-thumb" style="background: linear-gradient(180deg, #fbcfe8 0%, #f9a8d4 100%);">
+          <span class="icon">📢</span>
+          Create advertisement
+        </a>
+        <div class="create-thumb create-thumb-with-sublink" style="background: linear-gradient(180deg, #ddd6fe 0%, #c4b5fd 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;">
+          <a href="./customize-forum-post.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; color: inherit; text-decoration: none;">
+            <span class="icon">✉️</span>
+            Customize bulletin board post
+          </a>
+          <a href="./customize-forum-post.html#blinkies" class="create-sublink">Upload blinkies</a>
+        </div>
+        <a href="./customize-hover-card.html" class="create-thumb" style="background: linear-gradient(180deg, #e0e7ff 0%, #a5b4fc 100%);">
+          <span class="icon">💬</span>
+          Customize hover card
+        </a>
+        <a href="./sticker-debug.html" id="create-sticker-debug-link" class="create-thumb" style="display: none; background: linear-gradient(180deg, #ddd6fe 0%, #a78bfa 100%);">
+          <span class="icon">🏷️</span>
+          Upload stickers (debug)
+        </a>
+      </div>
+    </div>
+
+    <div id="create-debug-section" class="create-debug-section" style="display: none;">
+      <h2 class="create-debug-heading">Debug</h2>
+      <p class="create-debug-desc">Admin and moderator only.</p>
+      <div class="create-thumb-grid">
+        <a href="./spritesheet-tool.html" class="create-thumb spritesheet-thumb">
+          <span class="icon">🖼️</span>
+          Spritesheet Tool
+        </a>
+        <a href="./walking-spritesheet-creator.html" class="create-thumb walking-spritesheet-thumb">
+          <span class="icon">🚶</span>
+          Walking Sprite Sheet
+        </a>
+        <a href="./dashboard-edit.html" class="create-thumb dashboard-edit-thumb">
+          <span class="icon">✏️</span>
+          Edit dashboard
+        </a>
+        <a href="/item-debug-page" class="create-thumb item-debug-thumb">
+          <span class="icon">🔧</span>
+          Item Debug
+        </a>
+        <a href="./wallpaper-debug.html" class="create-thumb" style="background: linear-gradient(180deg, #fce7f3 0%, #f9a8d4 100%);">
+          <span class="icon">🖼️</span>
+          Site wallpaper (debug)
+        </a>
+        <a href="./slide-gallery.html" class="create-thumb" style="background: linear-gradient(180deg, #fecaca 0%, #fca5a5 100%);">
+          <span class="icon">🖼️</span>
+          Upload images
+        </a>
+        <button type="button" id="holo-overlay-btn" class="create-thumb holo-overlay-thumb" style="border: none; cursor: pointer; font: inherit;">
+          <span class="icon">✨</span>
+          holo_overlay
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="holo-overlay" aria-hidden="true">
+    <div class="holo-card" role="dialog" aria-labelledby="holo-overlay-title">
+      <h2 id="holo-overlay-title">Holographic foil experiment</h2>
+      <div class="holo-preview-wrap">
+        <div class="holo-preview">
+          <div class="holo-mask-wrap mask-none" id="holo-mask-wrap">
+            <div class="holo-layer holo-grad-1" id="holo-grad-1"></div>
+            <div class="holo-layer holo-grad-2" id="holo-grad-2"></div>
+            <div class="holo-layer holo-grad-3" id="holo-grad-3"></div>
+            <div class="holo-layer holo-pattern-1" id="holo-pattern-1"></div>
+            <div class="holo-layer holo-pattern-2" id="holo-pattern-2"></div>
+            <div class="holo-layer holo-pattern-3" id="holo-pattern-3"></div>
+            <div class="holo-layer holo-reflect holo-reflect-hearts" id="holo-reflect-hearts"></div>
+            <div class="holo-layer holo-reflect holo-reflect-stars" id="holo-reflect-stars"></div>
+            <div class="holo-layer holo-reflect holo-reflect-prisms" id="holo-reflect-prisms"></div>
+          </div>
+          <div class="holo-foil-shimmer" id="holo-foil-shimmer"></div>
+        </div>
+      </div>
+      <div class="holo-controls">
+        <div class="holo-control-row">
+          <label>Mask</label>
+          <select id="holo-mask" aria-label="Layer mask">
+            <option value="none">None</option>
+            <option value="radial">Radial (center)</option>
+            <option value="linear-v">Linear vertical</option>
+            <option value="linear-h">Linear horizontal</option>
+          </select>
+        </div>
+        <div class="holo-control-row"><strong>Gradients</strong></div>
+        <label><input type="checkbox" id="holo-g1-on" checked> G1</label>
+        <label>G1 op. <input type="range" id="holo-g1-op" min="0" max="100" value="70" style="width:60px;"></label>
+        <label><input type="checkbox" id="holo-spin" checked> Spin G1</label>
+        <label><input type="checkbox" id="holo-g2-on" checked> G2</label>
+        <label>G2 op. <input type="range" id="holo-g2-op" min="0" max="100" value="80" style="width:60px;"></label>
+        <label><input type="checkbox" id="holo-g3-on" checked> G3</label>
+        <label>G3 op. <input type="range" id="holo-g3-op" min="0" max="100" value="60" style="width:60px;"></label>
+        <div class="holo-control-row"><strong>Patterns</strong></div>
+        <label><input type="checkbox" id="holo-p1-on" checked> Stripes</label>
+        <label>P1 op. <input type="range" id="holo-p1-op" min="0" max="100" value="70" style="width:60px;"></label>
+        <label><input type="checkbox" id="holo-p2-on"> Dots</label>
+        <label>P2 op. <input type="range" id="holo-p2-op" min="0" max="100" value="60" style="width:60px;"></label>
+        <label><input type="checkbox" id="holo-p3-on"> Grid</label>
+        <label>P3 op. <input type="range" id="holo-p3-op" min="0" max="100" value="50" style="width:60px;"></label>
+        <div class="holo-control-row"><strong>Reflection shapes</strong> (masked + different angles)</div>
+        <label><input type="checkbox" id="holo-rh-on" checked> Hearts</label>
+        <label>op. <input type="range" id="holo-rh-op" min="0" max="100" value="80" style="width:50px;"></label>
+        <label>angle <input type="range" id="holo-rh-angle" min="0" max="360" value="0" style="width:60px;"></label>
+        <label><input type="checkbox" id="holo-rs-on" checked> Stars</label>
+        <label>op. <input type="range" id="holo-rs-op" min="0" max="100" value="80" style="width:50px;"></label>
+        <label>angle <input type="range" id="holo-rs-angle" min="0" max="360" value="120" style="width:60px;"></label>
+        <label><input type="checkbox" id="holo-rp-on" checked> Prisms</label>
+        <label>op. <input type="range" id="holo-rp-op" min="0" max="100" value="80" style="width:50px;"></label>
+        <label>angle <input type="range" id="holo-rp-angle" min="0" max="360" value="240" style="width:60px;"></label>
+        <div class="holo-control-row"><strong>Top</strong></div>
+        <label><input type="checkbox" id="holo-shimmer" checked> Shimmer</label>
+        <label>Master op. <input type="range" id="holo-opacity" min="20" max="100" value="90" style="width:70px;"></label>
+      </div>
+      <button type="button" class="holo-close" id="holo-overlay-close">Close</button>
+    </div>
+  </div>
+
+  <script src="/js/toast.js" defer></script>
+  <script src="/js/header.js" defer></script>
+  <script>
+    (function () {
+      const debugSection = document.getElementById('create-debug-section');
+      fetch('/api/me', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }).then(function (me) {
+        const roles = (me && me.roles) || [];
+        const canSeeDebug = roles.indexOf('admin') !== -1 || roles.indexOf('moderator') !== -1;
+        const canSeeMembership = roles.indexOf('admin') !== -1 || roles.indexOf('moderator') !== -1 || roles.indexOf('membership') !== -1;
+        if (debugSection && canSeeDebug) debugSection.style.display = '';
+        var stickerDebugLink = document.getElementById('create-sticker-debug-link');
+        if (stickerDebugLink && canSeeDebug) stickerDebugLink.style.display = '';
+        const membershipSection = document.getElementById('create-membership-section');
+        if (membershipSection && canSeeMembership) membershipSection.style.display = '';
+      });
+
+      var holoOverlay = document.getElementById('holo-overlay');
+      var holoMaskWrap = document.getElementById('holo-mask-wrap');
+      var holoGrad1 = document.getElementById('holo-grad-1');
+      var holoGrad2 = document.getElementById('holo-grad-2');
+      var holoGrad3 = document.getElementById('holo-grad-3');
+      var holoPattern1 = document.getElementById('holo-pattern-1');
+      var holoPattern2 = document.getElementById('holo-pattern-2');
+      var holoPattern3 = document.getElementById('holo-pattern-3');
+      var holoFoilShimmer = document.getElementById('holo-foil-shimmer');
+      var holoReflectHearts = document.getElementById('holo-reflect-hearts');
+      var holoReflectStars = document.getElementById('holo-reflect-stars');
+      var holoReflectPrisms = document.getElementById('holo-reflect-prisms');
+      var conicColors = '#ff0080, #ff8c00, #40e0d0, #9d4edd, #ff0080';
+      function setReflectAngle(el, deg) {
+        if (!el) return;
+        el.style.background = 'conic-gradient(from ' + deg + 'deg at 50% 50%, ' + conicColors + ')';
+      }
+
+      document.getElementById('holo-overlay-btn').addEventListener('click', function () {
+        if (holoOverlay) {
+          holoOverlay.classList.add('visible');
+          holoOverlay.setAttribute('aria-hidden', 'false');
+        }
+      });
+      document.getElementById('holo-overlay-close').addEventListener('click', function () {
+        if (holoOverlay) {
+          holoOverlay.classList.remove('visible');
+          holoOverlay.setAttribute('aria-hidden', 'true');
+        }
+      });
+      if (holoOverlay) holoOverlay.addEventListener('click', function (e) {
+        if (e.target === holoOverlay) {
+          holoOverlay.classList.remove('visible');
+          holoOverlay.setAttribute('aria-hidden', 'true');
+        }
+      });
+
+      document.getElementById('holo-mask').addEventListener('change', function () {
+        if (!holoMaskWrap) return;
+        holoMaskWrap.className = 'holo-mask-wrap mask-' + this.value;
+      });
+
+      function setOpacity(el, pct) { if (el) el.style.opacity = String(Math.max(0, Math.min(1, pct / 100))); }
+      function setVisible(el, on) { if (el) el.style.display = on ? '' : 'none'; }
+
+      document.getElementById('holo-opacity').addEventListener('input', function () {
+        setOpacity(holoMaskWrap, parseInt(this.value, 10));
+      });
+      document.getElementById('holo-g1-on').addEventListener('change', function () { setVisible(holoGrad1, this.checked); });
+      document.getElementById('holo-g1-op').addEventListener('input', function () { setOpacity(holoGrad1, parseInt(this.value, 10)); });
+      document.getElementById('holo-spin').addEventListener('change', function () {
+        if (holoGrad1) holoGrad1.style.animation = this.checked ? 'holo-spin 8s linear infinite' : 'none';
+      });
+      document.getElementById('holo-g2-on').addEventListener('change', function () { setVisible(holoGrad2, this.checked); });
+      document.getElementById('holo-g2-op').addEventListener('input', function () { setOpacity(holoGrad2, parseInt(this.value, 10)); });
+      document.getElementById('holo-g3-on').addEventListener('change', function () { setVisible(holoGrad3, this.checked); });
+      document.getElementById('holo-g3-op').addEventListener('input', function () { setOpacity(holoGrad3, parseInt(this.value, 10)); });
+
+      document.getElementById('holo-p1-on').addEventListener('change', function () { setVisible(holoPattern1, this.checked); });
+      document.getElementById('holo-p1-op').addEventListener('input', function () { setOpacity(holoPattern1, parseInt(this.value, 10)); });
+      document.getElementById('holo-p2-on').addEventListener('change', function () { setVisible(holoPattern2, this.checked); });
+      document.getElementById('holo-p2-op').addEventListener('input', function () { setOpacity(holoPattern2, parseInt(this.value, 10)); });
+      document.getElementById('holo-p3-on').addEventListener('change', function () { setVisible(holoPattern3, this.checked); });
+      document.getElementById('holo-p3-op').addEventListener('input', function () { setOpacity(holoPattern3, parseInt(this.value, 10)); });
+
+      document.getElementById('holo-rh-on').addEventListener('change', function () { setVisible(holoReflectHearts, this.checked); });
+      document.getElementById('holo-rh-op').addEventListener('input', function () { setOpacity(holoReflectHearts, parseInt(this.value, 10)); });
+      document.getElementById('holo-rh-angle').addEventListener('input', function () { setReflectAngle(holoReflectHearts, parseInt(this.value, 10)); });
+      document.getElementById('holo-rs-on').addEventListener('change', function () { setVisible(holoReflectStars, this.checked); });
+      document.getElementById('holo-rs-op').addEventListener('input', function () { setOpacity(holoReflectStars, parseInt(this.value, 10)); });
+      document.getElementById('holo-rs-angle').addEventListener('input', function () { setReflectAngle(holoReflectStars, parseInt(this.value, 10)); });
+      document.getElementById('holo-rp-on').addEventListener('change', function () { setVisible(holoReflectPrisms, this.checked); });
+      document.getElementById('holo-rp-op').addEventListener('input', function () { setOpacity(holoReflectPrisms, parseInt(this.value, 10)); });
+      document.getElementById('holo-rp-angle').addEventListener('input', function () { setReflectAngle(holoReflectPrisms, parseInt(this.value, 10)); });
+
+      document.getElementById('holo-shimmer').addEventListener('change', function () {
+        if (holoFoilShimmer) holoFoilShimmer.style.animation = this.checked ? 'holo-shimmer 4s ease-in-out infinite' : 'none';
+      });
+
+      setOpacity(holoMaskWrap, parseInt(document.getElementById('holo-opacity').value, 10));
+      setOpacity(holoGrad1, parseInt(document.getElementById('holo-g1-op').value, 10));
+      setOpacity(holoGrad2, parseInt(document.getElementById('holo-g2-op').value, 10));
+      setOpacity(holoGrad3, parseInt(document.getElementById('holo-g3-op').value, 10));
+      setOpacity(holoPattern1, parseInt(document.getElementById('holo-p1-op').value, 10));
+      setOpacity(holoPattern2, parseInt(document.getElementById('holo-p2-op').value, 10));
+      setOpacity(holoPattern3, parseInt(document.getElementById('holo-p3-op').value, 10));
+      setVisible(holoPattern2, false);
+      setVisible(holoPattern3, false);
+      setOpacity(holoReflectHearts, parseInt(document.getElementById('holo-rh-op').value, 10));
+      setOpacity(holoReflectStars, parseInt(document.getElementById('holo-rs-op').value, 10));
+      setOpacity(holoReflectPrisms, parseInt(document.getElementById('holo-rp-op').value, 10));
+      setReflectAngle(holoReflectHearts, parseInt(document.getElementById('holo-rh-angle').value, 10));
+      setReflectAngle(holoReflectStars, parseInt(document.getElementById('holo-rs-angle').value, 10));
+      setReflectAngle(holoReflectPrisms, parseInt(document.getElementById('holo-rp-angle').value, 10));
+    })();
+  </script>
+</body>
+</html>

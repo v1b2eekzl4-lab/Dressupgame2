@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tile Map Editor - Dress-Up Game</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <style>
+        body { font-family: 'Comfortaa', 'Quicksand', Verdana, sans-serif; margin: 0; padding-top: 76px; padding-bottom: 2rem; background: #1a1a2e; color: #eaeaea; min-height: 100vh; }
+        .wrap { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #eee; }
+        .nav-links { margin-bottom: 1.5rem; font-size: 13px; }
+        .nav-links a { color: #f9a8d4; text-decoration: none; }
+        .nav-links a:hover { text-decoration: underline; }
+        .editor-layout { display: grid; grid-template-columns: 220px 1fr; gap: 20px; align-items: start; }
+        @media (max-width: 900px) { .editor-layout { grid-template-columns: 1fr; } }
+        .sidebar { background: #16213e; border: 2px solid #2d3748; border-radius: 12px; padding: 12px; }
+        .sidebar h3 { margin: 0 0 10px 0; font-size: 14px; color: #a0aec0; }
+        .tile-upload { border: 2px dashed #4a5568; border-radius: 8px; padding: 12px; text-align: center; cursor: pointer; margin-bottom: 12px; transition: border-color 0.2s; }
+        .tile-upload:hover { border-color: #63b3ed; }
+        .tile-upload input { display: none; }
+        .tile-palette { display: flex; flex-wrap: wrap; gap: 4px; max-height: 200px; overflow-y: auto; }
+        .tile-palette img { width: auto; height: auto; max-width: 48px; max-height: 48px; border: 2px solid #4a5568; border-radius: 4px; cursor: pointer; image-rendering: pixelated; image-rendering: crisp-edges; }
+        .tile-palette img:hover { border-color: #63b3ed; }
+        .tile-palette img.selected { border-color: #48bb78; }
+        .tool-btn { display: block; width: 100%; padding: 8px; margin-top: 8px; background: #2d3748; border: 1px solid #4a5568; border-radius: 6px; color: #e2e8f0; cursor: pointer; font-size: 13px; }
+        .tool-btn:hover { background: #4a5568; }
+        .tool-btn.active { background: #3182ce; border-color: #3182ce; }
+        .tool-btn.boundary { border-color: #e53e3e; }
+        .tool-btn.boundary.active { background: #e53e3e; }
+        .map-controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+        .map-controls label { margin-right: 4px; }
+        .map-controls input[type="number"] { width: 60px; padding: 4px 8px; border-radius: 4px; border: 1px solid #4a5568; background: #16213e; color: #eaeaea; }
+        .map-area { background: #0f0f1a; border-radius: 8px; padding: 16px; overflow: auto; max-height: 70vh; }
+        .map-canvas-wrap { position: relative; display: inline-block; }
+        .map-canvas-wrap canvas { display: block; }
+        #boundaryOverlay { position: absolute; top: 0; left: 0; pointer-events: none; }
+        #mapCanvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; image-rendering: -moz-crisp-edges; image-rendering: -webkit-optimize-contrast; cursor: crosshair; }
+        .test-mode-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        #testCanvas { image-rendering: pixelated; image-rendering: crisp-edges; image-rendering: -moz-crisp-edges; image-rendering: -webkit-optimize-contrast; border: 2px solid #4a5568; border-radius: 8px; }
+        .test-hint { font-size: 12px; color: #a0aec0; }
+        .hidden { display: none !important; }
+        .btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; font-size: 14px; }
+        .btn-primary { background: #3182ce; color: white; }
+        .btn-primary:hover { background: #2c5282; }
+        .btn-secondary { background: #2d3748; color: #e2e8f0; margin-left: 8px; }
+        .btn-secondary:hover { background: #4a5568; }
+        .actions { margin-bottom: 16px; }
+        .sprite-hint { font-size: 11px; color: #718096; margin: 8px 0 0 0; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <h1>Tile Map Editor</h1>
+        <div class="nav-links">
+            <a href="/create">Create</a> · <a href="/spritesheet-tool.html">Sprite Sheet Tool</a> · <a href="/walking-spritesheet-creator.html">Walking Sprite Sheet</a>
+        </div>
+
+        <div class="editor-layout">
+            <div class="sidebar">
+                <h3>Upload Tiles</h3>
+                <div class="tile-upload" id="tileUpload">
+                    <span>Drop images or click</span>
+                    <input type="file" id="tileFiles" accept="image/*" multiple>
+                </div>
+                <h3>Tile Palette</h3>
+                <div class="tile-palette" id="tilePalette"></div>
+                <h3>Tools</h3>
+                <button type="button" class="tool-btn active" id="toolPlace">Place Tile</button>
+                <button type="button" class="tool-btn boundary" id="toolBoundary">Place Boundary</button>
+                <button type="button" class="tool-btn" id="toolEraseBoundary">Erase Boundary</button>
+                <h3>Walking Sprite Sheet</h3>
+                <div class="tile-upload sprite-upload" id="spriteUpload">
+                    <span>Drop or click for walk sprite</span>
+                    <input type="file" id="spriteFile" accept="image/*">
+                </div>
+                <div class="map-controls">
+                    <label>Frame W:</label><input type="number" id="spriteFrameW" value="32" min="8">
+                    <label>Frame H:</label><input type="number" id="spriteFrameH" value="32" min="8">
+                </div>
+                <p class="sprite-hint">Same format as Walking Sprite Sheet Creator: stand F/B/L/R, walk F, walk B, walk L1, L2, walk R1, R2. Left/right use stand-walk1-stand-walk2 cycle.</p>
+                <h3>Map Size</h3>
+                <div class="map-controls">
+                    <label>W:</label><input type="number" id="mapW" value="20" min="5" max="100">
+                    <label>H:</label><input type="number" id="mapH" value="15" min="5" max="100">
+                    <label>Tile:</label><input type="number" id="tileSize" value="32" min="8" max="128">
+                    <button type="button" class="btn btn-secondary" id="resizeBtn">Resize</button>
+                </div>
+            </div>
+            <div class="map-area">
+                <div class="actions">
+                    <button type="button" class="btn btn-primary" id="testBtn">Test Map</button>
+                    <button type="button" class="btn btn-secondary hidden" id="editBtn">Back to Edit</button>
+                    <button type="button" class="btn btn-secondary" id="downloadBtn">Download Map JSON</button>
+                </div>
+                <div id="editView" class="map-canvas-wrap">
+                    <canvas id="mapCanvas"></canvas>
+                    <canvas id="boundaryOverlay"></canvas>
+                </div>
+                <div id="testView" class="test-mode-wrap hidden">
+                    <canvas id="testCanvas"></canvas>
+                    <p class="test-hint">Use arrow keys to move. Boundaries block movement.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const tileUpload = document.getElementById('tileUpload');
+            const tileFiles = document.getElementById('tileFiles');
+            const tilePalette = document.getElementById('tilePalette');
+            const mapCanvas = document.getElementById('mapCanvas');
+            const boundaryOverlay = document.getElementById('boundaryOverlay');
+            const testCanvas = document.getElementById('testCanvas');
+            const editView = document.getElementById('editView');
+            const testView = document.getElementById('testView');
+            const testBtn = document.getElementById('testBtn');
+            const editBtn = document.getElementById('editBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const toolPlace = document.getElementById('toolPlace');
+            const toolBoundary = document.getElementById('toolBoundary');
+            const toolEraseBoundary = document.getElementById('toolEraseBoundary');
+
+            let tiles = [];
+            let selectedTileIndex = -1;
+            let tileW = 32, tileH = 32;
+            let mapW = 20, mapH = 15;
+            let mapTiles = [];
+            let boundaries = [];
+            let mode = 'place';
+            let testCharX = 0, testCharY = 0;
+            let testCharImg = null;
+            let testMode = false;
+            let spriteSheetImg = null;
+            let spriteFrameW = 32, spriteFrameH = 32;
+            let testDir = 0; // 0=F, 1=B, 2=L, 3=R
+            let testWalkT = 0;
+
+            function initGrid() {
+                mapTiles = Array(mapH).fill(null).map(() => Array(mapW).fill(-1));
+                boundaries = Array(mapH).fill(null).map(() => Array(mapW).fill(false));
+                redraw();
+            }
+
+            function loadImage(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        const img = new Image();
+                        img.src = e.target.result;
+                        img.onload = () => resolve(img);
+                        img.onerror = reject;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            tileUpload.addEventListener('click', () => tileFiles.click());
+            tileUpload.addEventListener('dragover', e => { e.preventDefault(); tileUpload.style.borderColor = '#63b3ed'; });
+            tileUpload.addEventListener('dragleave', () => { tileUpload.style.borderColor = ''; });
+            tileUpload.addEventListener('drop', async e => {
+                e.preventDefault();
+                tileUpload.style.borderColor = '';
+                const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+                for (const f of files) {
+                    try {
+                        const img = await loadImage(f);
+                        tiles.push(img);
+                        const thumb = document.createElement('img');
+                        thumb.src = img.src;
+                        thumb.alt = '';
+                        thumb.title = 'Tile ' + (tiles.length - 1);
+                        thumb.addEventListener('click', () => {
+                            selectedTileIndex = tiles.indexOf(img);
+                            tilePalette.querySelectorAll('img').forEach((t, i) => t.classList.toggle('selected', i === selectedTileIndex));
+                        });
+                        tilePalette.appendChild(thumb);
+                    } catch (err) { console.error(err); }
+                }
+            });
+            tileFiles.addEventListener('change', async e => {
+                const files = e.target.files;
+                if (!files.length) return;
+                for (let i = 0; i < files.length; i++) {
+                    try {
+                        const img = await loadImage(files[i]);
+                        tiles.push(img);
+                        const thumb = document.createElement('img');
+                        thumb.src = img.src;
+                        thumb.addEventListener('click', () => {
+                            selectedTileIndex = tiles.indexOf(img);
+                            tilePalette.querySelectorAll('img').forEach((t, i) => t.classList.toggle('selected', i === selectedTileIndex));
+                        });
+                        tilePalette.appendChild(thumb);
+                    } catch (err) { console.error(err); }
+                }
+                e.target.value = '';
+            });
+
+            const spriteUpload = document.getElementById('spriteUpload');
+            const spriteFileInput = document.getElementById('spriteFile');
+            const spriteFrameWInp = document.getElementById('spriteFrameW');
+            const spriteFrameHInp = document.getElementById('spriteFrameH');
+
+            function inferSpriteFrameSize(img) {
+                const h = img.naturalHeight || img.height;
+                const w = img.naturalWidth || img.width;
+                if (!h || h < 10) return { fw: 32, fh: 32 };
+                const fh = Math.floor(h / 10);
+                let bestFw = fh;
+                let bestCols = Math.floor(w / bestFw);
+                if (bestCols < 1) return { fw: Math.max(8, w), fh: Math.max(8, fh) };
+                for (let cols = 1; cols <= 16; cols++) {
+                    if (w % cols !== 0) continue;
+                    const fw = w / cols;
+                    if (fw >= 8 && Math.abs(fw - fh) < Math.abs(bestFw - fh))
+                        { bestFw = fw; bestCols = cols; }
+                }
+                return { fw: Math.max(8, Math.round(bestFw)), fh: Math.max(8, fh) };
+            }
+
+            async function loadSpriteSheet(file) {
+                try {
+                    spriteSheetImg = await loadImage(file);
+                    const inferred = inferSpriteFrameSize(spriteSheetImg);
+                    spriteFrameW = inferred.fw;
+                    spriteFrameH = inferred.fh;
+                    spriteFrameWInp.value = spriteFrameW;
+                    spriteFrameHInp.value = spriteFrameH;
+                    const cols = Math.max(1, Math.floor((spriteSheetImg.naturalWidth || spriteSheetImg.width) / spriteFrameW));
+                    spriteUpload.querySelector('span').textContent = file.name + ' (' + spriteFrameW + '×' + spriteFrameH + ', ' + cols + ' cols)';
+                } catch (err) { console.error(err); }
+            }
+            spriteUpload.addEventListener('click', () => spriteFileInput.click());
+            spriteUpload.addEventListener('dragover', e => { e.preventDefault(); spriteUpload.style.borderColor = '#63b3ed'; });
+            spriteUpload.addEventListener('dragleave', () => { spriteUpload.style.borderColor = ''; });
+            spriteUpload.addEventListener('drop', async e => {
+                e.preventDefault();
+                spriteUpload.style.borderColor = '';
+                const f = e.dataTransfer.files[0];
+                if (f && f.type.startsWith('image/')) await loadSpriteSheet(f);
+            });
+            spriteFileInput.addEventListener('change', async e => {
+                const f = e.target.files[0];
+                if (f) await loadSpriteSheet(f);
+                e.target.value = '';
+            });
+
+            toolPlace.addEventListener('click', () => { mode = 'place'; toolPlace.classList.add('active'); toolBoundary.classList.remove('active'); toolEraseBoundary.classList.remove('active'); });
+            toolBoundary.addEventListener('click', () => { mode = 'boundary'; toolBoundary.classList.add('active'); toolPlace.classList.remove('active'); toolEraseBoundary.classList.remove('active'); });
+            toolEraseBoundary.addEventListener('click', () => { mode = 'eraseBoundary'; toolEraseBoundary.classList.add('active'); toolPlace.classList.remove('active'); toolBoundary.classList.remove('active'); });
+
+            document.getElementById('resizeBtn').addEventListener('click', () => {
+                mapW = Math.max(5, Math.min(100, parseInt(document.getElementById('mapW').value, 10) || 20));
+                mapH = Math.max(5, Math.min(100, parseInt(document.getElementById('mapH').value, 10) || 15));
+                const ts = parseInt(document.getElementById('tileSize').value, 10) || 32;
+                tileW = tileH = Math.max(8, Math.min(128, ts));
+                document.getElementById('mapW').value = mapW;
+                document.getElementById('mapH').value = mapH;
+                document.getElementById('tileSize').value = tileW;
+                initGrid();
+            });
+
+            function getTileFromEvent(e) {
+                const rect = mapCanvas.getBoundingClientRect();
+                const scaleX = mapCanvas.width / rect.width;
+                const scaleY = mapCanvas.height / rect.height;
+                const x = Math.floor((e.clientX - rect.left) * scaleX / tileW);
+                const y = Math.floor((e.clientY - rect.top) * scaleY / tileH);
+                if (x >= 0 && x < mapW && y >= 0 && y < mapH) return { x, y };
+                return null;
+            }
+
+            mapCanvas.addEventListener('click', e => {
+                const t = getTileFromEvent(e);
+                if (!t) return;
+                if (mode === 'place' && selectedTileIndex >= 0) {
+                    mapTiles[t.y][t.x] = selectedTileIndex;
+                } else if (mode === 'boundary') {
+                    boundaries[t.y][t.x] = true;
+                } else if (mode === 'eraseBoundary') {
+                    boundaries[t.y][t.x] = false;
+                }
+                redraw();
+            });
+
+            mapCanvas.addEventListener('mousemove', e => {
+                const t = getTileFromEvent(e);
+                if (t && e.buttons === 1) {
+                    if (mode === 'place' && selectedTileIndex >= 0) mapTiles[t.y][t.x] = selectedTileIndex;
+                    else if (mode === 'boundary') boundaries[t.y][t.x] = true;
+                    else if (mode === 'eraseBoundary') boundaries[t.y][t.x] = false;
+                    redraw();
+                }
+            });
+
+            function redraw() {
+                const cw = mapW * tileW;
+                const ch = mapH * tileH;
+                mapCanvas.width = cw;
+                mapCanvas.height = ch;
+                boundaryOverlay.width = cw;
+                boundaryOverlay.height = ch;
+                const ctx = mapCanvas.getContext('2d');
+                ctx.fillStyle = '#2d3748';
+                ctx.fillRect(0, 0, cw, ch);
+                for (let y = 0; y < mapH; y++) {
+                    for (let x = 0; x < mapW; x++) {
+                        const tid = mapTiles[y][x];
+                        if (tid >= 0 && tiles[tid]) {
+                            ctx.drawImage(tiles[tid], x * tileW, y * tileH, tileW, tileH);
+                        }
+                        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                        ctx.strokeRect(x * tileW, y * tileH, tileW, tileH);
+                    }
+                }
+                const bc = boundaryOverlay.getContext('2d');
+                bc.clearRect(0, 0, cw, ch);
+                bc.fillStyle = 'rgba(229, 62, 62, 0.4)';
+                for (let y = 0; y < mapH; y++)
+                    for (let x = 0; x < mapW; x++)
+                        if (boundaries[y][x]) bc.fillRect(x * tileW, y * tileH, tileW, tileH);
+            }
+
+            testBtn.addEventListener('click', () => {
+                testMode = true;
+                editView.classList.add('hidden');
+                testView.classList.remove('hidden');
+                testBtn.classList.add('hidden');
+                editBtn.classList.remove('hidden');
+                testCharX = Math.floor(mapW / 2) * tileW + tileW / 2;
+                testCharY = Math.floor(mapH / 2) * tileH + tileH / 2;
+                if (!testCharImg) {
+                    testCharImg = new Image();
+                    testCharImg.src = '/Uploads/character.png';
+                }
+                startTest();
+            });
+
+            editBtn.addEventListener('click', () => {
+                testMode = false;
+                editView.classList.remove('hidden');
+                testView.classList.add('hidden');
+                testBtn.classList.remove('hidden');
+                editBtn.classList.add('hidden');
+            });
+
+            function startTest() {
+                spriteFrameW = parseInt(spriteFrameWInp.value, 10) || 32;
+                spriteFrameH = parseInt(spriteFrameHInp.value, 10) || 32;
+                const tc = testCanvas.getContext('2d');
+                const cw = mapW * tileW;
+                const ch = mapH * tileH;
+                testCanvas.width = cw;
+                testCanvas.height = ch;
+
+                const SPEED = 4;
+                const keys = {};
+                document.addEventListener('keydown', onKey);
+                document.addEventListener('keyup', onKeyUp);
+                function onKey(e) { keys[e.key] = true; if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault(); }
+                function onKeyUp(e) { keys[e.key] = false; }
+
+                function collide(nx, ny) {
+                    const half = Math.min(tileW, tileH) * 0.3;
+                    const checks = [[nx - half, ny], [nx + half, ny], [nx, ny - half], [nx, ny + half]];
+                    for (const [cx, cy] of checks) {
+                        const tx = Math.floor(cx / tileW);
+                        const ty = Math.floor(cy / tileH);
+                        if (tx >= 0 && tx < mapW && ty >= 0 && ty < mapH && boundaries[ty][tx]) return true;
+                    }
+                    return false;
+                }
+
+                function loop() {
+                    if (!testMode) return;
+                    let dx = 0, dy = 0;
+                    if (keys['ArrowLeft']) dx -= SPEED;
+                    if (keys['ArrowRight']) dx += SPEED;
+                    if (keys['ArrowUp']) dy -= SPEED;
+                    if (keys['ArrowDown']) dy += SPEED;
+                    const nx = testCharX + dx;
+                    const ny = testCharY + dy;
+                    if (!collide(nx, testCharY)) testCharX = nx;
+                    if (!collide(testCharX, ny)) testCharY = ny;
+                    testCharX = Math.max(tileW/2, Math.min(mapW * tileW - tileW/2, testCharX));
+                    testCharY = Math.max(tileH/2, Math.min(mapH * tileH - tileH/2, testCharY));
+
+                    tc.fillStyle = '#1a1a2e';
+                    tc.fillRect(0, 0, testCanvas.width, testCanvas.height);
+                    for (let y = 0; y < mapH; y++)
+                        for (let x = 0; x < mapW; x++) {
+                            const tid = mapTiles[y][x];
+                            if (tid >= 0 && tiles[tid]) tc.drawImage(tiles[tid], x * tileW, y * tileH, tileW, tileH);
+                        }
+                    if (spriteSheetImg && spriteSheetImg.complete) {
+                        const fw = spriteFrameW, fh = spriteFrameH;
+                        const cols = Math.max(1, Math.floor(spriteSheetImg.width / fw));
+                        const moving = keys['ArrowLeft'] || keys['ArrowRight'] || keys['ArrowUp'] || keys['ArrowDown'];
+                        if (keys['ArrowLeft']) testDir = 2;
+                        else if (keys['ArrowRight']) testDir = 3;
+                        else if (keys['ArrowUp']) testDir = 1;
+                        else if (keys['ArrowDown']) testDir = 0;
+                        let row = testDir, frameCol = 0, flipX = false;
+                        if (moving) {
+                            if (testDir === 2) {
+                                const step = testWalkT % 4;
+                                row = (step === 0 || step === 2) ? 2 : (step === 1 ? 6 : 7);
+                                frameCol = 0;
+                            } else if (testDir === 3) {
+                                const step = testWalkT % 4;
+                                row = (step === 0 || step === 2) ? 3 : (step === 1 ? 8 : 9);
+                                frameCol = 0;
+                            } else {
+                                row = 4 + testDir;
+                                frameCol = Math.floor(testWalkT / 2) % cols;
+                                flipX = (testWalkT % 2 === 1);
+                            }
+                            testWalkT++;
+                        } else testWalkT = 0;
+                        const imgW = spriteSheetImg.naturalWidth || spriteSheetImg.width;
+                        const imgH = spriteSheetImg.naturalHeight || spriteSheetImg.height;
+                        const maxCol = Math.max(0, Math.floor(imgW / fw) - 1);
+                        const actualCol = Math.min(frameCol, maxCol);
+                        const sx = Math.min(actualCol * fw, imgW - fw);
+                        const sy = Math.min(row * fh, imgH - fh);
+                        const drawW = fw, drawH = fh;
+                        const dx = testCharX - drawW / 2, dy = testCharY - drawH;
+                        if (flipX) {
+                            tc.save();
+                            tc.translate(dx + drawW, dy);
+                            tc.scale(-1, 1);
+                            tc.translate(-drawW, 0);
+                            tc.drawImage(spriteSheetImg, sx, sy, fw, fh, 0, 0, drawW, drawH);
+                            tc.restore();
+                        } else {
+                            tc.drawImage(spriteSheetImg, sx, sy, fw, fh, dx, dy, drawW, drawH);
+                        }
+                    } else if (testCharImg && testCharImg.complete) {
+                        const cw2 = tileW * 1.2, ch2 = tileH * 1.4;
+                        tc.drawImage(testCharImg, testCharX - cw2/2, testCharY - ch2, cw2, ch2);
+                    }
+                    requestAnimationFrame(loop);
+                }
+                loop();
+            }
+
+            downloadBtn.addEventListener('click', () => {
+                const data = {
+                    mapW, mapH, tileW, tileH,
+                    tiles: tiles.map(t => t.src),
+                    map: mapTiles,
+                    boundaries: boundaries
+                };
+                const a = document.createElement('a');
+                a.href = 'data:application/json,' + encodeURIComponent(JSON.stringify(data));
+                a.download = 'map.json';
+                a.click();
+            });
+
+            toolPlace.click();
+            initGrid();
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "2": {
+    "enabled": true,
+    "mask": "none",
+    "masterOp": 87,
+    "g1On": false,
+    "g1Op": 70,
+    "spin": true,
+    "g2On": true,
+    "g2Op": 25,
+    "g3On": true,
+    "g3Op": 60,
+    "p1On": true,
+    "p1Op": 49,
+    "p2On": false,
+    "p2Op": 58,
+    "p3On": true,
+    "p3Op": 31,
+    "rhOn": true,
+    "rhOp": 20,
+    "rhAngle": 0,
+    "rsOn": false,
+    "rsOp": 100,
+    "rsAngle": 120,
+    "rpOn": false,
+    "rpOp": 80,
+    "rpAngle": 240,
+    "shimmer": true
+  }
+}

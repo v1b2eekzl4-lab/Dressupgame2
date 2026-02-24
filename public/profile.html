@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 600px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .container.profile-custom { border-top: 4px solid var(--profile-accent, #ec4899); }
+    h1 { margin: 0 0 16px 0; font-size: 1.5rem; }
+    .profile-row { margin: 12px 0; color: #374151; }
+    .profile-row strong { display: inline-block; min-width: 140px; }
+    .profile-row .currency-with-icon { display: inline-flex; align-items: center; gap: 8px; }
+    .profile-row .currency-with-icon img { width: 24px; height: 24px; object-fit: contain; }
+    .profile-error { color: #b91c1c; }
+    .profile-section { margin: 20px 0; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+    .profile-section:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+    .profile-section-title { font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .profile-avatar { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #e5e7eb; display: block; margin-bottom: 8px; }
+    .profile-avatar-placeholder { width: 80px; height: 80px; border-radius: 50%; background: #e5e7eb; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 12px; margin-bottom: 8px; }
+    .profile-save { padding: 8px 20px; background: var(--btn-pink-gradient); color: #fff; border: var(--btn-pink-border); border-radius: 6px; cursor: pointer; font-weight: 600; box-shadow: var(--btn-pink-shadow); }
+    .profile-save:hover { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); box-shadow: 0 3px 8px rgba(244,143,177,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
+    input[type="text"], input[type="color"], textarea { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+    input[type="color"] { width: 44px; height: 44px; padding: 2px; cursor: pointer; vertical-align: middle; }
+    .profile-page-section { margin-top: 16px; }
+    .profile-page-section .hint { font-size: 12px; color: #6b7280; margin-bottom: 8px; }
+    .profile-page-editor { width: 100%; min-height: 160px; font-family: var(--font-mono), Consolas, "Courier New", monospace; font-size: 13px; box-sizing: border-box; }
+    .profile-page-view { background: #f9fafb; border: 1px solid #e5e7eb; min-height: 200px; padding: 24px; border-radius: 8px; margin-top: 12px; }
+    .profile-page-view a { color: #ec4899; }
+    .profile-page-link { color: #ec4899; font-weight: 600; }
+    .profile-page-link:hover { text-decoration: underline; }
+    .profile-custom-page-content { padding: 24px; margin: 0 auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); min-height: 120px; }
+    .profile-custom-page-content a { color: #ec4899; }
+    .profile-custom-page-empty { color: #6b7280; text-align: center; padding: 48px 24px; }
+    .profile-edit-btn-wrap { margin-top: 16px; margin-bottom: 0; }
+    .profile-edit-btn { display: inline-block; padding: 8px 20px; background: var(--btn-pink-gradient); color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; border: var(--btn-pink-border); box-shadow: var(--btn-pink-shadow); }
+    .profile-edit-btn:hover { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); box-shadow: 0 3px 8px rgba(244,143,177,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
+    .profile-edit-btn + .profile-edit-btn { margin-left: 10px; }
+    /* Report modal: overlay + box so categories appear in a clear box */
+    #report-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+    #report-modal .report-modal-box {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      max-width: 28rem;
+      width: 100%;
+      padding: 1.5rem;
+      border: 1px solid #e5e7eb;
+    }
+    #report-modal .report-modal-box h3 { margin: 0 0 1rem 0; font-size: 1.125rem; }
+    #report-modal .report-modal-box label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem; }
+    #report-modal .report-modal-box select,
+    #report-modal .report-modal-box textarea {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 1rem;
+      box-sizing: border-box;
+    }
+    #report-modal .report-modal-box textarea { min-height: 80px; resize: vertical; }
+    #report-modal .report-modal-box .report-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
+    #report-modal .report-modal-box .report-modal-actions button { padding: 0.5rem 1rem; border-radius: 8px; font-size: 14px; cursor: pointer; }
+    #report-modal .report-modal-box .report-modal-actions .report-cancel { border: 1px solid #d1d5db; background: #fff; }
+    #report-modal .report-modal-box .report-modal-actions .report-cancel:hover { background: #f3f4f6; }
+    #report-modal .report-modal-box .report-modal-actions .report-submit { background: #dc2626; color: #fff; border: none; }
+    #report-modal .report-modal-box .report-modal-actions .report-submit:hover { background: #b91c1c; }
+    .profile-outfits-section { margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+    .profile-outfits-section .profile-section-title { margin-bottom: 12px; }
+    .profile-outfits-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; }
+    .profile-outfit-card { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; background: #f9fafb; }
+    .profile-outfit-card img { width: 100%; aspect-ratio: 250/350; object-fit: contain; object-position: top center; background: #fff; display: block; }
+    .profile-outfit-card .profile-outfit-name { padding: 6px 8px; font-size: 12px; font-weight: 500; color: #374151; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .profile-outfits-empty { font-size: 14px; color: #6b7280; margin-top: 8px; }
+    .profile-outfits-empty a { color: var(--profile-accent, #ec4899); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <h1>Profile</h1>
+    <div id="profile-content">
+      <p class="profile-row"><strong>Loading…</strong></p>
+    </div>
+  </div>
+
+  <!-- Report modal: overlay with box containing all categories -->
+  <div id="report-modal" aria-hidden="true" style="display: none;">
+    <div class="report-modal-box">
+      <h3>Report user</h3>
+      <label for="report-category">Category (required)</label>
+      <select id="report-category">
+        <option value="">Select a category</option>
+        <option value="Spam">Spam</option>
+        <option value="Harassment/Bullying">Harassment/Bullying</option>
+        <option value="Toxic behaviour">Toxic behaviour</option>
+        <option value="Hate speech/Bigotry">Hate speech/Bigotry</option>
+        <option value="Threats/Violence">Threats/Violence</option>
+        <option value="Illegal content">Illegal content</option>
+        <option value="NSFW">NSFW</option>
+        <option value="Others">Others</option>
+      </select>
+      <label for="report-details">Additional details (optional)</label>
+      <textarea id="report-details" rows="3" placeholder="Any extra context..."></textarea>
+      <div class="report-modal-actions">
+        <button type="button" id="report-modal-cancel" class="report-cancel">Cancel</button>
+        <button type="button" id="report-modal-submit" class="report-submit">Submit report</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/toast.js" defer></script>
+  <script src="/js/header.js" defer></script>
+  <script>
+    (function () {
+      const el = document.getElementById('profile-content');
+      const params = new URLSearchParams(window.location.search);
+      const viewUser = params.get('user');
+      function esc(s) { return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+      if (viewUser) {
+        fetch('/api/users/' + encodeURIComponent(viewUser) + '/profile', { credentials: 'same-origin' })
+          .then(function (r) {
+            if (!r.ok) throw new Error('Profile not found');
+            return r.json();
+          })
+          .then(function (data) {
+            var hasPage = data.profilePageHtml && data.profilePageHtml.trim();
+            el.innerHTML =
+              '<div class="profile-actions mb-4"><button type="button" id="profile-report-user-btn" class="profile-report-btn px-3 py-1 text-sm border border-gray-300 rounded hover:bg-red-50 hover:border-red-300 text-gray-600">Report user</button></div>' +
+              '<div class="profile-custom-page-content">' +
+              (hasPage ? data.profilePageHtml : '<p class="profile-custom-page-empty">This user has not set up a profile page yet.</p>') +
+              '</div>';
+            var reportBtn = document.getElementById('profile-report-user-btn');
+            if (reportBtn) {
+              reportBtn.addEventListener('click', function () {
+                window._reportPending = { targetType: 'user', targetId: viewUser };
+                var modal = document.getElementById('report-modal');
+                var catEl = document.getElementById('report-category');
+                var detailsEl = document.getElementById('report-details');
+                if (modal && catEl && detailsEl) {
+                  catEl.value = '';
+                  detailsEl.value = '';
+                  modal.style.display = 'flex';
+                  modal.setAttribute('aria-hidden', 'false');
+                }
+              });
+            }
+            var reportModal = document.getElementById('report-modal');
+            var reportCategory = document.getElementById('report-category');
+            var reportDetails = document.getElementById('report-details');
+            function hideReportModal() {
+              if (reportModal) { reportModal.style.display = 'none'; reportModal.setAttribute('aria-hidden', 'true'); }
+              window._reportPending = null;
+            }
+            document.getElementById('report-modal-cancel') && document.getElementById('report-modal-cancel').addEventListener('click', hideReportModal);
+            document.getElementById('report-modal-submit') && document.getElementById('report-modal-submit').addEventListener('click', function () {
+              var cat = (reportCategory && reportCategory.value) ? reportCategory.value.trim() : '';
+              if (!cat) { alert('Please select a category.'); return; }
+              var pending = window._reportPending;
+              if (!pending) { hideReportModal(); return; }
+              var reason = (reportDetails && reportDetails.value) ? reportDetails.value.trim() : null;
+              fetch('/api/reports', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetType: pending.targetType, targetId: pending.targetId, category: cat, reason: reason || '' })
+              }).then(function (r) {
+                if (r.ok) { alert('Report submitted.'); hideReportModal(); }
+                else { r.json().then(function (d) { alert(d.error || 'Failed to submit report'); }); }
+              }).catch(function () { alert('Failed to submit report'); });
+            });
+          })
+          .catch(function () {
+            el.innerHTML = '<p class="profile-row profile-error">Could not load profile.</p>';
+          });
+        return;
+      }
+      fetch('/api/profile', { credentials: 'same-origin' })
+        .then(function (r) {
+          if (!r.ok) throw new Error(r.status === 401 ? 'Not logged in' : 'Failed to load profile');
+          return r.json();
+        })
+        .then(function (data) {
+          var container = document.querySelector('.container');
+          if (container) {
+            container.classList.add('profile-custom');
+            if ((data.accentColor || '').trim()) container.style.setProperty('--profile-accent', data.accentColor.trim());
+          }
+          var hasPage = data.profilePageHtml && data.profilePageHtml.trim();
+          el.innerHTML =
+            '<div class="profile-custom-page-content">' +
+            (hasPage ? data.profilePageHtml : '<p class="profile-custom-page-empty">You have not set up a profile page yet. Click Edit profile to add content.</p>') +
+            '</div>' +
+            '<div class="profile-edit-btn-wrap">' +
+            '<a href="/profile-edit" class="profile-edit-btn">Edit profile</a>' +
+            ' <a href="/profile-saved-outfits" class="profile-edit-btn">Saved outfits</a>' +
+            '</div>' +
+            '<div class="profile-outfits-section" id="profile-outfits-section">' +
+            '<div class="profile-section-title">Outfits (from Wardrobe)</div>' +
+            '<p class="profile-outfits-empty" id="profile-outfits-loading">Loading outfits…</p>' +
+            '</div>';
+          var outfitsSection = document.getElementById('profile-outfits-section');
+          if (outfitsSection) {
+            fetch('/api/outfits', { credentials: 'same-origin', cache: 'no-store' })
+              .then(function (r) {
+                if (!r.ok) return null;
+                return r.json();
+              })
+              .then(function (outfits) {
+                var loadingEl = document.getElementById('profile-outfits-loading');
+                if (!outfitsSection || !loadingEl) return;
+                var list = Array.isArray(outfits) ? outfits : (outfits && Array.isArray(outfits.outfits) ? outfits.outfits : (outfits && Array.isArray(outfits.list) ? outfits.list : []));
+                if (list.length === 0) {
+                  loadingEl.textContent = '';
+                  outfitsSection.appendChild(document.createElement('p')).className = 'profile-outfits-empty';
+                  outfitsSection.querySelector('.profile-outfits-empty:last-of-type').innerHTML = 'No outfits yet. Save an outfit in <a href="./wardrobe.html">Wardrobe</a> (equip items, then click Save Outfit).';
+                  return;
+                }
+                var grid = document.createElement('div');
+                grid.className = 'profile-outfits-grid';
+                list.forEach(function (outfit) {
+                  if (!outfit || !outfit.name) return;
+                  var card = document.createElement('a');
+                  card.href = '/profile-saved-outfits';
+                  card.className = 'profile-outfit-card';
+                  card.setAttribute('aria-label', 'View outfit ' + esc(outfit.name));
+                  var img = document.createElement('img');
+                  img.src = outfit.mergedImageUrl || 'https://via.placeholder.com/250x350?text=Outfit';
+                  img.alt = outfit.name;
+                  img.loading = 'lazy';
+                  img.onerror = function () { img.src = 'https://via.placeholder.com/250x350?text=Outfit'; };
+                  var nameEl = document.createElement('div');
+                  nameEl.className = 'profile-outfit-name';
+                  nameEl.textContent = outfit.name;
+                  card.appendChild(img);
+                  card.appendChild(nameEl);
+                  grid.appendChild(card);
+                });
+                loadingEl.remove();
+                outfitsSection.appendChild(grid);
+                var viewAll = document.createElement('p');
+                viewAll.style.marginTop = '12px';
+                viewAll.innerHTML = '<a href="/profile-saved-outfits" class="profile-page-link">View all & equip →</a>';
+                outfitsSection.appendChild(viewAll);
+              })
+              .catch(function () {
+                var loading = document.getElementById('profile-outfits-loading');
+                if (loading) loading.textContent = 'Could not load outfits.';
+              });
+          }
+        })
+        .catch(function () {
+          el.innerHTML = '<p class="profile-row profile-error">Could not load profile. Make sure you are logged in.</p>';
+        });
+    })();
+  </script>
+</body>
+</html>

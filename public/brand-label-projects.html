@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brand label projects - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 700px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .container h1 { margin: 0 0 8px 0; font-size: 1.5rem; }
+    .container p.sub { margin: 0 0 24px 0; color: #6b7280; font-size: 14px; }
+    .new-link { display: inline-block; margin-bottom: 20px; padding: 10px 16px; background: #3182ce; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; }
+    .new-link:hover { background: #2b6cb0; color: #fff; }
+    .project-list { list-style: none; margin: 0; padding: 0; }
+    .project-list li { display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 8px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; }
+    .project-list li .preview-wrap { flex-shrink: 0; width: 200px; height: 70px; border-radius: 6px; overflow: hidden; border: 1px solid #e5e7eb; }
+    .project-list li .preview-wrap img { display: block; width: 200px; height: 70px; object-fit: none; object-position: 0 0; image-rendering: pixelated; image-rendering: crisp-edges; }
+    .project-list li .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .project-list li .name { font-weight: 600; color: #111; overflow: hidden; text-overflow: ellipsis; cursor: pointer; padding: 2px 4px; margin: -2px -4px; border-radius: 4px; }
+    .project-list li .name:hover { background: #e5e7eb; }
+    .project-list li .name-edit { font: inherit; font-weight: 600; width: 100%; max-width: 240px; padding: 2px 6px; margin: -2px -4px; border: 1px solid #3182ce; border-radius: 4px; outline: none; }
+    .project-list li .meta { font-size: 12px; color: #6b7280; }
+    .project-list li .actions { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+    .project-list li a.open-link { padding: 6px 12px; background: #4a5568; color: #fff; text-decoration: none; border-radius: 6px; font-size: 13px; }
+    .project-list li a.open-link:hover { background: #5a6578; color: #fff; }
+    .project-list li .export-brand-btn { padding: 6px 12px; background: #059669; color: #fff; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; }
+    .project-list li .export-brand-btn:hover { background: #047857; }
+    .project-list li .delete-btn { padding: 6px 12px; background: #dc2626; color: #fff; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; }
+    .project-list li .delete-btn:hover { background: #b91c1c; }
+    .empty-state { color: #6b7280; font-size: 14px; padding: 24px 0; }
+    .export-brand-modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.4); align-items: center; justify-content: center; }
+    .export-brand-modal.open { display: flex; }
+    .export-brand-modal .modal-inner { background: #fff; padding: 24px; border-radius: 8px; max-width: 360px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+    .export-brand-modal h3 { margin: 0 0 16px 0; font-size: 1.1rem; }
+    .export-brand-modal .brand-option { display: block; width: 100%; padding: 10px 12px; margin-bottom: 8px; text-align: left; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .export-brand-modal .brand-option:hover { background: #f3f4f6; }
+    .export-brand-modal .cancel-btn { margin-top: 12px; padding: 8px 16px; background: #e5e7eb; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .export-brand-modal .cancel-btn:hover { background: #d1d5db; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <h1>Brand label projects</h1>
+    <p class="sub">200×70 banner designs. Open a project to edit, or create a new one.</p>
+    <a href="./brand-label.html" class="new-link">+ New brand label</a>
+    <ul id="project-list" class="project-list">
+      <li class="empty-state">Loading…</li>
+    </ul>
+    <div id="export-brand-modal" class="export-brand-modal" aria-hidden="true">
+      <div class="modal-inner">
+        <h3>Export this label to a brand</h3>
+        <div id="export-brand-list"></div>
+        <button type="button" class="cancel-btn" id="export-brand-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <script src="/js/header.js"></script>
+  <script>
+    (function () {
+      var BRAND_LABEL_PROJECTS_KEY = 'brandLabelProjects';
+      var BRANDS_KEY = 'userBrands';
+      var W = 200, H = 70;
+      function getBrandLabelProjectsList() {
+        try {
+          var raw = localStorage.getItem(BRAND_LABEL_PROJECTS_KEY);
+          return raw ? JSON.parse(raw) : [];
+        } catch (e) { return []; }
+      }
+      function getBrands() {
+        try {
+          var raw = localStorage.getItem(BRANDS_KEY);
+          return raw ? JSON.parse(raw) : [];
+        } catch (e) { return []; }
+      }
+      function setBrands(list) {
+        try { localStorage.setItem(BRANDS_KEY, JSON.stringify(list)); } catch (e) {}
+      }
+      function getProjectData(id) {
+        try {
+          var raw = localStorage.getItem('brandLabelProject-' + id);
+          return raw ? JSON.parse(raw) : null;
+        } catch (e) { return null; }
+      }
+      function setBrandLabelProjectsList(list) {
+        try {
+          localStorage.setItem(BRAND_LABEL_PROJECTS_KEY, JSON.stringify(list));
+        } catch (e) {}
+      }
+      function deleteProject(projectId) {
+        if (!confirm('Delete this brand label project? This cannot be undone.')) return;
+        try {
+          localStorage.removeItem('brandLabelProject-' + projectId);
+          var list = getBrandLabelProjectsList().filter(function (x) { return x.id !== projectId; });
+          setBrandLabelProjectsList(list);
+          return true;
+        } catch (e) { return false; }
+      }
+      function formatDate(iso) {
+        if (!iso) return '—';
+        try {
+          var d = new Date(iso);
+          return isNaN(d.getTime()) ? iso : d.toLocaleDateString(undefined, { dateStyle: 'short' }) + ' ' + d.toLocaleTimeString(undefined, { timeStyle: 'short' });
+        } catch (e) { return iso; }
+      }
+      function drawLayerToPreview(ctx, layer) {
+        if (!layer) return;
+        ctx.fillStyle = layer.bgColor || '#ffffff';
+        ctx.fillRect(0, 0, W, H);
+        var bw = layer.borderWidth != null ? layer.borderWidth : 2;
+        if (bw > 0) {
+          ctx.strokeStyle = layer.borderColor || '#000000';
+          ctx.lineWidth = bw;
+          ctx.strokeRect(bw/2, bw/2, W - bw, H - bw);
+        }
+        if (layer.pixel && layer.pixel.data) {
+          var id = ctx.createImageData(W, H);
+          var src = layer.pixel.data;
+          if (src && src.length) id.data.set(Array.isArray(src) ? src : src.subarray ? src.subarray(0, id.data.length) : []);
+          ctx.putImageData(id, 0, 0);
+        }
+        (layer.symbols || []).forEach(function (p) {
+          var sz = Math.max(8, Math.min(48, p.size || 24));
+          ctx.font = sz + 'px Arial, sans-serif';
+          ctx.fillStyle = p.color || '#000';
+          ctx.textBaseline = 'middle';
+          ctx.textAlign = 'center';
+          ctx.fillText(p.symbol, Math.floor(p.x) + 0.5, Math.floor(p.y) + 0.5);
+        });
+        ctx.textAlign = 'left';
+        (layer.text || []).forEach(function (p) {
+          var sz = Math.max(8, Math.min(48, p.size || 24));
+          ctx.font = sz + 'px Arial, sans-serif';
+          ctx.fillStyle = p.color || '#000';
+          ctx.fillText(p.text, Math.floor(p.x) + 0.5, Math.floor(p.y) + 0.5);
+        });
+      }
+      function renderProjectPreview(data) {
+        if (!data || !data.frames || !data.frames.length) return null;
+        var firstFrame = data.frames[0];
+        var layers = firstFrame.layers || [];
+        var tmp = document.createElement('canvas');
+        tmp.width = W;
+        tmp.height = H;
+        var ctx = tmp.getContext('2d');
+        for (var i = layers.length - 1; i >= 0; i--) {
+          if (layers[i].visible !== false) drawLayerToPreview(ctx, layers[i]);
+        }
+        return tmp.toDataURL('image/png');
+      }
+      var list = getBrandLabelProjectsList();
+      var ul = document.getElementById('project-list');
+      ul.innerHTML = '';
+      if (list.length === 0) {
+        ul.innerHTML = '<li class="empty-state">No brand label projects yet. <a href="./brand-label.html">Create one</a>.</li>';
+      } else {
+        list.sort(function (a, b) {
+          var ta = (a.savedAt || '').toString();
+          var tb = (b.savedAt || '').toString();
+          return tb.localeCompare(ta);
+        });
+        list.forEach(function (p) {
+          var li = document.createElement('li');
+          var previewWrap = document.createElement('div');
+          previewWrap.className = 'preview-wrap';
+          var img = document.createElement('img');
+          img.alt = (p.name || 'Untitled') + ' preview';
+          previewWrap.appendChild(img);
+          var info = document.createElement('div');
+          info.className = 'info';
+          var name = document.createElement('span');
+          name.className = 'name';
+          name.textContent = p.name || 'Untitled';
+          name.title = 'Click to rename';
+          var meta = document.createElement('span');
+          meta.className = 'meta';
+          meta.textContent = formatDate(p.savedAt);
+          info.appendChild(name);
+          info.appendChild(meta);
+          var actions = document.createElement('div');
+          actions.className = 'actions';
+          var link = document.createElement('a');
+          link.href = './brand-label.html?project=' + encodeURIComponent(p.id);
+          link.className = 'open-link';
+          link.textContent = 'Open';
+          var exportBtn = document.createElement('button');
+          exportBtn.type = 'button';
+          exportBtn.className = 'export-brand-btn';
+          exportBtn.textContent = 'Export to brand';
+          exportBtn.title = 'Assign this label to one of your brands';
+          var deleteBtn = document.createElement('button');
+          deleteBtn.type = 'button';
+          deleteBtn.className = 'delete-btn';
+          deleteBtn.textContent = 'Delete';
+          deleteBtn.title = 'Delete this project';
+          deleteBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            if (deleteProject(p.id)) {
+              li.remove();
+              if (ul.querySelectorAll('li').length === 0) {
+                ul.innerHTML = '<li class="empty-state">No brand label projects yet. <a href="./brand-label.html">Create one</a>.</li>';
+              }
+            }
+          });
+          actions.appendChild(link);
+          actions.appendChild(exportBtn);
+          actions.appendChild(deleteBtn);
+          li.appendChild(previewWrap);
+          li.appendChild(info);
+          li.appendChild(actions);
+          ul.appendChild(li);
+          (function (projectId) {
+            exportBtn.addEventListener('click', function () {
+              var brands = getBrands();
+              if (brands.length === 0) {
+                alert('You have no brands yet. Create a brand from Create → Create Brand first.');
+                return;
+              }
+              var modal = document.getElementById('export-brand-modal');
+              var listEl = document.getElementById('export-brand-list');
+              listEl.innerHTML = '';
+              brands.forEach(function (b) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'brand-option';
+                btn.textContent = b.name || 'Untitled';
+                btn.addEventListener('click', function () {
+                  var list = getBrands();
+                  var brand = list.find(function (x) { return x.id === b.id; });
+                  if (brand) {
+                    brand.labelProjectId = projectId;
+                    setBrands(list);
+                    modal.classList.remove('open');
+                    modal.setAttribute('aria-hidden', 'true');
+                    if (typeof showToast === 'function') showToast('Label exported to ' + (brand.name || 'brand'));
+                    else alert('Label exported to ' + (brand.name || 'brand') + '.');
+                  }
+                });
+                listEl.appendChild(btn);
+              });
+              modal.classList.add('open');
+              modal.setAttribute('aria-hidden', 'false');
+            });
+          })(p.id);
+          var data = getProjectData(p.id);
+          var preview = renderProjectPreview(data);
+          if (preview) img.src = preview;
+          (function (projectId, nameEl, displayName) {
+            nameEl.addEventListener('click', function (e) {
+              e.preventDefault();
+              e.stopPropagation();
+              var current = (displayName || 'Untitled').trim() || 'Untitled';
+              var input = document.createElement('input');
+              input.type = 'text';
+              input.className = 'name-edit';
+              input.value = current;
+              input.setSelectionRange(0, input.value.length);
+              nameEl.parentNode.replaceChild(input, nameEl);
+              input.focus();
+              function save() {
+                var next = (input.value || '').trim() || 'Untitled';
+                input.parentNode.replaceChild(nameEl, input);
+                nameEl.textContent = next;
+                nameEl.title = 'Click to rename';
+                var list = getBrandLabelProjectsList();
+                var entry = list.find(function (x) { return x.id === projectId; });
+                if (entry) {
+                  entry.name = next;
+                  try { localStorage.setItem(BRAND_LABEL_PROJECTS_KEY, JSON.stringify(list)); } catch (err) {}
+                }
+              }
+              input.addEventListener('blur', save);
+              input.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Enter') input.blur();
+                if (ev.key === 'Escape') {
+                  input.parentNode.replaceChild(nameEl, input);
+                  nameEl.textContent = current;
+                  nameEl.title = 'Click to rename';
+                }
+              });
+            });
+          })(p.id, name, p.name);
+        });
+      }
+      var exportModal = document.getElementById('export-brand-modal');
+      var exportCancel = document.getElementById('export-brand-cancel');
+      if (exportCancel) exportCancel.addEventListener('click', function () {
+        if (exportModal) { exportModal.classList.remove('open'); exportModal.setAttribute('aria-hidden', 'true'); }
+      });
+      if (exportModal) exportModal.addEventListener('click', function (e) {
+        if (e.target === exportModal) { exportModal.classList.remove('open'); exportModal.setAttribute('aria-hidden', 'true'); }
+      });
+    })();
+  </script>
+</body>
+</html>

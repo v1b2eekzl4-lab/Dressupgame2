@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brand Label Creator - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; min-height: 100vh; }
+    .container { max-width: 900px; margin: 0 auto; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .page-title { text-align: center; }
+    .page-title h1 { margin: 0 0 8px 0; font-size: 1.5rem; }
+    .page-title .sub { margin: 0 0 20px 0; color: #6b7280; font-size: 14px; }
+    .banner-section { margin-bottom: 20px; }
+    .banner-section h2 { margin: 0 0 10px 0; font-size: 1rem; color: #374151; }
+    .banner-canvas-wrap { display: flex; flex-direction: row; align-items: flex-start; justify-content: center; gap: 16px; width: 100%; margin-bottom: 8px; flex-wrap: wrap; }
+    .banner-left { display: flex; flex-direction: column; align-items: center; }
+    .layer-snapshots { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; }
+    .layer-snapshots-list { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .layer-snapshot { width: 80px; height: 28px; border: 2px solid #e5e7eb; border-radius: 4px; cursor: pointer; object-fit: fill; display: block; image-rendering: pixelated; flex-shrink: 0; }
+    .layer-snapshot:hover { border-color: #f9a8d4; }
+    .layer-snapshot.active { border-color: #ec4899; }
+    .layer-snapshot-row { display: flex; flex-direction: row; align-items: center; gap: 6px; width: 100%; max-width: 220px; }
+    .layer-snapshot-row.hidden .layer-snapshot { opacity: 0.4; }
+    .layer-snapshot-row .layer-snapshot-row-spacer { flex: 1; min-width: 8px; }
+    .layer-snapshot-row-btns { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .layer-snapshot-toggle { width: 24px; height: 24px; padding: 0; border: 1px solid #e5e7eb; border-radius: 4px; background: #f9fafb; cursor: pointer; font-size: 14px; line-height: 1; flex-shrink: 0; }
+    .layer-snapshot-toggle:hover { background: #f3f4f6; }
+    .layer-snapshot-toggle.hidden { opacity: 0.6; }
+    .layer-snapshot-delete { width: 24px; height: 24px; padding: 0; border: 1px solid #e5e7eb; border-radius: 4px; background: #fef2f2; color: #b91c1c; cursor: pointer; font-size: 14px; line-height: 1; flex-shrink: 0; }
+    .layer-snapshot-delete:hover { background: #fee2e2; }
+    .layer-list-label { font-size: 10px; color: #6b7280; flex-shrink: 0; min-width: 36px; }
+    .layer-snapshots-add { width: 80px; height: 28px; border: 2px dashed #d1d5db; border-radius: 4px; background: #f9fafb; cursor: pointer; font-size: 18px; line-height: 26px; text-align: center; color: #9ca3af; }
+    .layer-snapshots-add:hover { border-color: #f9a8d4; color: #be185d; background: #fce4ec; }
+    #banner-zoom-wrap { overflow: auto; max-width: 100%; max-height: 70vh; border: 1px solid #d1d5db; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display: inline-block; min-width: 200px; min-height: 70px; }
+    #banner-inner { display: inline-block; line-height: 0; }
+    #banner { display: block; width: 200px; height: 70px; cursor: crosshair; image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; }
+    .zoom-controls { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 8px; }
+    .zoom-controls button { padding: 6px 14px; border-radius: 4px; border: 1px solid #d1d5db; background: #f9fafb; cursor: pointer; font-size: 18px; line-height: 1; }
+    .zoom-controls button:hover { background: #f3f4f6; }
+    .controls { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; margin-top: 16px; }
+    .control-group { display: flex; flex-direction: column; gap: 6px; }
+    .control-group label { font-size: 12px; color: #6b7280; font-weight: 600; }
+    .control-group input[type="color"] { width: 44px; height: 28px; padding: 2px; border: 1px solid #d1d5db; border-radius: 4px; cursor: pointer; }
+    .control-group input[type="number"], .control-group input[type="text"] { width: 80px; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; }
+    .control-group input[type="text"].wide { width: 160px; }
+    .symbols-row, .glitter-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .symbol-btn, .glitter-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 2px solid #e5e7eb; border-radius: 6px; background: #f9fafb; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+    .symbol-btn:hover, .glitter-btn:hover { border-color: #f9a8d4; background: #fce4ec; }
+    .symbol-btn.selected, .glitter-btn.selected { border-color: #ec4899; background: #fce4ec; }
+    .stickers-row .sticker-thumb { width: 40px; height: 40px; object-fit: contain; border: 2px solid #e5e7eb; border-radius: 6px; padding: 4px; background: #f9fafb; cursor: pointer; }
+    .stickers-row .sticker-thumb:hover { border-color: #f9a8d4; }
+    .stickers-row .sticker-thumb.selected { border-color: #ec4899; background: #fce4ec; }
+    .mode-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .mode-tab { padding: 8px 14px; border-radius: 6px; border: 1px solid #e5e7eb; background: #f9fafb; cursor: pointer; font-size: 13px; }
+    .mode-tab:hover { background: #f3f4f6; }
+    .mode-tab.active { background: #fce4ec; border-color: #ec4899; color: #be185d; }
+    .actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+    .actions button { padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
+.btn-download { background: var(--btn-pink-gradient); color: white; border: var(--btn-pink-border); box-shadow: var(--btn-pink-shadow); }
+.btn-download:hover { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); }
+    .btn-clear { background: #e5e7eb; color: #374151; }
+    .btn-clear:hover { background: #d1d5db; }
+    .btn-secondary { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+    .btn-secondary:hover { background: #e5e7eb; }
+    .hint { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+    .debug-panel { margin-top: 16px; padding: 12px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; }
+    .debug-panel h3 { margin: 0 0 10px 0; font-size: 13px; color: #92400e; }
+    .debug-panel summary { cursor: pointer; font-weight: 600; font-size: 13px; color: #92400e; }
+    .layers-list { list-style: none; padding: 0; margin: 0 0 12px 0; }
+    .layers-list li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
+    .layers-list li input[type="checkbox"] { margin: 0; }
+    .frame-list { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+    .frame-thumb { width: 60px; height: 21px; border: 2px solid #e5e7eb; border-radius: 4px; cursor: pointer; object-fit: fill; }
+    .frame-thumb.active { border-color: #ec4899; }
+    .brand-label-nav a { color: #ec4899; text-decoration: none; font-size: 14px; }
+    .brand-label-nav a:hover { text-decoration: underline; }
+    .edit-page-actions { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .edit-page-actions .save-page-btn { padding: 4px 10px; background: #059669; color: white; font-weight: 600; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; }
+    .edit-page-actions .save-page-btn:hover { background: #047857; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="container">
+    <div class="edit-page-actions">
+      <a href="./brand-label-projects.html" class="brand-label-nav">← Brand label projects</a>
+      <button type="button" class="save-page-btn" id="save-page-top-btn" title="Save page">Save page</button>
+    </div>
+    <div class="page-title">
+      <h1>Brand Label Creator</h1>
+      <p class="sub">200×70 px banner at 1:1. Zoom, add text, symbols, glitter, pixel draw. Layers and GIF export.</p>
+    </div>
+
+    <div class="banner-section">
+      <h2>Canvas</h2>
+      <div class="banner-canvas-wrap">
+        <div class="banner-left">
+          <div class="zoom-controls">
+            <button type="button" id="zoom-out" title="Zoom out" aria-label="Zoom out">−</button>
+            <button type="button" id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
+          </div>
+          <div id="banner-zoom-wrap">
+            <div id="banner-inner">
+              <canvas id="banner" width="200" height="70"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="layer-snapshots" id="layer-snapshots-panel">
+          <div class="layer-snapshots-list" id="layer-snapshots-list"></div>
+          <button type="button" class="layer-snapshots-add" id="layer-snapshot-add" title="Add layer (top)" aria-label="Add layer">+</button>
+        </div>
+      </div>
+      <p class="hint" id="mode-hint">Click to place symbol. Switch mode above for text, glitter, or pixel draw.</p>
+    </div>
+
+    <div class="banner-section">
+      <h2>Mode</h2>
+      <div class="mode-tabs">
+        <button type="button" class="mode-tab active" data-mode="symbols">Symbols</button>
+        <button type="button" class="mode-tab" data-mode="text">Text</button>
+        <button type="button" class="mode-tab" data-mode="glitter">Glitter</button>
+        <button type="button" class="mode-tab" data-mode="stickers">Stickers</button>
+        <button type="button" class="mode-tab" data-mode="pixel">Pixel draw</button>
+      </div>
+    </div>
+
+    <div class="banner-section" id="stickers-section" style="display:none;">
+      <h2>Add stickers</h2>
+      <p class="hint" style="margin-bottom:8px;">Load stickers from the site library, then click one and click the canvas to place it.</p>
+      <button type="button" class="btn-secondary" id="add-stickers-btn">Load stickers</button>
+      <div class="stickers-row" id="stickers-row" style="display:none; margin-top:10px; flex-wrap:wrap; gap:8px;"></div>
+      <div class="control-group" id="sticker-size-group" style="display:none; margin-top:8px;">
+        <label>Sticker size (px)</label>
+        <input type="number" id="sticker-size" min="12" max="70" value="32">
+      </div>
+    </div>
+
+    <div class="banner-section" id="colors-section">
+      <h2>Colors & border</h2>
+      <div class="controls">
+        <div class="control-group"><label>Background</label><input type="color" id="bg-color" value="#ffffff"></div>
+        <div class="control-group"><label>Border color</label><input type="color" id="border-color" value="#000000"></div>
+        <div class="control-group"><label>Border width</label><input type="number" id="border-width" min="0" max="20" value="2"></div>
+        <div class="control-group"><label>Symbol/Text color</label><input type="color" id="symbol-color" value="#000000"></div>
+        <div class="control-group"><label>Size (px)</label><input type="number" id="symbol-size" min="8" max="48" value="24"></div>
+        <div class="control-group" id="pixel-brush-group" style="display:none;">
+          <label>Brush size</label><input type="number" id="brush-size" min="1" max="8" value="1">
+        </div>
+      </div>
+    </div>
+
+    <div class="banner-section" id="text-section" style="display:none;">
+      <h2>Add text</h2>
+      <div class="controls">
+        <input type="text" id="text-input" class="wide" placeholder="Type text then click canvas to place" maxlength="50">
+      </div>
+    </div>
+
+    <div class="banner-section" id="symbols-section">
+      <h2>Symbols</h2>
+      <div class="symbols-row" id="symbols-row"></div>
+    </div>
+
+    <div class="banner-section" id="glitter-section" style="display:none;">
+      <h2>Glitter graphics</h2>
+      <div class="glitter-row" id="glitter-row"></div>
+    </div>
+
+    <div class="banner-section">
+      <h2>Frames (GIF)</h2>
+      <div class="controls">
+        <button type="button" class="btn-secondary" id="add-frame-btn">Add frame</button>
+        <button type="button" class="btn-secondary" id="remove-frame-btn">Remove frame</button>
+        <button type="button" class="btn-secondary" id="prev-frame-btn">Prev</button>
+        <button type="button" class="btn-secondary" id="next-frame-btn">Next</button>
+        <span id="frame-info">Frame 1 of 1</span>
+      </div>
+      <div class="frame-list" id="frame-list"></div>
+    </div>
+
+    <div class="banner-section debug-panel">
+      <details>
+        <summary>Debug: custom symbols, glitter, borders</summary>
+        <h3>Add custom symbol</h3>
+        <input type="text" id="debug-symbol-input" placeholder="Paste symbol (e.g. ★)" maxlength="2" style="width:60px;">
+        <button type="button" id="debug-add-symbol">Add to list</button>
+        <h3 style="margin-top:12px;">Add glitter shape</h3>
+        <select id="debug-glitter-type"><option value="dot">Dot</option><option value="star">Star</option><option value="sparkle">Sparkle</option><option value="diamond">Diamond</option></select>
+        <button type="button" id="debug-add-glitter">Add to glitter</button>
+        <h3 style="margin-top:12px;">Border preset</h3>
+        <button type="button" id="debug-border-none">None</button>
+        <button type="button" id="debug-border-thin">Thin (1px)</button>
+        <button type="button" id="debug-border-thick">Thick (6px)</button>
+        <h3 style="margin-top:12px;">Import GIF</h3>
+        <input type="file" id="debug-gif-upload" accept="image/gif" style="max-width:100%;">
+        <p class="hint" style="margin-top:4px;">Imports first frame as pixel layer on current frame.</p>
+        <label style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;"><input type="checkbox" id="debug-gif-all-frames"> Import all frames (replace project frames)</label>
+        <p class="hint" style="margin-top:4px;">With "Import all frames" checked, each GIF frame becomes a project frame (pixel layer).</p>
+      </details>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn-secondary" id="undo-btn" title="Undo (Ctrl+Z)" aria-label="Undo">Undo</button>
+      <button type="button" class="btn-secondary" id="redo-btn" title="Redo (Ctrl+Y)" aria-label="Redo">Redo</button>
+      <button type="button" class="btn-secondary" id="save-btn" title="Save page">Save page</button>
+      <button type="button" class="btn-secondary" id="save-as-btn" title="Save as new project">Save as</button>
+      <button type="button" class="btn-download" id="download-png">Download PNG</button>
+      <button type="button" class="btn-download" id="download-gif">Download GIF</button>
+      <button type="button" class="btn-clear" id="clear-btn">Clear current layer</button>
+    </div>
+  </div>
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+  <script>
+    (function () {
+      const W = 200, H = 70;
+      const canvas = document.getElementById('banner');
+      const ctx = canvas.getContext('2d');
+      canvas.width = W;
+      canvas.height = H;
+
+      let zoom = 1;
+      let mode = 'symbols';
+      let symbols = ['★', '☆', '♦', '♥', '♣', '♠', '●', '◆', '▲', '■', '☀', '✦', '✓', '•', '○', '◇', '△', '□', '▪', '▫', '✱', '✲', '❋', '⚹', '⁕'];
+      let glitterShapes = ['dot', 'star', 'sparkle', 'diamond'];
+      let selectedSymbol = '★';
+      let selectedGlitter = 'sparkle';
+      let selectedSticker = null;
+      let stickerList = [];
+      let stickerImageCache = {};
+      let pixelData = null;
+      function newEmptyLayer(type) {
+        var layer = {
+          symbols: [], text: [], glitter: [], stickers: [], pixel: null,
+          bgColor: '#ffffff', borderColor: '#000000', borderWidth: 2,
+          visible: true, type: type || 'graphic'
+        };
+        return layer;
+      }
+
+      let frames = [{ layers: [Object.assign(newEmptyLayer('graphic'), { bgColor: '#ffffff', borderColor: '#000000', borderWidth: 2 }) ] }];
+      let currentFrameIndex = 0;
+      let activeLayerIndex = 0;
+      let isDrawing = false;
+      var undoStack = [];
+      var redoStack = [];
+      var UNDO_LIMIT = 50;
+      var BRAND_LABEL_PROJECTS_KEY = 'brandLabelProjects';
+      var currentProjectId = null;
+      var projectLoaded = false;
+
+      const LAYER_ORDER = ['background', 'pixel', 'symbols', 'text', 'glitter'];
+      let layerVisible = { background: true, pixel: true, symbols: true, text: true, glitter: true };
+
+      function getFrame() { return frames[currentFrameIndex] || frames[0]; }
+      function getLayers() { return getFrame().layers; }
+      function getActiveLayer() { var L = getLayers(); return L[activeLayerIndex] || L[0]; }
+      function getBgColor() { return document.getElementById('bg-color').value; }
+      function getBorderColor() { return document.getElementById('border-color').value; }
+      function getBorderWidth() { return Math.max(0, Math.min(20, parseInt(document.getElementById('border-width').value, 10) || 0)); }
+      function getSymbolColor() { return document.getElementById('symbol-color').value; }
+      function getSymbolSize() { return Math.max(8, Math.min(48, parseInt(document.getElementById('symbol-size').value, 10) || 24)); }
+      function getBrushSize() { return Math.max(1, Math.min(8, parseInt(document.getElementById('brush-size').value, 10) || 1)); }
+      function getStickerSize() { return Math.max(12, Math.min(70, parseInt(document.getElementById('sticker-size').value, 10) || 32)); }
+
+      function ensurePixelData() {
+        const layer = getActiveLayer();
+        if (!layer.pixel) {
+          layer.pixel = ctx.createImageData(W, H);
+          for (let i = 0; i < layer.pixel.data.length; i += 4) {
+            layer.pixel.data[i + 3] = 0;
+          }
+        }
+        return layer.pixel;
+      }
+
+      function drawGlitterShape(gCtx, type, x, y, size, color) {
+        gCtx.fillStyle = color;
+        gCtx.strokeStyle = color;
+        const s = size / 2;
+        if (type === 'dot') {
+          gCtx.beginPath();
+          gCtx.arc(x, y, Math.max(1, s * 0.6), 0, Math.PI * 2);
+          gCtx.fill();
+        } else if (type === 'star') {
+          gCtx.font = (size * 1.2) + 'px Arial';
+          gCtx.textAlign = 'center';
+          gCtx.textBaseline = 'middle';
+          gCtx.fillText('★', x, y);
+        } else if (type === 'sparkle') {
+          gCtx.font = size + 'px Arial';
+          gCtx.textAlign = 'center';
+          gCtx.textBaseline = 'middle';
+          gCtx.fillText('✦', x, y);
+        } else if (type === 'diamond') {
+          gCtx.beginPath();
+          gCtx.moveTo(x, y - s);
+          gCtx.lineTo(x + s, y);
+          gCtx.lineTo(x, y + s);
+          gCtx.lineTo(x - s, y);
+          gCtx.closePath();
+          gCtx.fill();
+        }
+      }
+
+      function drawLayerToContext(ctxOut, layer, drawBackground) {
+        if (!layer) return;
+        if (layer.type === 'sticker') drawBackground = false;
+        if (drawBackground !== false) {
+          ctxOut.fillStyle = layer.bgColor != null ? layer.bgColor : getBgColor();
+          ctxOut.fillRect(0, 0, W, H);
+          var bw = layer.borderWidth != null ? layer.borderWidth : getBorderWidth();
+          if (bw > 0) {
+            ctxOut.strokeStyle = layer.borderColor != null ? layer.borderColor : getBorderColor();
+            ctxOut.lineWidth = bw;
+            ctxOut.strokeRect(bw/2, bw/2, W - bw, H - bw);
+          }
+        }
+        if (layer.pixel) {
+          var tmp = document.createElement('canvas');
+          tmp.width = W; tmp.height = H;
+          tmp.getContext('2d').putImageData(layer.pixel, 0, 0);
+          ctxOut.drawImage(tmp, 0, 0);
+        }
+        ctxOut.textBaseline = 'middle';
+        ctxOut.textAlign = 'center';
+        (layer.symbols || []).forEach(function (p) {
+          var sz = Math.max(8, Math.min(48, p.size || 24));
+          ctxOut.font = sz + 'px Arial, sans-serif';
+          ctxOut.fillStyle = p.color || '#000';
+          ctxOut.fillText(p.symbol, Math.floor(p.x) + 0.5, Math.floor(p.y) + 0.5);
+        });
+        ctxOut.textBaseline = 'middle';
+        ctxOut.textAlign = 'left';
+        (layer.text || []).forEach(function (p) {
+          var sz = Math.max(8, Math.min(48, p.size || 24));
+          ctxOut.font = sz + 'px Arial, sans-serif';
+          ctxOut.fillStyle = p.color || '#000';
+          ctxOut.fillText(p.text, Math.floor(p.x) + 0.5, Math.floor(p.y) + 0.5);
+        });
+        (layer.glitter || []).forEach(function (p) {
+          drawGlitterShape(ctxOut, p.shape, p.x, p.y, p.size || 12, p.color || '#ffd700');
+        });
+        (layer.stickers || []).forEach(function (s) {
+          var url = s.url || (s.id ? '/Uploads/hover-card-stickers/' + encodeURIComponent(s.id) : null);
+          if (!url) return;
+          var w = Math.max(8, s.w || 32);
+          var h = Math.max(8, s.h || 32);
+          var cx = s.x != null ? s.x : 0;
+          var cy = s.y != null ? s.y : 0;
+          var img = stickerImageCache[url];
+          if (img && img.complete && img.naturalWidth) {
+            ctxOut.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+          } else {
+            if (!stickerImageCache[url]) {
+              img = new Image();
+              img.crossOrigin = 'anonymous';
+              stickerImageCache[url] = img;
+              img.onload = function () { redraw(); };
+              img.src = url;
+            }
+          }
+        });
+      }
+
+      function drawFrameToContext(ctxOut) {
+        var layers = getLayers();
+        for (var i = layers.length - 1; i >= 0; i--) {
+          if (layers[i].visible !== false) {
+            var isBackLayer = (i === layers.length - 1);
+            drawLayerToContext(ctxOut, layers[i], isBackLayer);
+          }
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+        drawFrameToContext(ctx);
+      }
+
+      function redraw() { draw(); }
+
+      function getCanvasCoords(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        return {
+          x: Math.floor((e.clientX - rect.left) * scaleX),
+          y: Math.floor((e.clientY - rect.top) * scaleY)
+        };
+      }
+
+      function paintPixel(x, y) {
+        ensurePixelData();
+        const d = getActiveLayer().pixel.data;
+        const brush = getBrushSize();
+        const hex = getSymbolColor();
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        for (let dy = -brush; dy <= brush; dy++) {
+          for (let dx = -brush; dx <= brush; dx++) {
+            const px = x + dx;
+            const py = y + dy;
+            if (px >= 0 && px < W && py >= 0 && py < H) {
+              const i = (py * W + px) * 4;
+              d[i] = r;
+              d[i + 1] = g;
+              d[i + 2] = b;
+              d[i + 3] = 255;
+            }
+          }
+        }
+      }
+
+      canvas.addEventListener('mousedown', function (e) {
+        const { x, y } = getCanvasCoords(e);
+        if (x < 0 || x >= W || y < 0 || y >= H) return;
+        var layer = getActiveLayer();
+
+        if (mode === 'pixel') {
+          saveStateForUndo();
+          isDrawing = true;
+          paintPixel(x, y);
+          redraw();
+          return;
+        }
+        if (mode === 'symbols') {
+          saveStateForUndo();
+          layer.symbols = layer.symbols || [];
+          layer.symbols.push({ symbol: selectedSymbol, x: x + 0.5, y: y + 0.5, size: getSymbolSize(), color: getSymbolColor() });
+        } else if (mode === 'stickers' && selectedSticker) {
+          var sz = getStickerSize();
+          addStickerAsNewLayer({ id: selectedSticker.id, url: selectedSticker.url, x: x, y: y, w: sz, h: sz });
+        } else if (mode === 'text') {
+          const text = (document.getElementById('text-input').value || '').trim();
+          if (text) {
+            saveStateForUndo();
+            layer.text = layer.text || [];
+            layer.text.push({ text: text, x: x + 0.5, y: y + 0.5, size: getSymbolSize(), color: getSymbolColor() });
+            document.getElementById('text-input').value = '';
+          }
+        } else if (mode === 'glitter') {
+          saveStateForUndo();
+          layer.glitter = layer.glitter || [];
+          layer.glitter.push({ shape: selectedGlitter, x: x, y: y, size: getSymbolSize(), color: getSymbolColor() });
+        }
+        redraw();
+      });
+
+      canvas.addEventListener('mousemove', function (e) {
+        if (mode !== 'pixel' || !isDrawing) return;
+        const { x, y } = getCanvasCoords(e);
+        if (x >= 0 && x < W && y >= 0 && y < H) {
+          paintPixel(x, y);
+          redraw();
+        }
+      });
+
+      canvas.addEventListener('mouseup', function () { isDrawing = false; });
+      canvas.addEventListener('mouseleave', function () { isDrawing = false; });
+
+      function applyZoom() {
+        var w = 200 * zoom;
+        var h = 70 * zoom;
+        canvas.style.width = w + 'px';
+        canvas.style.height = h + 'px';
+      }
+      document.getElementById('zoom-in').addEventListener('click', function () {
+        zoom = Math.min(8, zoom + 1);
+        applyZoom();
+      });
+      document.getElementById('zoom-out').addEventListener('click', function () {
+        zoom = Math.max(1, zoom - 1);
+        applyZoom();
+      });
+      applyZoom();
+
+      document.querySelectorAll('.mode-tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          mode = tab.dataset.mode;
+          document.querySelectorAll('.mode-tab').forEach(function (t) { t.classList.remove('active'); });
+          tab.classList.add('active');
+          document.getElementById('symbols-section').style.display = mode === 'symbols' ? 'block' : 'none';
+          document.getElementById('glitter-section').style.display = mode === 'glitter' ? 'block' : 'none';
+          document.getElementById('stickers-section').style.display = mode === 'stickers' ? 'block' : 'none';
+          document.getElementById('sticker-size-group').style.display = mode === 'stickers' ? 'block' : 'none';
+          document.getElementById('text-section').style.display = mode === 'text' ? 'block' : 'none';
+          document.getElementById('pixel-brush-group').style.display = mode === 'pixel' ? 'block' : 'none';
+          var hints = { symbols: 'Click to place symbol.', text: 'Enter text above, then click canvas to place.', glitter: 'Click to place glitter graphic.', stickers: 'Click a sticker below, then click the canvas to place it.', pixel: 'Click and drag to draw pixels.' };
+          document.getElementById('mode-hint').textContent = hints[mode] || '';
+        });
+      });
+
+      document.getElementById('bg-color').addEventListener('input', function () {
+        var L = getActiveLayer();
+        if (L) L.bgColor = this.value;
+        redraw();
+      });
+      document.getElementById('border-color').addEventListener('input', function () {
+        var L = getActiveLayer();
+        if (L) L.borderColor = this.value;
+        redraw();
+      });
+      document.getElementById('border-width').addEventListener('input', function () {
+        var L = getActiveLayer();
+        if (L) L.borderWidth = Math.max(0, Math.min(20, parseInt(this.value, 10) || 0));
+        redraw();
+      });
+      document.getElementById('symbol-color').addEventListener('input', redraw);
+      document.getElementById('symbol-size').addEventListener('input', redraw);
+
+      function renderSymbols() {
+        const row = document.getElementById('symbols-row');
+        row.innerHTML = '';
+        symbols.forEach(function (sym) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'symbol-btn' + (sym === selectedSymbol ? ' selected' : '');
+          btn.textContent = sym;
+          btn.addEventListener('click', function () {
+            selectedSymbol = sym;
+            row.querySelectorAll('.symbol-btn').forEach(function (b) { b.classList.remove('selected'); });
+            btn.classList.add('selected');
+          });
+          row.appendChild(btn);
+        });
+      }
+
+      function renderGlitter() {
+        const row = document.getElementById('glitter-row');
+        row.innerHTML = '';
+        glitterShapes.forEach(function (shape) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'glitter-btn' + (shape === selectedGlitter ? ' selected' : '');
+          btn.textContent = shape === 'dot' ? '•' : shape === 'star' ? '★' : shape === 'sparkle' ? '✦' : '◆';
+          btn.title = shape;
+          btn.addEventListener('click', function () {
+            selectedGlitter = shape;
+            row.querySelectorAll('.glitter-btn').forEach(function (b) { b.classList.remove('selected'); });
+            btn.classList.add('selected');
+          });
+          row.appendChild(btn);
+        });
+      }
+
+      renderSymbols();
+      renderGlitter();
+
+      document.getElementById('add-stickers-btn').addEventListener('click', function () {
+        var row = document.getElementById('stickers-row');
+        var btn = document.getElementById('add-stickers-btn');
+        if (stickerList.length) {
+          row.style.display = 'flex';
+          return;
+        }
+        btn.disabled = true;
+        fetch('/api/hover-card-stickers', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }).then(function (list) {
+          stickerList = list || [];
+          row.innerHTML = '';
+          stickerList.forEach(function (s) {
+            var img = document.createElement('img');
+            img.className = 'sticker-thumb';
+            img.src = s.url || ('/Uploads/hover-card-stickers/' + (s.id || s.filename || ''));
+            img.alt = s.id || '';
+            img.title = s.id || 'Sticker';
+            img.dataset.id = s.id || s.filename || '';
+            img.dataset.url = img.src;
+            img.addEventListener('click', function () {
+              selectedSticker = { id: img.dataset.id, url: img.src };
+              row.querySelectorAll('.sticker-thumb').forEach(function (t) { t.classList.remove('selected'); });
+              img.classList.add('selected');
+            });
+            row.appendChild(img);
+          });
+          row.style.display = 'flex';
+          btn.textContent = stickerList.length ? 'Stickers loaded' : 'No stickers found';
+          btn.disabled = false;
+        });
+      });
+
+      document.getElementById('sticker-size').addEventListener('input', redraw);
+
+      function cloneLayer(layer) {
+        var cloned = {
+          symbols: JSON.parse(JSON.stringify(layer.symbols || [])),
+          text: JSON.parse(JSON.stringify(layer.text || [])),
+          glitter: JSON.parse(JSON.stringify(layer.glitter || [])),
+          stickers: JSON.parse(JSON.stringify(layer.stickers || [])),
+          pixel: null,
+          bgColor: layer.bgColor, borderColor: layer.borderColor, borderWidth: layer.borderWidth != null ? layer.borderWidth : 2,
+          visible: layer.visible !== false, type: layer.type || 'graphic'
+        };
+        if (layer.pixel) {
+          cloned.pixel = ctx.createImageData(W, H);
+          cloned.pixel.data.set(layer.pixel.data);
+        }
+        return cloned;
+      }
+
+      function serializeLayer(layer) {
+        var o = {
+          symbols: JSON.parse(JSON.stringify(layer.symbols || [])),
+          text: JSON.parse(JSON.stringify(layer.text || [])),
+          glitter: JSON.parse(JSON.stringify(layer.glitter || [])),
+          stickers: JSON.parse(JSON.stringify(layer.stickers || [])),
+          pixel: null,
+          bgColor: layer.bgColor, borderColor: layer.borderColor, borderWidth: layer.borderWidth != null ? layer.borderWidth : 2,
+          visible: layer.visible !== false, type: layer.type || 'graphic'
+        };
+        if (layer.pixel) {
+          o.pixel = { w: W, h: H, data: Array.from(layer.pixel.data) };
+        }
+        return o;
+      }
+
+      function deserializeLayer(o) {
+        var layer = {
+          symbols: o.symbols || [],
+          text: o.text || [],
+          glitter: o.glitter || [],
+          stickers: o.stickers || [],
+          pixel: null,
+          bgColor: o.bgColor || '#ffffff', borderColor: o.borderColor || '#000000', borderWidth: o.borderWidth != null ? o.borderWidth : 2,
+          visible: o.visible !== false, type: o.type || 'graphic'
+        };
+        if (o.pixel && o.pixel.data && Array.isArray(o.pixel.data)) {
+          layer.pixel = ctx.createImageData(o.pixel.w || W, o.pixel.h || H);
+          layer.pixel.data.set(o.pixel.data);
+        }
+        return layer;
+      }
+
+      function getBrandLabelProjectData() {
+        return {
+          frames: frames.map(function (f) {
+            return { layers: (f.layers || []).map(serializeLayer) };
+          }),
+          currentFrameIndex: currentFrameIndex,
+          activeLayerIndex: activeLayerIndex
+        };
+      }
+
+      function loadBrandLabelProjectData(data) {
+        if (!data || !data.frames || !data.frames.length) return false;
+        frames = data.frames.map(function (f) {
+          return { layers: (f.layers || []).map(deserializeLayer) };
+        });
+        currentFrameIndex = Math.min(data.currentFrameIndex || 0, frames.length - 1);
+        activeLayerIndex = Math.min(data.activeLayerIndex || 0, (getLayers().length || 1) - 1);
+        return true;
+      }
+
+      function saveStateForUndo() {
+        redoStack = [];
+        var data = getBrandLabelProjectData();
+        undoStack.push(JSON.parse(JSON.stringify(data)));
+        if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+        updateUndoRedoButtons();
+      }
+
+      function undo() {
+        if (undoStack.length === 0) return;
+        redoStack.push(JSON.parse(JSON.stringify(getBrandLabelProjectData())));
+        var state = undoStack.pop();
+        loadBrandLabelProjectData(state);
+        updateUndoRedoButtons();
+        updateFrameUI();
+        updateLayerList();
+        syncUIFromActiveLayer();
+        redraw();
+      }
+
+      function redo() {
+        if (redoStack.length === 0) return;
+        undoStack.push(JSON.parse(JSON.stringify(getBrandLabelProjectData())));
+        var state = redoStack.pop();
+        loadBrandLabelProjectData(state);
+        updateUndoRedoButtons();
+        updateFrameUI();
+        updateLayerList();
+        syncUIFromActiveLayer();
+        redraw();
+      }
+
+      function updateUndoRedoButtons() {
+        var undoBtn = document.getElementById('undo-btn');
+        var redoBtn = document.getElementById('redo-btn');
+        if (undoBtn) undoBtn.disabled = undoStack.length === 0;
+        if (redoBtn) redoBtn.disabled = redoStack.length === 0;
+      }
+
+      function getBrandLabelProjectsList() {
+        try {
+          var raw = localStorage.getItem(BRAND_LABEL_PROJECTS_KEY);
+          return raw ? JSON.parse(raw) : [];
+        } catch (e) { return []; }
+      }
+      function setBrandLabelProjectsList(list) {
+        try { localStorage.setItem(BRAND_LABEL_PROJECTS_KEY, JSON.stringify(list)); } catch (e) {}
+      }
+      function generateProjectId() { return 'bl-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10); }
+      function loadProjectFromStorage(id) {
+        try {
+          var raw = localStorage.getItem('brandLabelProject-' + id);
+          var data = raw ? JSON.parse(raw) : null;
+          if (data && loadBrandLabelProjectData(data)) {
+            currentProjectId = id;
+            projectLoaded = true;
+            undoStack = [];
+            redoStack = [];
+            updateUndoRedoButtons();
+            return true;
+          }
+        } catch (e) {}
+        return false;
+      }
+      function saveProjectToStorage(id, name, data) {
+        try {
+          localStorage.setItem('brandLabelProject-' + id, JSON.stringify(data));
+          var list = getBrandLabelProjectsList();
+          var entry = list.find(function (p) { return p.id === id; });
+          var savedAt = new Date().toISOString();
+          if (entry) {
+            entry.name = name || entry.name;
+            entry.savedAt = savedAt;
+          } else {
+            list.push({ id: id, name: name || 'Untitled', savedAt: savedAt });
+          }
+          setBrandLabelProjectsList(list);
+          return true;
+        } catch (e) { return false; }
+      }
+      function doSave(projectId, name) {
+        var data = getBrandLabelProjectData();
+        if (saveProjectToStorage(projectId, name, data)) {
+          currentProjectId = projectId;
+          var url = window.location.pathname + '?project=' + encodeURIComponent(projectId);
+          if (window.history && window.history.replaceState) window.history.replaceState({}, '', url);
+          if (typeof showToast === 'function') showToast('Saved'); else alert('Saved');
+        } else {
+          if (typeof showToast === 'function') showToast('Could not save', true); else alert('Could not save');
+        }
+      }
+
+      function getLayerTypeForMode() {
+        if (mode === 'symbols') return 'symbol';
+        if (mode === 'text') return 'text';
+        if (mode === 'stickers') return 'graphic';
+        return 'graphic';
+      }
+
+      function addLayer() {
+        saveStateForUndo();
+        var layers = getLayers();
+        var newLayer = newEmptyLayer(getLayerTypeForMode());
+        newLayer.bgColor = getBgColor();
+        newLayer.borderColor = getBorderColor();
+        newLayer.borderWidth = getBorderWidth();
+        layers.unshift(newLayer);
+        activeLayerIndex = 0;
+        syncUIFromActiveLayer();
+        updateLayerList();
+        redraw();
+      }
+
+      function addStickerAsNewLayer(stickerData) {
+        saveStateForUndo();
+        var newLayer = newEmptyLayer('sticker');
+        newLayer.stickers = [stickerData];
+        newLayer.borderWidth = 0;
+        for (var fi = 0; fi < frames.length; fi++) {
+          frames[fi].layers.unshift(cloneLayer(newLayer));
+        }
+        activeLayerIndex = 0;
+        syncUIFromActiveLayer();
+        updateLayerList();
+        redraw();
+      }
+
+      function setActiveLayer(index) {
+        var layers = getLayers();
+        if (index < 0 || index >= layers.length) return;
+        activeLayerIndex = index;
+        syncUIFromActiveLayer();
+        updateLayerList();
+        redraw();
+      }
+
+      function syncUIFromActiveLayer() {
+        var L = getActiveLayer();
+        if (!L) return;
+        document.getElementById('bg-color').value = L.bgColor || '#ffffff';
+        document.getElementById('border-color').value = L.borderColor || '#000000';
+        document.getElementById('border-width').value = String(L.borderWidth != null ? L.borderWidth : 2);
+      }
+
+      function deleteLayer(index) {
+        var layers = getLayers();
+        if (layers.length <= 1) return;
+        saveStateForUndo();
+        layers.splice(index, 1);
+        if (activeLayerIndex >= layers.length) activeLayerIndex = layers.length - 1;
+        else if (activeLayerIndex > index) activeLayerIndex--;
+        syncUIFromActiveLayer();
+        updateLayerList();
+        redraw();
+      }
+
+      function toggleLayerVisible(index) {
+        var layers = getLayers();
+        if (index < 0 || index >= layers.length) return;
+        layers[index].visible = !layers[index].visible;
+        updateLayerList();
+        redraw();
+      }
+
+      function updateLayerList() {
+        var list = document.getElementById('layer-snapshots-list');
+        list.innerHTML = '';
+        var layers = getLayers();
+        layers.forEach(function (layer, i) {
+          var row = document.createElement('div');
+          row.className = 'layer-snapshot-row' + (layer.visible === false ? ' hidden' : '');
+          var thumb = document.createElement('canvas');
+          thumb.width = 80;
+          thumb.height = 28;
+          thumb.className = 'layer-snapshot' + (i === activeLayerIndex ? ' active' : '');
+          thumb.title = (i === 0 ? 'Top' : i === layers.length - 1 ? 'Bottom' : '') + ' – click to select layer';
+          var tCtx = thumb.getContext('2d');
+          var tmp = document.createElement('canvas');
+          tmp.width = W;
+          tmp.height = H;
+          var tmpCtx = tmp.getContext('2d');
+          drawLayerToContext(tmpCtx, layer);
+          tCtx.drawImage(tmp, 0, 0, W, H, 0, 0, 80, 28);
+          (function (idx) {
+            thumb.addEventListener('click', function () { setActiveLayer(idx); });
+          })(i);
+          var toggle = document.createElement('button');
+          toggle.type = 'button';
+          toggle.className = 'layer-snapshot-toggle' + (layer.visible === false ? ' hidden' : '');
+          toggle.title = layer.visible ? 'Hide layer' : 'Show layer';
+          toggle.innerHTML = layer.visible ? '&#128065;' : '&#128064;';
+          toggle.setAttribute('aria-label', layer.visible ? 'Hide layer' : 'Show layer');
+          (function (idx) {
+            toggle.addEventListener('click', function (e) {
+              e.stopPropagation();
+              toggleLayerVisible(idx);
+            });
+          })(i);
+          var delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.className = 'layer-snapshot-delete';
+          delBtn.title = 'Delete layer';
+          delBtn.innerHTML = '&#215;';
+          delBtn.setAttribute('aria-label', 'Delete layer');
+          (function (idx) {
+            delBtn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              deleteLayer(idx);
+            });
+          })(i);
+          if (layers.length <= 1) delBtn.disabled = true;
+          row.appendChild(thumb);
+          var label = document.createElement('div');
+          label.className = 'layer-list-label';
+          label.textContent = (i === 0 ? 'Top' : i === layers.length - 1 ? 'Bottom' : '') + ' ' + (layer.type || 'layer');
+          row.appendChild(label);
+          var spacer = document.createElement('span');
+          spacer.className = 'layer-snapshot-row-spacer';
+          spacer.setAttribute('aria-hidden', 'true');
+          row.appendChild(spacer);
+          var btnRow = document.createElement('div');
+          btnRow.className = 'layer-snapshot-row-btns';
+          btnRow.appendChild(toggle);
+          btnRow.appendChild(delBtn);
+          row.appendChild(btnRow);
+          list.appendChild(row);
+        });
+      }
+
+      document.getElementById('layer-snapshot-add').addEventListener('click', addLayer);
+
+      function updateLayersList() {
+        const ul = document.getElementById('layers-list');
+        if (!ul) return;
+        ul.innerHTML = '';
+        LAYER_ORDER.forEach(function (id) {
+          const name = id.charAt(0).toUpperCase() + id.slice(1);
+          const li = document.createElement('li');
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.checked = layerVisible[id];
+          cb.addEventListener('change', function () {
+            layerVisible[id] = cb.checked;
+            redraw();
+          });
+          li.appendChild(cb);
+          li.appendChild(document.createTextNode(name));
+          ul.appendChild(li);
+        });
+      }
+      updateLayersList();
+
+      document.getElementById('clear-btn').addEventListener('click', function () {
+        var layer = getActiveLayer();
+        if (!layer) return;
+        saveStateForUndo();
+        if (mode === 'symbols') layer.symbols = [];
+        else if (mode === 'text') layer.text = [];
+        else if (mode === 'glitter') layer.glitter = [];
+        else if (mode === 'pixel') {
+          layer.pixel = null;
+          ensurePixelData();
+          for (var i = 3; i < layer.pixel.data.length; i += 4) layer.pixel.data[i] = 0;
+        }
+        redraw();
+        updateLayerList();
+      });
+
+      document.getElementById('undo-btn').addEventListener('click', undo);
+      document.getElementById('redo-btn').addEventListener('click', redo);
+      document.addEventListener('keydown', function (e) {
+        if (e.ctrlKey && e.key === 'z') {
+          e.preventDefault();
+          if (e.shiftKey) redo(); else undo();
+        } else if (e.ctrlKey && e.key === 'y') {
+          e.preventDefault();
+          redo();
+        }
+      });
+      updateUndoRedoButtons();
+
+      document.getElementById('download-png').addEventListener('click', function () {
+        const link = document.createElement('a');
+        link.download = 'brand-label-200x70.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+
+      function exportGif() {
+        if (frames.length === 1) {
+          var link = document.createElement('a');
+          link.download = 'brand-label.gif';
+          link.href = canvas.toDataURL('image/gif');
+          link.click();
+          return;
+        }
+        frames.forEach(function (_, fi) {
+          currentFrameIndex = fi;
+          redraw();
+          var link = document.createElement('a');
+          link.download = 'brand-label-frame-' + (fi + 1) + '.png';
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        });
+        currentFrameIndex = 0;
+        redraw();
+      }
+
+      document.getElementById('download-gif').addEventListener('click', function () {
+        exportGif();
+      });
+
+      document.getElementById('add-frame-btn').addEventListener('click', function () {
+        saveStateForUndo();
+        var currentLayers = getLayers();
+        var newFrame = { layers: currentLayers.map(function (L) { return cloneLayer(L); }) };
+        frames.splice(currentFrameIndex + 1, 0, newFrame);
+        currentFrameIndex++;
+        activeLayerIndex = Math.min(activeLayerIndex, newFrame.layers.length - 1);
+        updateFrameUI();
+        updateLayerList();
+        syncUIFromActiveLayer();
+        redraw();
+      });
+
+      function updateFrameUI() {
+        document.getElementById('frame-info').textContent = 'Frame ' + (currentFrameIndex + 1) + ' of ' + frames.length;
+        var list = document.getElementById('frame-list');
+        list.innerHTML = '';
+        var saveIdx = currentFrameIndex;
+        frames.forEach(function (_, i) {
+          currentFrameIndex = i;
+          var c = document.createElement('canvas');
+          c.width = W;
+          c.height = H;
+          c.className = 'frame-thumb' + (i === saveIdx ? ' active' : '');
+          var ctx2 = c.getContext('2d');
+          drawFrameToContext(ctx2);
+          c.addEventListener('click', function () {
+            currentFrameIndex = i;
+            activeLayerIndex = Math.min(activeLayerIndex, getLayers().length - 1);
+            updateFrameUI();
+            updateLayerList();
+            syncUIFromActiveLayer();
+            redraw();
+          });
+          list.appendChild(c);
+        });
+        currentFrameIndex = saveIdx;
+      }
+
+      document.getElementById('remove-frame-btn').addEventListener('click', function () {
+        if (frames.length <= 1) return;
+        saveStateForUndo();
+        frames.splice(currentFrameIndex, 1);
+        if (currentFrameIndex >= frames.length) currentFrameIndex = frames.length - 1;
+        activeLayerIndex = Math.min(activeLayerIndex, getLayers().length - 1);
+        updateFrameUI();
+        updateLayerList();
+        syncUIFromActiveLayer();
+        redraw();
+      });
+      document.getElementById('prev-frame-btn').addEventListener('click', function () {
+        if (currentFrameIndex > 0) {
+          currentFrameIndex--;
+          activeLayerIndex = Math.min(activeLayerIndex, getLayers().length - 1);
+          updateFrameUI();
+          updateLayerList();
+          syncUIFromActiveLayer();
+          redraw();
+        }
+      });
+      document.getElementById('next-frame-btn').addEventListener('click', function () {
+        if (currentFrameIndex < frames.length - 1) {
+          currentFrameIndex++;
+          activeLayerIndex = Math.min(activeLayerIndex, getLayers().length - 1);
+          updateFrameUI();
+          updateLayerList();
+          syncUIFromActiveLayer();
+          redraw();
+        }
+      });
+
+      document.getElementById('debug-add-symbol').addEventListener('click', function () {
+        const v = (document.getElementById('debug-symbol-input').value || '').trim();
+        if (v && symbols.indexOf(v) === -1) {
+          symbols.push(v);
+          renderSymbols();
+          document.getElementById('debug-symbol-input').value = '';
+        }
+      });
+      document.getElementById('debug-add-glitter').addEventListener('click', function () {
+        const v = document.getElementById('debug-glitter-type').value;
+        if (glitterShapes.indexOf(v) === -1) {
+          glitterShapes.push(v);
+          renderGlitter();
+        }
+      });
+      document.getElementById('debug-border-none').addEventListener('click', function () {
+        document.getElementById('border-width').value = 0;
+        var L = getActiveLayer();
+        if (L) L.borderWidth = 0;
+        redraw();
+      });
+      document.getElementById('debug-border-thin').addEventListener('click', function () {
+        document.getElementById('border-width').value = 1;
+        var L = getActiveLayer();
+        if (L) L.borderWidth = 1;
+        redraw();
+      });
+      document.getElementById('debug-border-thick').addEventListener('click', function () {
+        document.getElementById('border-width').value = 6;
+        var L = getActiveLayer();
+        if (L) L.borderWidth = 6;
+        redraw();
+      });
+
+      var gifUpload = document.getElementById('debug-gif-upload');
+      if (gifUpload) {
+        gifUpload.addEventListener('change', function () {
+          var file = this.files && this.files[0];
+          this.value = '';
+          if (!file || file.type !== 'image/gif') {
+            if (typeof showToast === 'function') showToast('Please choose a GIF file', true);
+            return;
+          }
+          var allFramesCb = document.getElementById('debug-gif-all-frames');
+          if (allFramesCb && allFramesCb.checked) {
+            file.arrayBuffer().then(function (arrayBuffer) {
+              import('https://cdn.jsdelivr.net/npm/gifuct-js@2.1.2/+esm').then(function (gifuct) {
+                try {
+                  var parsed = gifuct.parseGIF(arrayBuffer);
+                  var rawFrames = gifuct.decompressFrames(parsed, true);
+                  if (!rawFrames || !rawFrames.length) {
+                    if (typeof showToast === 'function') showToast('No frames in GIF', true);
+                    return;
+                  }
+                  var newFrames = [];
+                  var tmp = document.createElement('canvas');
+                  tmp.width = W;
+                  tmp.height = H;
+                  var tCtx = tmp.getContext('2d');
+                  for (var fi = 0; fi < rawFrames.length; fi++) {
+                    var rf = rawFrames[fi];
+                    var patch = rf.patch;
+                    var dims = rf.dims || {};
+                    var fw = dims.width || 200;
+                    var fh = dims.height || 70;
+                    var frameImg = tCtx.createImageData(fw, fh);
+                    if (patch && patch.length >= frameImg.data.length) {
+                      frameImg.data.set(patch.subarray(0, frameImg.data.length));
+                    }
+                    tmp.width = fw;
+                    tmp.height = fh;
+                    tCtx.putImageData(frameImg, 0, 0);
+                    var scaleCanvas = document.createElement('canvas');
+                    scaleCanvas.width = W;
+                    scaleCanvas.height = H;
+                    var sCtx = scaleCanvas.getContext('2d');
+                    sCtx.drawImage(tmp, 0, 0, fw, fh, 0, 0, W, H);
+                    var scaled = sCtx.getImageData(0, 0, W, H);
+                    var layer = newEmptyLayer('graphic');
+                    layer.pixel = ctx.createImageData(W, H);
+                    layer.pixel.data.set(scaled.data);
+                    newFrames.push({ layers: [layer] });
+                  }
+                  if (newFrames.length) {
+                    frames = newFrames;
+                    currentFrameIndex = 0;
+                    activeLayerIndex = 0;
+                    updateFrameUI();
+                    updateLayerList();
+                    syncUIFromActiveLayer();
+                    redraw();
+                    if (typeof showToast === 'function') showToast('Imported ' + newFrames.length + ' frames');
+                  }
+                } catch (err) {
+                  if (typeof showToast === 'function') showToast('GIF parse failed: ' + (err.message || 'unknown'), true);
+                }
+              }).catch(function () {
+                if (typeof showToast === 'function') showToast('GIF parser not available. Use first frame only.', true);
+              });
+            }).catch(function () {
+              if (typeof showToast === 'function') showToast('Could not read file', true);
+            });
+            return;
+          }
+          var url = URL.createObjectURL(file);
+          var img = new Image();
+          img.onload = function () {
+            URL.revokeObjectURL(url);
+            var tmp = document.createElement('canvas');
+            tmp.width = W;
+            tmp.height = H;
+            var tCtx = tmp.getContext('2d');
+            tCtx.drawImage(img, 0, 0, img.width, img.height, 0, 0, W, H);
+            var layer = getActiveLayer();
+            if (!layer.pixel) layer.pixel = ctx.createImageData(W, H);
+            var id = tCtx.getImageData(0, 0, W, H);
+            layer.pixel.data.set(id.data);
+            redraw();
+            updateLayerList();
+            if (typeof showToast === 'function') showToast('First frame imported as pixel layer');
+          };
+          img.onerror = function () {
+            URL.revokeObjectURL(url);
+            if (typeof showToast === 'function') showToast('Could not load GIF', true);
+          };
+          img.src = url;
+        });
+      }
+
+      function onSavePageClick() {
+        if (currentProjectId) {
+          var list = getBrandLabelProjectsList();
+          var entry = list.find(function (p) { return p.id === currentProjectId; });
+          doSave(currentProjectId, entry ? entry.name : 'Untitled');
+        } else {
+          var name = (prompt('Project name:') || '').trim();
+          if (name) {
+            var id = generateProjectId();
+            doSave(id, name);
+          }
+        }
+      }
+      document.getElementById('save-btn').addEventListener('click', onSavePageClick);
+      var savePageTop = document.getElementById('save-page-top-btn');
+      if (savePageTop) savePageTop.addEventListener('click', onSavePageClick);
+      window.addEventListener('message', function (e) {
+        if (e.data && e.data.type === 'savePage') onSavePageClick();
+      });
+      document.getElementById('save-as-btn').addEventListener('click', function () {
+        var name = (prompt('Project name:') || '').trim();
+        if (name) {
+          var id = generateProjectId();
+          doSave(id, name);
+        }
+      });
+
+      if (window !== window.top) {
+        var topBar = document.querySelector('.edit-page-actions');
+        if (topBar) topBar.style.display = 'none';
+      }
+      var params = new URLSearchParams(window.location.search);
+      var projectId = params.get('project');
+      if (projectId && loadProjectFromStorage(projectId)) {
+        projectLoaded = true;
+      }
+
+      updateFrameUI();
+      updateLayerList();
+      syncUIFromActiveLayer();
+      redraw();
+    })();
+  </script>
+</body>
+</html>

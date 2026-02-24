@@ -1,0 +1,3145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Item Debug - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f0f0f0; margin: 0; padding-top: 76px; height: 100vh; overflow-x: hidden; overflow-y: hidden; box-sizing: border-box; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    h1 { margin: 0 0 16px 0; font-size: 1.5rem; }
+    .toolbar { margin-bottom: 16px; }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .toolbar button { padding: 8px 14px; background: var(--btn-pink-gradient); color: white; border: var(--btn-pink-border); border-radius: 6px; cursor: pointer; font-size: 14px; box-shadow: var(--btn-pink-shadow); }
+    .toolbar button:hover { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); box-shadow: 0 3px 8px rgba(244,143,177,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
+    #add-designer-btn:hover { background: #5a6268 !important; }
+    .toolbar label { font-size: 14px; color: #374151; }
+    .toolbar-coords-toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+    .toolbar select { padding: 6px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    .toolbar-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; }
+    .toolbar-bar .toolbar-bar-label { font-size: 12px; font-weight: 600; text-transform: uppercase; color: #6b7280; margin-right: 4px; flex-shrink: 0; }
+    #filter-bar .toolbar-bar-label { border-right: 1px solid #d1d5db; padding-right: 10px; margin-right: 8px; }
+    #mass-edit-bar .toolbar-bar-label { border-right: 1px solid #d1d5db; padding-right: 10px; margin-right: 8px; }
+    table { width: 100%; min-width: 0; table-layout: fixed; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e5e7eb; overflow: hidden; text-overflow: ellipsis; }
+    #items-table th:nth-child(1), #items-table td:nth-child(1) { width: 44px; }
+    #items-table th:nth-child(2), #items-table td:nth-child(2) { width: 52px; }
+    #items-table th:last-child, #items-table td:last-child { width: 100px; white-space: nowrap; }
+    th { background: #f9fafb; font-weight: 600; font-size: 12px; text-transform: uppercase; color: #6b7280; }
+    tr:hover { background: #f9fafb; }
+    tr.selected-multi { background: #fce4ec !important; }
+    tr.selected-primary { background: #fce7f3 !important; }
+    #items-table tbody tr.drag-over { background: #fce4ec !important; box-shadow: inset 0 0 0 2px #ec4899; }
+    tr.drop-between-row { vertical-align: middle; }
+    tr.drop-between-row td { padding: 0; height: 0; border: none; line-height: 0; overflow: visible; vertical-align: middle; }
+    tr.drop-between-row .drop-between-line { display: block; height: 8px; min-height: 8px; margin: 4px 8px; border: none; border-top: 2px dashed #cbd5e1; background: transparent; transition: border-color 0.15s, background 0.15s; font-size: 0; }
+    tr.drop-between-row.drag-over .drop-between-line { border-top-color: #ec4899; background: #fce4ec; }
+    .thumb { width: 40px; height: 40px; object-fit: contain; border: 1px solid #ccc; border-radius: 4px; }
+    .thumb.body-item { object-fit: cover; object-position: top center; }
+    .preview-bar { display: inline-flex; align-items: center; gap: 2px; flex-wrap: wrap; max-width: 100%; }
+    .preview-bar .thumb { flex-shrink: 0; }
+    .preview-bar .swatch-thumb { width: 28px; height: 28px; object-fit: contain; border: 1px solid #ccc; border-radius: 3px; cursor: pointer; flex-shrink: 0; }
+    .preview-bar .swatch-thumb:hover { border-color: #ec4899; }
+    .preview-bar .swatch-thumb.body-item { object-fit: cover; object-position: top center; }
+    input[type="number"] { width: 60px; padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px; }
+    select { padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; min-width: 120px; }
+    .btn-save { padding: 4px 10px; background: var(--btn-pink-gradient); color: white; border: var(--btn-pink-border); border-radius: 4px; cursor: pointer; font-size: 12px; box-shadow: var(--btn-pink-shadow); }
+    .btn-save:hover { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); }
+    .btn-delete { padding: 4px 10px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .btn-delete:hover { background: #c82333; }
+    .msg { padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; }
+    .msg.error { background: #f8d7da; color: #721c24; }
+    .msg.success { background: #d4edda; color: #155724; }
+    .empty { text-align: center; padding: 40px; color: #6b7280; }
+    .main-layout { display: flex; gap: 24px; align-items: stretch; width: 100%; max-width: 100%; margin: 0; padding: 20px; height: calc(100vh - 76px); overflow: hidden; box-sizing: border-box; }
+    .align-panel { flex-shrink: 0; width: 250px; min-width: 200px; }
+    .align-panel h2 { margin: 0 0 8px 0; font-size: 1rem; }
+    .align-hint { font-size: 12px; color: #6b7280; margin-bottom: 8px; max-width: 250px; }
+    .align-zoom-wrap { overflow: auto; max-height: 420px; margin-bottom: 6px; border-radius: 5px; border: 1px solid #e5e7eb; }
+    .align-zoom-inner { position: relative; width: 250px; height: 350px; }
+    #align-character { position: relative; width: 250px; height: 350px; border: 2px solid #888; border-radius: 5px; background: #fff; overflow: hidden; transform: translateZ(0); backface-visibility: hidden; transform-origin: 0 0; }
+    #align-base { position: absolute; width: 250px; height: 350px; top: 50%; left: 50%; transform: translate(-50%, -50%); image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; image-rendering: pixelated; image-rendering: -webkit-optimize-contrast; object-fit: none; z-index: 0; pointer-events: none; }
+    #align-slot { position: absolute; top: 0; left: 0; width: 250px; height: 350px; pointer-events: none; }
+    #align-slot img { pointer-events: auto; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; image-rendering: pixelated; image-rendering: -webkit-optimize-contrast; object-fit: none; cursor: move; max-width: 250px; max-height: 350px; }
+    .align-zoom-controls { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+    .align-zoom-controls label { font-size: 12px; color: #6b7280; }
+    .align-zoom-controls button { padding: 4px 10px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; background: #f9fafb; cursor: pointer; }
+    .align-zoom-controls button:hover { background: #e5e7eb; }
+    .align-zoom-controls button.active-zoom { background: var(--btn-pink-gradient); color: white; border-color: #ec4899; box-shadow: var(--btn-pink-shadow); }
+    #coord-tool { display: flex; flex-direction: column; gap: 6px; width: 250px; margin-top: 10px; }
+    #coord-tool label { font-size: 12px; }
+    #coord-tool input { padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; width: 70px; }
+    #coord-tool button { padding: 6px 12px; background: var(--btn-pink-gradient); color: white; border: var(--btn-pink-border); border-radius: 4px; cursor: pointer; font-size: 12px; box-shadow: var(--btn-pink-shadow); }
+    #coord-tool button:hover { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); }
+    .table-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+    .table-wrap > h1,
+    .table-wrap > #unsaved-banner,
+    .table-wrap > #message,
+    .table-wrap > .toolbar-bar { flex-shrink: 0; }
+    .table-scroll-wrap { flex: 1; min-height: 0; overflow-y: auto; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-gutter: stable; padding-right: 4px; }
+    .table-scroll-inner { min-height: 0; }
+    tr.virtual-scroll-spacer td { pointer-events: none; vertical-align: top !important; }
+    #items-table { margin-bottom: 0; }
+    #items-table thead th { position: sticky; top: 0; z-index: 2; background: #f9fafb; box-shadow: 0 1px 0 #e5e7eb; }
+    #items-table thead th.th-column-toggle { cursor: pointer; user-select: none; white-space: nowrap; }
+    #items-table thead th.th-column-toggle:hover { background: #e5e7eb; color: #111; }
+    #items-table thead th.th-column-toggle.active-column { background: var(--btn-pink-gradient); color: white; border-color: #ec4899; box-shadow: var(--btn-pink-shadow); }
+    #items-table th[data-column="all"] { min-width: 52px; }
+    #items-table.coords-hidden th.coord-col,
+    #items-table.coords-hidden td.coord-col { display: none; }
+    #items-table.swatch-color-hidden th[data-column="swatch"],
+    #items-table.swatch-color-hidden td[data-column="swatch"],
+    #items-table.swatch-color-hidden th[data-column="color"],
+    #items-table.swatch-color-hidden td[data-column="color"] { display: none !important; }
+    #items-table td[data-column="preview"] { overflow: visible; vertical-align: top; }
+    .unsaved-banner { display: none; padding: 8px 12px; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 6px; margin-bottom: 12px; font-size: 14px; }
+    .unsaved-banner.visible { display: block; }
+    .create-set-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+    .create-set-overlay.visible { display: flex; }
+    .create-set-card { background: #fff; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-width: 380px; width: 100%; padding: 20px; }
+    .create-set-card h2 { margin: 0 0 16px 0; font-size: 1.25rem; }
+    .create-set-card label { display: block; font-size: 14px; color: #374151; margin-bottom: 4px; }
+    .create-set-card input[type="text"] { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 12px; box-sizing: border-box; }
+    .create-set-card .tag-options { margin-bottom: 16px; }
+    .create-set-card .tag-options label { display: inline-flex; align-items: center; margin-right: 16px; margin-bottom: 0; cursor: pointer; }
+    .create-set-card .tag-options input { width: auto; margin: 0 6px 0 0; }
+    .create-set-card .card-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+    .create-set-card .card-actions button { padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; border: none; }
+    .create-set-card .card-actions .btn-create { background: var(--btn-pink-gradient); color: white; border: var(--btn-pink-border); box-shadow: var(--btn-pink-shadow); }
+    .create-set-card .card-actions .btn-create:hover { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); }
+    .create-set-card .card-actions .btn-cancel { background: #e5e7eb; color: #374151; }
+    .create-set-card .card-actions .btn-cancel:hover { background: #d1d5db; }
+    .upload-folder-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+    .upload-folder-overlay.visible { display: flex; }
+    .upload-folder-card { background: #fff; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-width: 400px; width: 100%; padding: 20px; }
+    .upload-folder-card h2 { margin: 0 0 16px 0; font-size: 1.25rem; }
+    .upload-folder-card label { display: block; font-size: 14px; color: #374151; margin-bottom: 4px; }
+    .upload-folder-card input[type="text"] { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 12px; box-sizing: border-box; }
+    .upload-folder-card .folder-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+    .upload-folder-card .folder-status { font-size: 14px; color: #6b7280; margin-top: 12px; }
+    .upload-folder-card .btn { padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; border: none; }
+    .upload-folder-card .btn-sm { padding: 6px 12px; font-size: 13px; }
+    .upload-folder-card .btn-primary { background: var(--btn-pink-gradient); color: white; border: var(--btn-pink-border); box-shadow: var(--btn-pink-shadow); }
+    .upload-folder-card .btn-primary:hover:not(:disabled) { background: var(--btn-pink-gradient-hover); filter: brightness(1.02); }
+    .upload-folder-card .btn-secondary { background: #e5e7eb; color: #374151; }
+    .upload-folder-card .btn-secondary:hover { background: #d1d5db; }
+    .view-toggle-wrap { display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; border-left: 1px solid #ccc; padding-left: 12px; }
+    .view-toggle-wrap button { padding: 6px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; border: 1px solid #ccc; background: #f3f4f6; }
+    .view-toggle-wrap button:hover { background: #e5e7eb; }
+    .view-toggle-wrap button.active { background: var(--btn-pink-gradient); color: white; border-color: #ec4899; box-shadow: var(--btn-pink-shadow); }
+    #sets-view-wrap { display: none; flex: 1; min-height: 0; flex-direction: column; overflow: hidden; }
+    #sets-view-wrap.visible { display: flex; }
+    .table-wrap.items-view-active #sets-view-wrap { display: none; }
+    .table-wrap.sets-view-active .table-scroll-wrap { display: none; }
+    .table-wrap.sets-view-active #sets-view-wrap { display: flex; }
+    #sets-view-content { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: grid; grid-template-columns: repeat(2, minmax(380px, 1fr)); gap: 20px; align-content: flex-start; }
+    .sets-pagination-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 12px; background: #f9fafb; border-radius: 8px; margin-bottom: 12px; }
+    .sets-pagination-bar label { font-size: 13px; color: #374151; }
+    .sets-pagination-bar select { padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; }
+    .sets-pagination-bar .sets-page-info { font-size: 13px; color: #6b7280; }
+    .sets-pagination-bar .sets-page-btn { padding: 6px 12px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; cursor: pointer; }
+    .sets-pagination-bar .sets-page-btn:hover:not(:disabled) { background: #f3f4f6; }
+    .sets-pagination-bar .sets-page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .sets-pagination-bar .sets-page-btn.active { background: var(--btn-pink-gradient); color: #fff; border-color: #ec4899; box-shadow: var(--btn-pink-shadow); }
+    .set-card { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; min-width: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .set-card h3 { margin: 0 0 10px 0; font-size: 1rem; color: #111; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
+    .set-card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; flex-wrap: wrap; }
+    .set-card-header h3 { margin: 0; border: none; padding: 0; }
+    .set-card-delete-btn { padding: 4px 10px; font-size: 12px; border: none; border-radius: 6px; cursor: pointer; background: #dc3545; color: white; flex-shrink: 0; }
+    .set-card-delete-btn:hover { background: #c82333; }
+    .separate-swatch-drop { display: inline-flex; align-items: center; padding: 6px 12px; margin-left: 8px; border: 2px dashed #94a3b8; border-radius: 6px; background: #f1f5f9; color: #475569; font-size: 12px; cursor: default; transition: border-color 0.15s, background 0.15s; }
+    .separate-swatch-drop.drag-over { border-color: #ec4899; background: #fce4ec; color: #be185d; }
+    .set-card-items { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; padding-right: 4px; }
+    .set-item { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; background: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb; font-size: 12px; }
+    .set-item img { width: 32px; height: 32px; object-fit: contain; border-radius: 4px; }
+    .set-item.body-item img { object-fit: cover; object-position: top center; }
+    .set-item-id { font-family: var(--font-mono), Consolas, "Courier New", monospace; color: #374151; }
+    .set-item-slot { color: #6b7280; font-size: 11px; }
+    .set-card-preview { width: 250px; height: 350px; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; image-rendering: pixelated; image-rendering: -webkit-optimize-contrast; object-fit: none; object-position: top left; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 6px; flex-shrink: 0; }
+    .set-card-body { display: flex; gap: 12px; align-items: flex-start; }
+    .set-card-preview-wrap { flex-shrink: 0; }
+    .set-card-info { flex: 1; min-width: 0; }
+    .set-item-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; padding: 4px 8px; background: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb; }
+    .set-item-row.hidden-in-preview { opacity: 0.6; }
+    .set-item-row .set-item-visibility { cursor: pointer; padding: 2px; border: none; background: none; font-size: 14px; line-height: 1; }
+    .set-item-row .set-item-visibility[aria-pressed="true"] { opacity: 0.5; }
+    .set-item-row .set-item-z { width: 42px; padding: 2px 4px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; }
+    .set-item-row .set-item-label { flex: 1; min-width: 0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .set-item-row .set-item-thumb { width: 32px; height: 32px; object-fit: contain; border-radius: 4px; flex-shrink: 0; border: 1px solid #e5e7eb; }
+    .set-item-row .set-item-thumb.body-item { object-fit: cover; object-position: top center; }
+    .set-item-row .set-item-drag-handle { cursor: grab; padding: 2px 4px; color: #94a3b8; font-size: 14px; line-height: 1; user-select: none; flex-shrink: 0; }
+    .set-item-row .set-item-drag-handle:active { cursor: grabbing; }
+    .set-item-row.drag-over-preview { opacity: 0.6; }
+    .set-card-order-actions { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+    .set-card-order-actions button { padding: 4px 8px; font-size: 11px; border-radius: 4px; cursor: pointer; border: 1px solid #ccc; background: #f3f4f6; }
+    .set-card-order-actions button:hover { background: #e5e7eb; }
+    .set-card-order-actions .btn-apply-order { background: #fce4ec; border-color: #f9a8d4; }
+    .set-card-order-actions .btn-apply-order:hover { background: #bfdbfe; }
+    .set-item-row { cursor: pointer; }
+    .set-item-row:hover { background: #eff6ff !important; }
+    .set-item-row.set-item-row-selected { background: #fce4ec !important; outline: 2px solid #ec4899; outline-offset: -2px; }
+    .set-header-row { background: #e0e7ff !important; font-weight: 600; cursor: pointer; user-select: none; }
+    .set-header-row:hover { background: #c7d2fe !important; }
+    .set-header-row.collapsed { background: #c7d2fe !important; }
+    .set-header-row td { padding: 8px 12px; border-bottom: 2px solid #a5b4fc; vertical-align: middle; }
+    .set-header-row .set-toggle-icon { display: inline-block; width: 18px; margin-right: 6px; font-size: 12px; transition: transform 0.15s; }
+    .set-header-row.collapsed .set-toggle-icon { transform: rotate(-90deg); }
+    .set-header-row .set-header-thumbs { display: inline-flex; gap: 4px; margin-left: 10px; flex-wrap: wrap; }
+    .set-header-row .set-header-thumbs img { width: 24px; height: 24px; object-fit: contain; border: 1px solid #ccc; border-radius: 3px; }
+    .set-header-row .set-header-thumbs img.body-item { object-fit: cover; object-position: top center; }
+    .set-group-collapsed-row { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+  <div class="main-layout">
+    <div class="align-panel">
+      <h2>Coordinate alignment</h2>
+      <p class="align-hint">Select a row below, then drag the item to align with the base. Same coordinates as Wardrobe and Adjust.</p>
+      <div class="align-zoom-controls">
+        <label for="align-zoom-select">Zoom:</label>
+        <select id="align-zoom-select" aria-label="Zoom alignment panel">
+          <option value="1">1×</option>
+          <option value="1.5">1.5×</option>
+          <option value="2">2×</option>
+          <option value="2.5">2.5×</option>
+          <option value="3">3×</option>
+        </select>
+      </div>
+      <div id="align-zoom-wrap" class="align-zoom-wrap">
+        <div id="align-zoom-inner" class="align-zoom-inner">
+          <div id="align-character">
+            <img src="/Uploads/character.png" id="align-base" alt="Character Base">
+            <div id="align-slot"></div>
+          </div>
+        </div>
+      </div>
+      <div id="coord-tool">
+        <label>X: <input type="number" id="align-x" min="-125" max="125" value="0"></label>
+        <label>Y: <input type="number" id="align-y" min="-175" max="175" value="0"></label>
+        <p class="align-hint" style="margin-top:6px;">Coordinates save automatically.</p>
+      </div>
+    </div>
+    <div class="table-wrap items-view-active">
+      <h1>Item Debug Menu</h1>
+      <div id="unsaved-banner" class="unsaved-banner" role="alert">You have unsaved changes. Save or your edits will be lost if you leave.</div>
+      <div id="message"></div>
+      <div id="filter-bar" class="toolbar toolbar-bar" role="toolbar" aria-label="Filter and view options">
+        <span class="toolbar-bar-label">Filter</span>
+        <button type="button" id="refresh-btn">Refresh list</button>
+        <button type="button" id="upload-item-btn" class="btn-save">Upload item</button>
+        <input type="file" id="upload-item-input" accept="image/png,image/jpeg,image/gif,image/webp" style="display:none;">
+        <button type="button" id="upload-folder-btn" class="btn-save">Upload folder</button>
+        <input type="file" id="upload-folder-input" webkitdirectory directory multiple accept="image/*" style="display:none;">
+        <button type="button" id="save-btn" class="btn-save">Save all</button>
+        <label for="sort-order">Sort:</label>
+        <select id="sort-order" aria-label="Sort items">
+          <option value="newest">Date (newest first)</option>
+          <option value="oldest">Date (oldest first)</option>
+          <option value="designer-az">Designer (A–Z)</option>
+          <option value="designer-za">Designer (Z–A)</option>
+        </select>
+        <label for="filter-designer">Designer:</label>
+        <select id="filter-designer" aria-label="Filter by designer">
+          <option value="">All designers</option>
+        </select>
+        <label class="toolbar-coords-toggle"><input type="checkbox" id="show-coords" aria-label="Show coordinate columns"> Show coordinates</label>
+        <label class="toolbar-coords-toggle"><input type="checkbox" id="show-swatch-color" aria-label="Show swatch of and color columns"> Swatch & color</label>
+        <button type="button" id="sync-swatch-coords-btn" class="btn-save" title="Set all swatch items' coordinates to match their parent item">Sync swatch coords</button>
+        <span id="separate-swatch-drop" class="separate-swatch-drop" title="Drag a swatch thumbnail here to make it its own standalone item">Separate swatch</span>
+        <label class="toolbar-coords-toggle"><input type="checkbox" id="group-by-set" aria-label="Group items by set" checked> Group by set</label>
+        <button type="button" id="collapse-all-sets-btn" title="Collapse all sets to improve performance">Collapse all sets</button>
+        <button type="button" id="expand-all-sets-btn" title="Expand all sets">Expand all sets</button>
+        <button type="button" id="create-set-btn" class="btn-save">Create set</button>
+        <span class="view-toggle-wrap">
+          <button type="button" id="view-items-btn" class="active" aria-pressed="true">View items</button>
+          <button type="button" id="view-sets-btn" aria-pressed="false">View sets</button>
+        </span>
+      </div>
+      <div id="mass-edit-bar" class="toolbar toolbar-bar" role="toolbar" aria-label="Mass edit selected items">
+        <span class="toolbar-bar-label">Mass edit</span>
+        <label for="bulk-category">Category</label>
+        <select id="bulk-category" aria-label="Bulk category">
+          <option value="">— leave unchanged —</option>
+          <option value="body-slot">Body</option>
+          <option value="shirt-slot">Shirt</option>
+          <option value="pants-slot">Pants</option>
+          <option value="skirt-slot">Skirt</option>
+          <option value="dress-slot">Dress</option>
+          <option value="jacket-slot">Jacket</option>
+          <option value="shoes-slot">Shoes</option>
+          <option value="socks-slot">Socks</option>
+          <option value="hat-slot">Hat</option>
+          <option value="makeup-slot">Makeup</option>
+          <option value="jewelry-slot">Jewelry</option>
+          <option value="other-slot">Other</option>
+          <option value="hair-slot">Hair</option>
+        </select>
+        <label for="bulk-designer">Designer</label>
+        <select id="bulk-designer" aria-label="Bulk designer" style="min-width:140px; padding:6px 10px; border:1px solid #ccc; border-radius:6px;">
+          <option value="">— leave unchanged —</option>
+        </select>
+        <button type="button" id="add-designer-btn" style="padding:6px 10px; background:#6c757d; color:white; border:none; border-radius:6px; cursor:pointer; font-size:14px;">Add designer</button>
+        <button type="button" id="bulk-apply-btn" class="btn-save">Apply to selected</button>
+        <span id="selection-count" class="text-sm text-gray-500" style="margin-left:8px;"></span>
+      </div>
+      <div id="create-set-overlay" class="create-set-overlay" aria-hidden="true">
+        <div class="create-set-card" role="dialog" aria-labelledby="create-set-title">
+          <h2 id="create-set-title">Create set</h2>
+          <label for="create-set-name">Set name</label>
+          <input type="text" id="create-set-name" placeholder="e.g. Summer outfit" autocomplete="off">
+          <label for="create-set-brand">Brand</label>
+          <input type="text" id="create-set-brand" placeholder="e.g. MyBrand" autocomplete="off">
+          <div class="tag-options">
+            <span style="display:block; font-size:14px; color:#374151; margin-bottom:6px;">Type</span>
+            <label><input type="radio" name="create-set-tag" value="store"> (Store)</label>
+            <label><input type="radio" name="create-set-tag" value="gacha"> (Gacha)</label>
+            <label><input type="radio" name="create-set-tag" value="none" checked> (No type)</label>
+          </div>
+          <div class="card-actions">
+            <button type="button" id="create-set-cancel" class="btn-cancel">Cancel</button>
+            <button type="button" id="create-set-submit" class="btn-create">Create</button>
+          </div>
+        </div>
+      </div>
+      <div id="upload-folder-overlay" class="upload-folder-overlay" aria-hidden="true">
+        <div class="upload-folder-card" role="dialog" aria-labelledby="upload-folder-title">
+          <h2 id="upload-folder-title">Upload folder</h2>
+          <p class="desc" style="margin:0 0 12px 0; font-size:13px; color:#6b7280;">Choose a folder of images. All items will use the designer and set/brand below.</p>
+          <label for="folder-designer">Designer</label>
+          <input type="text" id="folder-designer" placeholder="e.g. MyName" autocomplete="off">
+          <label for="folder-set-name">Set name (optional)</label>
+          <input type="text" id="folder-set-name" placeholder="e.g. Summer 2025" autocomplete="off">
+          <label for="folder-brand">Brand (optional)</label>
+          <input type="text" id="folder-brand" placeholder="e.g. MyBrand" autocomplete="off">
+          <div class="folder-actions">
+            <button type="button" id="folder-choose-btn" class="btn btn-secondary btn-sm">Choose folder</button>
+            <button type="button" id="folder-upload-btn" class="btn btn-primary btn-sm" style="display:none;">Upload 0 items</button>
+            <button type="button" id="folder-cancel-btn" class="btn btn-secondary btn-sm">Cancel</button>
+          </div>
+          <div id="folder-status" class="folder-status"></div>
+        </div>
+      </div>
+      <div id="items-pagination-bar" class="sets-pagination-bar" style="display:none;">
+        <span class="sets-page-info" id="items-page-info"></span>
+        <button type="button" class="sets-page-btn" id="items-prev-btn" aria-label="Previous page">Prev</button>
+        <span id="items-page-buttons"></span>
+        <button type="button" class="sets-page-btn" id="items-next-btn" aria-label="Next page">Next</button>
+      </div>
+      <div class="table-scroll-wrap" id="items-table-scroll-wrap">
+        <div class="table-scroll-inner" id="items-table-scroll-inner">
+        <table id="items-table" class="coords-hidden swatch-color-hidden">
+      <thead class="items-table-header">
+        <tr>
+          <th data-column="all" class="th-column-toggle" title="Show all columns">All</th>
+          <th data-column="preview">Preview</th>
+          <th data-column="id">ID</th>
+          <th data-column="set" class="th-column-toggle">Set</th>
+          <th data-column="category" class="th-column-toggle">Category</th>
+          <th data-column="designer" class="th-column-toggle">Designer</th>
+          <th data-column="swatch" class="th-column-toggle">Swatch of</th>
+          <th data-column="color" class="th-column-toggle">Color</th>
+          <th data-column="type" class="th-column-toggle">Type</th>
+          <th data-column="date" class="th-column-toggle">Date added</th>
+          <th data-column="x" class="coord-col th-column-toggle">X</th>
+          <th data-column="y" class="coord-col th-column-toggle">Y</th>
+          <th data-column="z" class="coord-col th-column-toggle">Z</th>
+          <th data-column="ticket" class="th-column-toggle" title="Golden ticket price (0 = not in gacha ticket store)">Ticket</th>
+          <th data-column="actions" class="th-column-toggle">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="items-tbody"></tbody>
+      </table>
+        </div>
+        <p id="empty" class="empty" style="display:block;">Loading…</p>
+      </div>
+      <div id="sets-view-wrap">
+        <h2 style="margin:0 0 12px 0;font-size:1.1rem;">Sets</h2>
+        <div id="sets-pagination-bar" class="sets-pagination-bar" style="display:none;">
+          <label for="sets-sort-order">Sort:</label>
+          <select id="sets-sort-order" aria-label="Sort sets">
+            <option value="newest">Date (newest first)</option>
+            <option value="oldest">Date (oldest first)</option>
+            <option value="designer-az">Designer (A–Z)</option>
+            <option value="designer-za">Designer (Z–A)</option>
+          </select>
+          <span class="sets-page-info" id="sets-page-info"></span>
+          <button type="button" class="sets-page-btn" id="sets-prev-btn" aria-label="Previous page">Prev</button>
+          <span id="sets-page-buttons"></span>
+          <button type="button" class="sets-page-btn" id="sets-next-btn" aria-label="Next page">Next</button>
+        </div>
+        <div id="sets-view-content"></div>
+        <section id="item-type-section" style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
+          <h3 style="margin:0 0 10px 0;font-size:1rem;">Item type</h3>
+          <p style="margin:0 0 10px 0;color:#6b7280;font-size:13px;">Set type: Gacha prize, Gacha set, or Store. Changes save immediately.</p>
+          <div class="table-scroll-wrap" style="max-height:280px;">
+            <table id="item-type-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+              <thead>
+                <tr>
+                  <th style="text-align:left;padding:6px 8px;border-bottom:1px solid #e5e7eb;">Item</th>
+                  <th style="text-align:left;padding:6px 8px;border-bottom:1px solid #e5e7eb;">Type</th>
+                </tr>
+              </thead>
+              <tbody id="item-type-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+        <section id="search-tags-section" style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
+          <h3 style="margin:0 0 10px 0;font-size:1rem;">Search tags</h3>
+          <p style="margin:0 0 10px 0;color:#6b7280;font-size:13px;">Tags used by Wardrobe and Store search (e.g. casual, summer). Comma-separated. Changes save immediately.</p>
+          <div class="table-scroll-wrap" style="max-height:280px;">
+            <table id="search-tags-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+              <thead>
+                <tr>
+                  <th style="text-align:left;padding:6px 8px;border-bottom:1px solid #e5e7eb;">Item</th>
+                  <th style="text-align:left;padding:6px 8px;border-bottom:1px solid #e5e7eb;">Search tags</th>
+                </tr>
+              </thead>
+              <tbody id="search-tags-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function itemDebugBoot() {
+      var empty = document.getElementById('empty');
+      var tbody = document.getElementById('items-tbody');
+      if (empty) { empty.style.display = 'block'; empty.textContent = 'Loading items…'; }
+      var box = document.getElementById('item-debug-boot-box');
+      if (!box) {
+        box = document.createElement('div');
+        box.id = 'item-debug-boot-box';
+        box.setAttribute('aria-live', 'polite');
+        box.style.cssText = 'position:fixed;top:100px;right:10px;z-index:9998;background:#1e293b;color:#e2e8f0;padding:10px 14px;border-radius:8px;font-size:13px;font-family:system-ui,sans-serif;max-width:260px;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+        document.body.appendChild(box);
+      }
+      box.textContent = 'Loading items…';
+      box.style.display = 'block';
+      fetch('/api/items', { credentials: 'same-origin' }).then(function(r) {
+        if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
+        return r.json();
+      }).then(function(d) {
+        var msg = Array.isArray(d) ? d.length + ' items from API' : 'API returned non-array';
+        box.textContent = msg;
+        if (empty && (!tbody || tbody.children.length === 0)) {
+          empty.style.display = 'block';
+          empty.textContent = msg;
+        }
+      }).catch(function(e) {
+        var msg = 'Error: ' + (e.message || 'fetch failed');
+        box.textContent = msg;
+        if (empty && (!tbody || tbody.children.length === 0)) {
+          empty.style.display = 'block';
+          empty.textContent = msg;
+        }
+      });
+    })();
+  </script>
+  <script>
+    let selectedItem = null;
+    let selectedRow = null;
+    let selectedSetIdForPreview = null;
+    let selectedFilenames = new Set();
+    let itemsByFilename = {};
+    let lastLoadedList = [];
+    let collapsedSetIds = new Set();
+    let lastExpandedSetIds = [];
+    let designersList = [];
+    let existingSetsList = [];
+    let unsavedEdits = false;
+    let alignDragOffsetX = 0, alignDragOffsetY = 0, alignDragging = false;
+    let alignZoom = 1;
+    const centerX = 125, centerY = 175;
+    const SET_DEFINITIONS_KEY = 'itemDebugSetDefinitions';
+
+    function applyPixelPerfectSize(img, maxW, maxH) {
+      maxW = maxW || 250; maxH = maxH || 350;
+      const nw = img.naturalWidth, nh = img.naturalHeight;
+      if (!nw || !nh) return;
+      let scale = Math.min(1, maxW / nw, maxH / nh);
+      if (scale < 1) scale = 1 / Math.ceil(1 / scale);
+      let w = Math.round(nw * scale), h = Math.round(nh * scale);
+      if (w % 2 !== 0) w++; if (h % 2 !== 0) h++;
+      img.style.width = w + 'px';
+      img.style.height = h + 'px';
+    }
+    function hookPixelPerfect(img, maxW, maxH) {
+      img.addEventListener('load', function () { applyPixelPerfectSize(img, maxW, maxH); });
+      if (img.complete) applyPixelPerfectSize(img, maxW, maxH);
+    }
+    (function () {
+      const base = document.getElementById('align-base');
+      if (base) hookPixelPerfect(base);
+    })();
+
+    function refreshDesignerDropdowns() {
+      const bulkDesignerEl = document.getElementById('bulk-designer');
+      if (bulkDesignerEl && bulkDesignerEl.tagName === 'SELECT') {
+        bulkDesignerEl.innerHTML = '<option value="">— leave unchanged —</option>' +
+          designersList.map(d => '<option value="' + d.replace(/"/g, '&quot;') + '">' + d.replace(/</g, '&lt;') + '</option>').join('');
+      }
+      const filterDesignerEl = document.getElementById('filter-designer');
+      if (filterDesignerEl && filterDesignerEl.tagName === 'SELECT') {
+        const currentFilter = (filterDesignerEl.value || '').trim();
+        filterDesignerEl.innerHTML = '<option value="">All designers</option>' +
+          designersList.map(d => '<option value="' + d.replace(/"/g, '&quot;') + '">' + d.replace(/</g, '&lt;') + '</option>').join('');
+        if (currentFilter && designersList.includes(currentFilter)) filterDesignerEl.value = currentFilter;
+      }
+      const tbody = document.getElementById('items-tbody');
+      if (tbody) {
+        tbody.querySelectorAll('.designer-select').forEach(sel => {
+          const current = (sel.value || '').trim();
+          const options = [''];
+          designersList.forEach(d => options.push(d));
+          if (current && !designersList.includes(current)) options.push(current);
+          sel.innerHTML = '';
+          options.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d;
+            opt.textContent = d || '—';
+            if (d === current) opt.selected = true;
+            sel.appendChild(opt);
+          });
+        });
+      }
+    }
+
+    function getStoredSetDefinitions() {
+      try {
+        const raw = localStorage.getItem(SET_DEFINITIONS_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) { return []; }
+    }
+
+    function saveStoredSetDefinitions(list) {
+      try {
+        localStorage.setItem(SET_DEFINITIONS_KEY, JSON.stringify(list));
+      } catch (e) {}
+    }
+
+    function markUnsaved() {
+      unsavedEdits = true;
+      const banner = document.getElementById('unsaved-banner');
+      if (banner) banner.classList.add('visible');
+    }
+
+    function clearUnsavedState() {
+      unsavedEdits = false;
+      const banner = document.getElementById('unsaved-banner');
+      if (banner) banner.classList.remove('visible');
+    }
+
+    function updateSelectionVisual() {
+      const tbody = document.getElementById('items-tbody');
+      if (!tbody) return;
+      tbody.querySelectorAll('tr[data-filename]').forEach(tr => {
+        const fn = tr.dataset.filename;
+        tr.classList.remove('selected-multi', 'selected-primary');
+        if (selectedFilenames.has(fn)) {
+          tr.classList.add(tr === selectedRow ? 'selected-primary' : 'selected-multi');
+        }
+      });
+      const countEl = document.getElementById('selection-count');
+      if (countEl) {
+        const n = selectedFilenames.size;
+        countEl.textContent = n === 0 ? '' : n === 1 ? '1 selected' : n + ' selected';
+      }
+    }
+
+    function randomId() {
+      const s = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      let r = '';
+      const arr = new Uint8Array(8);
+      crypto.getRandomValues(arr);
+      for (let i = 0; i < 8; i++) r += s[arr[i] % s.length];
+      return r;
+    }
+    function getSwatchParentFilename(item) {
+      if (!item || !Array.isArray(item.tags)) return null;
+      const tag = item.tags.find(t => typeof t === 'string' && t.startsWith('swatch-parent:'));
+      return tag ? tag.replace('swatch-parent:', '').trim() : null;
+    }
+    function getSwatchColor(item) {
+      if (!item || !Array.isArray(item.tags)) return null;
+      const tag = item.tags.find(t => typeof t === 'string' && t.startsWith('swatch-color:'));
+      return tag ? tag.replace('swatch-color:', '').trim() : null;
+    }
+    const SLOTS = [
+      { value: 'body-slot', label: 'Body' },
+      { value: 'shirt-slot', label: 'Shirt' },
+      { value: 'pants-slot', label: 'Pants' },
+      { value: 'skirt-slot', label: 'Skirt' },
+      { value: 'dress-slot', label: 'Dress' },
+      { value: 'jacket-slot', label: 'Jacket' },
+      { value: 'shoes-slot', label: 'Shoes' },
+      { value: 'socks-slot', label: 'Socks' },
+      { value: 'hat-slot', label: 'Hat' },
+      { value: 'makeup-slot', label: 'Makeup' },
+      { value: 'jewelry-slot', label: 'Jewelry' },
+      { value: 'other-slot', label: 'Other' },
+      { value: 'hair-slot', label: 'Hair' }
+    ];
+
+    function showMsg(text, isError) {
+      const el = document.getElementById('message');
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'msg ' + (isError ? 'error' : 'success');
+      el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 4000);
+    }
+
+    function updateAlignPreview() {
+      const slot = document.getElementById('align-slot');
+      const xIn = document.getElementById('align-x');
+      const yIn = document.getElementById('align-y');
+      slot.innerHTML = '';
+      if (!selectedItem) {
+        xIn.value = '0';
+        yIn.value = '0';
+        xIn.disabled = yIn.disabled = true;
+        return;
+      }
+      xIn.disabled = yIn.disabled = false;
+      xIn.value = selectedItem.defaultX ?? 0;
+      yIn.value = selectedItem.defaultY ?? 0;
+      const img = document.createElement('img');
+      img.src = '/Uploads/' + selectedItem.filename;
+      img.alt = selectedItem.id || selectedItem.filename;
+      img.style.transform = 'translate(-50%, -50%) translate(' + (selectedItem.defaultX ?? 0) + 'px, ' + (selectedItem.defaultY ?? 0) + 'px)';
+      img.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        alignDragging = true;
+        const panelRect = document.getElementById('align-character').getBoundingClientRect();
+        alignDragOffsetX = e.clientX - (panelRect.left + centerX * alignZoom + (selectedItem.defaultX ?? 0) * alignZoom);
+        alignDragOffsetY = e.clientY - (panelRect.top + centerY * alignZoom + (selectedItem.defaultY ?? 0) * alignZoom);
+      });
+      hookPixelPerfect(img);
+      slot.appendChild(img);
+    }
+
+    function onAlignMouseMove(e) {
+      if (!alignDragging || !selectedItem) return;
+      const panelRect = document.getElementById('align-character').getBoundingClientRect();
+      let newX = ((e.clientX - alignDragOffsetX) - panelRect.left) / alignZoom - centerX;
+      let newY = ((e.clientY - alignDragOffsetY) - panelRect.top) / alignZoom - centerY;
+      selectedItem.defaultX = Math.max(-125, Math.min(125, newX));
+      selectedItem.defaultY = Math.max(-175, Math.min(175, newY));
+      document.getElementById('align-x').value = selectedItem.defaultX;
+      document.getElementById('align-y').value = selectedItem.defaultY;
+      const img = document.getElementById('align-slot').querySelector('img');
+      if (img) img.style.transform = 'translate(-50%, -50%) translate(' + selectedItem.defaultX + 'px, ' + selectedItem.defaultY + 'px)';
+      if (selectedRow) {
+        const xInput = selectedRow.querySelector('.coord-x');
+        const yInput = selectedRow.querySelector('.coord-y');
+        if (xInput) xInput.value = selectedItem.defaultX;
+        if (yInput) yInput.value = selectedItem.defaultY;
+      }
+      if (selectedSetIdForPreview) refreshSetPreview(selectedSetIdForPreview);
+    }
+
+    function onAlignMouseUp() {
+      if (alignDragging && selectedItem) {
+        markUnsaved();
+        saveSingleItem(selectedItem);
+      }
+      alignDragging = false;
+    }
+
+    function flushCoordsFromRowToItem(tr, item) {
+      if (!tr || !item) return;
+      const xInput = tr.querySelector('.coord-x');
+      const yInput = tr.querySelector('.coord-y');
+      const zInput = tr.querySelector('.coord-z');
+      if (xInput && xInput.value !== '' && xInput.value != null) {
+        const n = parseFloat(xInput.value);
+        if (!isNaN(n)) item.defaultX = n;
+      }
+      if (yInput && yInput.value !== '' && yInput.value != null) {
+        const n = parseFloat(yInput.value);
+        if (!isNaN(n)) item.defaultY = n;
+      }
+      if (zInput && zInput.value !== '' && zInput.value != null) {
+        const n = parseInt(zInput.value, 10);
+        if (!isNaN(n)) item.defaultZ = n;
+      }
+    }
+
+    let saveSingleItemTimer = null;
+    function saveSingleItemDebounced(item) {
+      if (!item || !item.filename) return;
+      if (saveSingleItemTimer) clearTimeout(saveSingleItemTimer);
+      saveSingleItemTimer = setTimeout(function () {
+        saveSingleItemTimer = null;
+        saveSingleItem(item);
+      }, 200);
+    }
+
+    function saveSingleItem(item) {
+      if (!item || !item.filename) return;
+      if (selectedRow && selectedRow.dataset.filename === item.filename) flushCoordsFromRowToItem(selectedRow, item);
+      var x = Number(item.defaultX);
+      var y = Number(item.defaultY);
+      var z = parseInt(item.defaultZ, 10);
+      if (isNaN(x)) x = 0;
+      if (isNaN(y)) y = 0;
+      if (isNaN(z)) z = 0;
+      var coordPayload = { defaultX: x, defaultY: y, defaultZ: z };
+      var fullPayload = {
+        id: item.id,
+        name: item.name,
+        slotId: item.slotId,
+        tags: item.tags || [],
+        heart: item.heart || false,
+        designer: item.designer || '',
+        isSet: item.isSet || false,
+        defaultX: x,
+        defaultY: y,
+        defaultZ: z,
+        bundleParts: item.bundleParts,
+        goldenTicketPrice: (item.goldenTicketPrice != null && item.goldenTicketPrice !== '' && !isNaN(Number(item.goldenTicketPrice))) ? Math.max(0, Math.floor(Number(item.goldenTicketPrice))) : 0
+      };
+      var url = '/api/items/update/' + encodeURIComponent(item.filename);
+      function doPut() {
+        return fetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(fullPayload)
+        }).then(function (r) {
+          if (!r.ok) throw new Error('Update failed');
+          return r.json();
+        });
+      }
+      fetch(url + '/coordinates', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(coordPayload)
+      }).then(function (r) {
+        if (r.ok) return r.json();
+        return null;
+      }).catch(function () {
+        return null;
+      }).then(function () {
+        return doPut();
+      }).then(function (updated) {
+        var merged = updated ? { ...updated } : { ...item, defaultX: x, defaultY: y, defaultZ: z };
+        merged.defaultX = Number(merged.defaultX);
+        merged.defaultY = Number(merged.defaultY);
+        merged.defaultZ = parseInt(merged.defaultZ, 10);
+        if (isNaN(merged.defaultX)) merged.defaultX = x;
+        if (isNaN(merged.defaultY)) merged.defaultY = y;
+        if (isNaN(merged.defaultZ)) merged.defaultZ = z;
+        var idx = lastLoadedList.findIndex(function (i) { return i && i.filename === item.filename; });
+        if (idx >= 0) lastLoadedList[idx] = merged;
+        itemsByFilename[item.filename] = merged;
+        if (selectedItem && selectedItem.filename === item.filename) selectedItem = merged;
+        if (selectedSetIdForPreview) refreshSetPreview(selectedSetIdForPreview);
+        var row = document.querySelector('tr[data-filename="' + CSS.escape(item.filename) + '"]');
+        if (row) {
+          var xIn = row.querySelector('.coord-x');
+          var yIn = row.querySelector('.coord-y');
+          var zIn = row.querySelector('.coord-z');
+          if (xIn) xIn.value = merged.defaultX;
+          if (yIn) yIn.value = merged.defaultY;
+          if (zIn) zIn.value = merged.defaultZ;
+        }
+        var alignX = document.getElementById('align-x');
+        var alignY = document.getElementById('align-y');
+        var alignZ = document.getElementById('align-z');
+        if (alignX) alignX.value = merged.defaultX;
+        if (alignY) alignY.value = merged.defaultY;
+        if (alignZ) alignZ.value = merged.defaultZ;
+        showMsg('Saved: ' + (item.name || item.filename));
+        var parentFilename = getSwatchParentFilename(merged);
+        if (!parentFilename) {
+          var swatches = (lastLoadedList || []).filter(function (i) { return i && i.filename && getSwatchParentFilename(i) === merged.filename; });
+          swatches.forEach(function (swatch) {
+            swatch.defaultX = merged.defaultX;
+            swatch.defaultY = merged.defaultY;
+            swatch.defaultZ = merged.defaultZ;
+            var swatchUrl = '/api/items/update/' + encodeURIComponent(swatch.filename);
+            fetch(swatchUrl + '/coordinates', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ defaultX: merged.defaultX, defaultY: merged.defaultY, defaultZ: merged.defaultZ })
+            }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }).then(function (updated) {
+              if (updated) {
+                var idx = lastLoadedList.findIndex(function (i) { return i && i.filename === swatch.filename; });
+                if (idx >= 0) lastLoadedList[idx] = updated;
+                itemsByFilename[swatch.filename] = updated;
+              }
+              var swatchRow = document.querySelector('tr[data-filename="' + CSS.escape(swatch.filename) + '"]');
+              if (swatchRow) {
+                var sx = swatchRow.querySelector('.coord-x');
+                var sy = swatchRow.querySelector('.coord-y');
+                var sz = swatchRow.querySelector('.coord-z');
+                if (sx) sx.value = merged.defaultX;
+                if (sy) sy.value = merged.defaultY;
+                if (sz) sz.value = merged.defaultZ;
+              }
+            });
+          });
+        }
+      }).catch(function (e) {
+        showMsg('Error saving: ' + (e.message || 'failed'), true);
+      });
+    }
+
+    function getSetIdFromItem(item) {
+      if (!item || !Array.isArray(item.tags)) return '';
+      const tagId = item.tags.find(t => typeof t === 'string' && t.startsWith('set-id:'));
+      if (tagId) {
+        const id = tagId.replace('set-id:', '').trim();
+        if (id === 'DefaultSet') return '';
+        return id;
+      }
+      const tagSet = item.tags.find(t => typeof t === 'string' && t.startsWith('set:'));
+      if (tagSet) {
+        const name = tagSet.replace('set:', '').trim();
+        if (!name || name === 'DefaultSet') return '';
+        return 'tag_' + name;
+      }
+      return '';
+    }
+
+    const ITEM_SOURCE_VALUES = ['', 'gacha-prize', 'gacha-set', 'store'];
+    function getItemSourceTag(item) {
+      if (!item || !Array.isArray(item.tags)) return '';
+      const tag = item.tags.find(t => typeof t === 'string' && t.startsWith('item-source:'));
+      if (!tag) return '';
+      const v = tag.replace('item-source:', '').trim();
+      return ITEM_SOURCE_VALUES.includes(v) ? v : '';
+    }
+    function buildTagsWithItemSource(tags, sourceValue) {
+      const filtered = (Array.isArray(tags) ? tags : []).filter(t => typeof t !== 'string' || !t.startsWith('item-source:'));
+      if (sourceValue && sourceValue.trim()) filtered.push('item-source:' + sourceValue.trim());
+      return filtered;
+    }
+    function getSetNameFromItem(item) {
+      if (!item || !Array.isArray(item.tags)) return '';
+      const setNameTag = item.tags.find(t => typeof t === 'string' && t.startsWith('set-name:'));
+      if (setNameTag) {
+        const n = setNameTag.replace('set-name:', '').trim();
+        if (n === 'DefaultSet') return '';
+        return n;
+      }
+      const setTag = item.tags.find(t => typeof t === 'string' && t.startsWith('set:'));
+      if (setTag) {
+        const n = setTag.replace('set:', '').trim();
+        if (n === 'DefaultSet') return '';
+        return n;
+      }
+      const setIdTag = item.tags.find(t => typeof t === 'string' && t.startsWith('set-id:'));
+      if (setIdTag) {
+        const id = setIdTag.replace('set-id:', '').trim();
+        if (id === 'DefaultSet') return '';
+        return id;
+      }
+      return '';
+    }
+
+    function getExistingSetsFromList(list) {
+      const byId = {};
+      (list || []).forEach(item => {
+        const id = getSetIdFromItem(item);
+        if (!id) return;
+        const name = getSetNameFromItem(item) || id;
+        byId[id] = name;
+      });
+      const fromItems = Object.entries(byId).map(([id, name]) => ({ id, name }));
+      const stored = getStoredSetDefinitions();
+      stored.forEach(s => {
+        if (s.id && !byId[s.id]) fromItems.push({ id: s.id, name: s.name || s.id, brand: s.brand, tag: s.tag });
+        else if (s.id) byId[s.id] = s.name || byId[s.id];
+      });
+      return fromItems.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    }
+
+    function getSetDefinition(setId) {
+      const stored = getStoredSetDefinitions();
+      return stored.find(s => s.id === setId) || null;
+    }
+
+    function updateItemSetPreviewTags(filename, newTags) {
+      const item = itemsByFilename[filename];
+      if (!item) return Promise.reject(new Error('Item not found'));
+      return fetch('/api/items/update/' + encodeURIComponent(filename), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: item.id,
+          name: item.name,
+          slotId: item.slotId,
+          tags: newTags,
+          heart: item.heart,
+          designer: item.designer,
+          isSet: item.isSet,
+          defaultX: item.defaultX,
+          defaultY: item.defaultY,
+          defaultZ: item.defaultZ,
+          bundleParts: item.bundleParts
+        })
+      }).then(function (r) {
+        if (!r.ok) throw new Error('Update failed');
+        return r.json();
+      }).then(function (updated) {
+        const idx = lastLoadedList.findIndex(function (i) { return i.filename === filename; });
+        if (idx >= 0) lastLoadedList[idx] = updated;
+        itemsByFilename[filename] = updated;
+      });
+    }
+
+    function hasSetPreviewHidden(item) {
+      if (!item || !Array.isArray(item.tags)) return false;
+      return item.tags.some(t => t === 'set-preview-hidden');
+    }
+    function getSetPreviewZ(item) {
+      if (!item || !Array.isArray(item.tags)) return null;
+      const tag = item.tags.find(t => typeof t === 'string' && t.startsWith('set-preview-z:'));
+      if (!tag) return null;
+      const n = parseInt(tag.replace('set-preview-z:', '').trim(), 10);
+      return isNaN(n) ? null : n;
+    }
+
+    function buildTagsWithSet(itemTags, setValue) {
+      const tags = Array.isArray(itemTags) ? itemTags.slice() : [];
+      let filtered = tags.filter(t => typeof t !== 'string' || (!t.startsWith('set-id:') && !t.startsWith('set-name:') && !t.startsWith('set:') && !t.startsWith('set-brand:') && !t.startsWith('set-source:')));
+      const trimmed = (setValue || '').trim();
+      if (!trimmed || trimmed.toLowerCase() === 'no set' || trimmed.toLowerCase() === 'defaultset') return filtered;
+      const slug = trimmed.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || trimmed;
+      filtered.push('set-id:' + slug);
+      filtered.push('set-name:' + trimmed);
+      filtered.push('set:' + trimmed);
+      return filtered;
+    }
+
+    const TABLE_COLUMN_COUNT = 15;
+    const VIRTUAL_ROW_HEIGHT = 52;
+    const VIRTUAL_SCROLL_THRESHOLD = 150;
+    const ITEMS_VIEW_PAGE_SIZE = 50;
+    const ITEMS_VIEW_SETS_PAGE_SIZE = 10;
+    var itemsViewCurrentPage = 1;
+    const VIRTUAL_SCROLL_WINDOW = 80;
+    const TABLE_THEAD_APPROX_HEIGHT = 42;
+    var virtualScrollList = null;
+    var virtualScrollScrollHandler = null;
+    function renderTableWindow(startIndex, endIndex) {
+      const tbody = document.getElementById('items-tbody');
+      if (!tbody || !virtualScrollList || virtualScrollList.length === 0) return;
+      var total = virtualScrollList.length;
+      tbody.innerHTML = '';
+      if (startIndex > 0) {
+        var topSpacer = document.createElement('tr');
+        topSpacer.className = 'virtual-scroll-spacer';
+        topSpacer.style.height = (startIndex * VIRTUAL_ROW_HEIGHT) + 'px';
+        topSpacer.innerHTML = '<td colspan="' + TABLE_COLUMN_COUNT + '" style="padding:0; border:none; line-height:0; height:' + (startIndex * VIRTUAL_ROW_HEIGHT) + 'px;"></td>';
+        tbody.appendChild(topSpacer);
+      }
+      for (var i = startIndex; i < endIndex; i++) {
+        var item = virtualScrollList[i];
+        if (!item) continue;
+        var tr = renderRow(item);
+        if (tr) tbody.appendChild(tr);
+      }
+      var bottomStart = endIndex;
+      if (bottomStart < total) {
+        var bottomSpacer = document.createElement('tr');
+        bottomSpacer.className = 'virtual-scroll-spacer';
+        var bottomHeight = (total - endIndex) * VIRTUAL_ROW_HEIGHT;
+        bottomSpacer.style.height = bottomHeight + 'px';
+        bottomSpacer.innerHTML = '<td colspan="' + TABLE_COLUMN_COUNT + '" style="padding:0; border:none; line-height:0; height:' + bottomHeight + 'px;"></td>';
+        tbody.appendChild(bottomSpacer);
+      }
+    }
+    function updateVirtualScroll() {
+      var wrap = document.getElementById('items-table-scroll-wrap');
+      var list = virtualScrollList;
+      if (!wrap || !list || list.length === 0) return;
+      var scrollTop = wrap.scrollTop || 0;
+      var startIndex = Math.max(0, Math.floor(scrollTop / VIRTUAL_ROW_HEIGHT));
+      var endIndex = Math.min(list.length, startIndex + VIRTUAL_SCROLL_WINDOW);
+      renderTableWindow(startIndex, endIndex);
+    }
+    function clearVirtualScroll() {
+      if (virtualScrollScrollHandler) {
+        var wrap = document.getElementById('items-table-scroll-wrap');
+        if (wrap) wrap.removeEventListener('scroll', virtualScrollScrollHandler);
+        virtualScrollScrollHandler = null;
+      }
+      virtualScrollList = null;
+      var inner = document.getElementById('items-table-scroll-inner');
+      if (inner) inner.style.height = '';
+    }
+    function renderSetHeaderRow(setId, setName, items) {
+      const tr = document.createElement('tr');
+      tr.className = 'set-header-row';
+      tr.dataset.setId = setId || '';
+      const td = document.createElement('td');
+      td.colSpan = TABLE_COLUMN_COUNT;
+      const icon = document.createElement('span');
+      icon.className = 'set-toggle-icon';
+      icon.textContent = '\u25BC';
+      icon.setAttribute('aria-hidden', 'true');
+      const label = document.createElement('span');
+      const count = (items || []).length;
+      label.textContent = (setName || 'No set') + (count ? ' (' + count + ')' : '');
+      const thumbsWrap = document.createElement('span');
+      thumbsWrap.className = 'set-header-thumbs';
+      (items || []).slice(0, 12).forEach(function (it) {
+        const img = document.createElement('img');
+        img.src = '/Uploads/' + (it.filename || '');
+        img.alt = it.filename || '';
+        img.onerror = function () { img.src = 'https://via.placeholder.com/24?text=?'; };
+        if (it.slotId === 'body-slot') img.classList.add('body-item');
+        thumbsWrap.appendChild(img);
+      });
+      td.appendChild(icon);
+      td.appendChild(label);
+      td.appendChild(thumbsWrap);
+      tr.appendChild(td);
+      tr.addEventListener('click', function () {
+        tr.classList.toggle('collapsed');
+        toggleSetGroupRows(tr, tr.classList.contains('collapsed'));
+      });
+      return tr;
+    }
+    function expandSetIds(setIds) {
+      if (!setIds || !setIds.length) return;
+      const tbody = document.getElementById('items-tbody');
+      if (!tbody) return;
+      const idSet = new Set(setIds);
+      tbody.querySelectorAll('.set-header-row').forEach(function (tr) {
+        if (idSet.has(tr.dataset.setId || '')) {
+          tr.classList.remove('collapsed');
+          toggleSetGroupRows(tr, false);
+        }
+      });
+      tbody.querySelectorAll('.set-group-collapsed-row').forEach(function (tr) {
+        if (tr.dataset.setId && idSet.has(tr.dataset.setId)) tr.classList.remove('set-group-collapsed-row');
+      });
+    }
+    function toggleSetGroupRows(headerRow, collapsed) {
+      const setId = headerRow.dataset.setId || '';
+      let el = headerRow.nextElementSibling;
+      while (el && !el.classList.contains('set-header-row')) {
+        if (el.dataset.setId === setId) {
+          el.classList.toggle('set-group-collapsed-row', collapsed);
+        }
+        el = el.nextElementSibling;
+      }
+    }
+    function getItemsGroupedBySet(list) {
+      const groups = {};
+      const noSet = '__noset__';
+      (list || []).forEach(function (item) {
+        const id = getSetIdFromItem(item) || noSet;
+        const name = id === noSet ? '' : (getSetNameFromItem(item) || id);
+        if (!groups[id]) groups[id] = { id: id === noSet ? '' : id, name: name || 'No set', items: [] };
+        groups[id].items.push(item);
+      });
+      return Object.values(groups).sort(function (a, b) {
+        if (a.id === '') return 1;
+        if (b.id === '') return -1;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+    }
+    function populateTableBody(list, groupBySet) {
+      const tbody = document.getElementById('items-tbody');
+      const inner = document.getElementById('items-table-scroll-inner');
+      const itemsPaginationBar = document.getElementById('items-pagination-bar');
+      if (!tbody) return;
+      const roots = list.filter(function (i) { return !getSwatchParentFilename(i); });
+      var displayList = roots.length > 0 ? roots : list;
+      var fragment = document.createDocumentFragment();
+      if (displayList.length === 0) {
+        clearVirtualScroll();
+        if (itemsPaginationBar) itemsPaginationBar.style.display = 'none';
+        tbody.innerHTML = '';
+        tbody.style.transform = '';
+        return;
+      }
+      var totalPages = 1;
+      if (groupBySet && roots.length > 0) {
+        var groups = getItemsGroupedBySet(roots);
+        totalPages = Math.max(1, Math.ceil(groups.length / ITEMS_VIEW_SETS_PAGE_SIZE));
+        if (itemsViewCurrentPage > totalPages) itemsViewCurrentPage = totalPages;
+        if (itemsViewCurrentPage < 1) itemsViewCurrentPage = 1;
+        var start = (itemsViewCurrentPage - 1) * ITEMS_VIEW_SETS_PAGE_SIZE;
+        var groupsPage = groups.slice(start, start + ITEMS_VIEW_SETS_PAGE_SIZE);
+        clearVirtualScroll();
+        groupsPage.forEach(function (grp) {
+          fragment.appendChild(renderSetHeaderRow(grp.id, grp.name, grp.items));
+          grp.items.forEach(function (item) {
+            try {
+              const tr = renderRow(item);
+              if (tr) { tr.dataset.setId = grp.id || ''; fragment.appendChild(tr); }
+            } catch (err) {
+              console.warn('renderRow skip:', item && item.filename, err);
+            }
+          });
+        });
+        if (inner) inner.style.height = '';
+      } else {
+        totalPages = Math.max(1, Math.ceil(displayList.length / ITEMS_VIEW_PAGE_SIZE));
+        if (itemsViewCurrentPage > totalPages) itemsViewCurrentPage = totalPages;
+        if (itemsViewCurrentPage < 1) itemsViewCurrentPage = 1;
+        var start = (itemsViewCurrentPage - 1) * ITEMS_VIEW_PAGE_SIZE;
+        var pageItems = displayList.slice(start, start + ITEMS_VIEW_PAGE_SIZE);
+        clearVirtualScroll();
+        pageItems.forEach(function (item) {
+          try {
+            const tr = renderRow(item);
+            if (tr) fragment.appendChild(tr);
+          } catch (err) {
+            console.warn('renderRow skip:', item && item.filename, err);
+          }
+        });
+        if (inner) inner.style.height = '';
+      }
+      tbody.innerHTML = '';
+      tbody.style.transform = '';
+      while (fragment.firstChild) tbody.appendChild(fragment.firstChild);
+      if (itemsPaginationBar) {
+        if (totalPages > 1) {
+          itemsPaginationBar.style.display = 'flex';
+          var pageInfo = document.getElementById('items-page-info');
+          if (pageInfo) pageInfo.textContent = 'Page ' + itemsViewCurrentPage + ' of ' + totalPages;
+          var prevBtn = document.getElementById('items-prev-btn');
+          var nextBtn = document.getElementById('items-next-btn');
+          if (prevBtn) prevBtn.disabled = itemsViewCurrentPage <= 1;
+          if (nextBtn) nextBtn.disabled = itemsViewCurrentPage >= totalPages;
+          var pageButtons = document.getElementById('items-page-buttons');
+          if (pageButtons) {
+            pageButtons.innerHTML = '';
+            for (var p = 1; p <= totalPages; p++) {
+              var btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'sets-page-btn' + (p === itemsViewCurrentPage ? ' active' : '');
+              btn.textContent = p;
+              btn.setAttribute('aria-label', 'Page ' + p);
+              (function (pageNum) {
+                btn.addEventListener('click', function () {
+                  itemsViewCurrentPage = pageNum;
+                  repopulateItemsViewImmediate();
+                });
+              })(p);
+              pageButtons.appendChild(btn);
+            }
+          }
+        } else {
+          itemsPaginationBar.style.display = 'none';
+        }
+      }
+    }
+    function collapseAllSets() {
+      const tbody = document.getElementById('items-tbody');
+      if (!tbody) return;
+      tbody.querySelectorAll('.set-header-row').forEach(function (tr) {
+        tr.classList.add('collapsed');
+        toggleSetGroupRows(tr, true);
+      });
+    }
+    function expandAllSets() {
+      const tbody = document.getElementById('items-tbody');
+      if (!tbody) return;
+      tbody.querySelectorAll('.set-header-row').forEach(function (tr) {
+        tr.classList.remove('collapsed');
+        toggleSetGroupRows(tr, false);
+      });
+      tbody.querySelectorAll('.set-group-collapsed-row').forEach(function (tr) {
+        tr.classList.remove('set-group-collapsed-row');
+      });
+    }
+
+    function renderRow(item) {
+      if (!item || item.filename == null) return null;
+      const tr = document.createElement('tr');
+      tr.dataset.filename = String(item.filename);
+      tr.style.cursor = 'pointer';
+      const thumb = document.createElement('img');
+      thumb.className = 'thumb';
+      if (item.slotId === 'body-slot') thumb.classList.add('body-item');
+      thumb.src = '/Uploads/' + item.filename;
+      thumb.alt = item.id || item.filename;
+      thumb.onerror = () => { thumb.src = 'https://via.placeholder.com/40?text=?'; };
+
+      const slotSelect = document.createElement('select');
+      slotSelect.className = 'slot-select';
+      SLOTS.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.value;
+        opt.textContent = s.label;
+        if (item.slotId === s.value) opt.selected = true;
+        slotSelect.appendChild(opt);
+      });
+      slotSelect.addEventListener('change', markUnsaved);
+
+      const designerSelect = document.createElement('select');
+      designerSelect.className = 'designer-select';
+      designerSelect.style.minWidth = '100px';
+      designerSelect.style.padding = '4px 6px';
+      const currentDesigner = (item.designer || '').trim();
+      const options = [''];
+      designersList.forEach(d => options.push(d));
+      if (currentDesigner && !designersList.includes(currentDesigner)) options.push(currentDesigner);
+      options.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d || '—';
+        if (d === currentDesigner) opt.selected = true;
+        designerSelect.appendChild(opt);
+      });
+      designerSelect.addEventListener('change', markUnsaved);
+
+      var parentFilename = getSwatchParentFilename(item);
+      var parentItem = parentFilename ? (lastLoadedList || []).find(function (i) { return i && i.filename === parentFilename; }) : null;
+      var effX = parentItem != null ? (parentItem.defaultX != null && !isNaN(Number(parentItem.defaultX)) ? Number(parentItem.defaultX) : (item.defaultX ?? 0)) : (item.defaultX ?? 0);
+      var effY = parentItem != null ? (parentItem.defaultY != null && !isNaN(Number(parentItem.defaultY)) ? Number(parentItem.defaultY) : (item.defaultY ?? 0)) : (item.defaultY ?? 0);
+      var effZ = parentItem != null ? (parentItem.defaultZ != null && !isNaN(parseInt(parentItem.defaultZ, 10)) ? parseInt(parentItem.defaultZ, 10) : (item.defaultZ ?? 0)) : (item.defaultZ ?? 0);
+      if (parentItem) {
+        item.defaultX = effX;
+        item.defaultY = effY;
+        item.defaultZ = effZ;
+      }
+      const xInput = document.createElement('input');
+      xInput.type = 'number';
+      xInput.className = 'coord-x';
+      xInput.value = effX;
+      xInput.min = -125;
+      xInput.max = 125;
+      xInput.addEventListener('input', function () { item.defaultX = parseFloat(xInput.value) || 0; markUnsaved(); saveSingleItemDebounced(item); });
+      xInput.addEventListener('change', function () { item.defaultX = parseFloat(xInput.value) || 0; saveSingleItem(item); });
+
+      const yInput = document.createElement('input');
+      yInput.type = 'number';
+      yInput.className = 'coord-y';
+      yInput.value = effY;
+      yInput.min = -175;
+      yInput.max = 175;
+      yInput.addEventListener('input', function () { item.defaultY = parseFloat(yInput.value) || 0; markUnsaved(); saveSingleItemDebounced(item); });
+      yInput.addEventListener('change', function () { item.defaultY = parseFloat(yInput.value) || 0; saveSingleItem(item); });
+
+      const zInput = document.createElement('input');
+      zInput.type = 'number';
+      zInput.className = 'coord-z';
+      zInput.value = effZ;
+      zInput.min = 0;
+      zInput.addEventListener('input', function () { item.defaultZ = parseInt(zInput.value, 10) || 0; markUnsaved(); saveSingleItemDebounced(item); });
+      zInput.addEventListener('change', function () { item.defaultZ = parseInt(zInput.value, 10) || 0; saveSingleItem(item); });
+
+      const idDisplay = document.createElement('span');
+      idDisplay.className = 'id-display';
+      idDisplay.style.fontFamily = 'monospace';
+      idDisplay.style.fontSize = '12px';
+      const currentId = item.id || (item._generatedId = item._generatedId || randomId());
+      idDisplay.textContent = currentId;
+      const idWrap = document.createElement('span');
+      idWrap.className = 'id-cell-wrap';
+      idWrap.style.display = 'inline-flex';
+      idWrap.style.alignItems = 'center';
+      idWrap.style.gap = '6px';
+      idWrap.appendChild(idDisplay);
+      const regenIdBtn = document.createElement('button');
+      regenIdBtn.type = 'button';
+      regenIdBtn.className = 'btn-regen-id';
+      regenIdBtn.textContent = 'New';
+      regenIdBtn.title = 'Generate new random ID';
+      regenIdBtn.style.padding = '2px 6px';
+      regenIdBtn.style.fontSize = '11px';
+      regenIdBtn.style.background = '#e5e7eb';
+      regenIdBtn.style.border = '1px solid #ccc';
+      regenIdBtn.style.borderRadius = '4px';
+      regenIdBtn.style.cursor = 'pointer';
+      regenIdBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const newId = randomId();
+        if (!item.id) item._generatedId = newId;
+        else item.id = newId;
+        idDisplay.textContent = newId;
+        markUnsaved();
+      });
+      idWrap.appendChild(regenIdBtn);
+      const copyIdBtn = document.createElement('button');
+      copyIdBtn.type = 'button';
+      copyIdBtn.className = 'btn-copy-id';
+      copyIdBtn.textContent = 'Copy';
+      copyIdBtn.title = 'Copy ID to clipboard';
+      copyIdBtn.style.padding = '2px 6px';
+      copyIdBtn.style.fontSize = '11px';
+      copyIdBtn.style.background = '#e5e7eb';
+      copyIdBtn.style.border = '1px solid #ccc';
+      copyIdBtn.style.borderRadius = '4px';
+      copyIdBtn.style.cursor = 'pointer';
+      copyIdBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = (idDisplay && idDisplay.textContent) ? idDisplay.textContent.trim() : '';
+        if (!id) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(id).then(() => showMsg('ID copied to clipboard')).catch(() => showMsg('Copy failed', true));
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = id;
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand('copy');
+            showMsg('ID copied to clipboard');
+          } catch (err) { showMsg('Copy failed', true); }
+          document.body.removeChild(ta);
+        }
+      });
+      idWrap.appendChild(copyIdBtn);
+
+      const rootItems = (lastLoadedList || []).filter(i => i && i.filename && !getSwatchParentFilename(i) && i.filename !== item.filename);
+      const swatchOfSelect = document.createElement('select');
+      swatchOfSelect.className = 'swatch-of-select';
+      swatchOfSelect.style.minWidth = '90px';
+      swatchOfSelect.style.padding = '4px 6px';
+      swatchOfSelect.style.fontSize = '12px';
+      const noneOpt = document.createElement('option');
+      noneOpt.value = '';
+      noneOpt.textContent = '— None —';
+      swatchOfSelect.appendChild(noneOpt);
+      rootItems.forEach(i => {
+        const opt = document.createElement('option');
+        opt.value = i.filename;
+        opt.textContent = (i.id || i.filename).slice(0, 12);
+        if (getSwatchParentFilename(item) === i.filename) opt.selected = true;
+        swatchOfSelect.appendChild(opt);
+      });
+      swatchOfSelect.addEventListener('change', markUnsaved);
+
+      function applySwatchPaste(val) {
+        const v = (val || '').trim();
+        if (!v) return;
+        const found = (lastLoadedList || []).find(i => (i.id || i.filename) === v || i.filename === v);
+        if (found && found.filename !== item.filename && !getSwatchParentFilename(found)) {
+          swatchOfSelect.value = found.filename;
+          markUnsaved();
+          if (swatchPasteInput) swatchPasteInput.value = '';
+          showMsg('Swatch parent set to: ' + (found.id || found.filename));
+        } else if (v) showMsg('No root item with that ID', true);
+      }
+      const swatchPasteWrap = document.createElement('span');
+      swatchPasteWrap.className = 'swatch-paste-wrap';
+      swatchPasteWrap.style.display = 'inline-flex';
+      swatchPasteWrap.style.alignItems = 'center';
+      swatchPasteWrap.style.gap = '4px';
+      swatchPasteWrap.style.marginTop = '4px';
+      const swatchPasteInput = document.createElement('input');
+      swatchPasteInput.type = 'text';
+      swatchPasteInput.placeholder = 'Paste ID';
+      swatchPasteInput.className = 'swatch-paste-input';
+      swatchPasteInput.style.width = '88px';
+      swatchPasteInput.style.padding = '2px 6px';
+      swatchPasteInput.style.fontSize = '11px';
+      swatchPasteInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); applySwatchPaste(swatchPasteInput.value); } });
+      swatchPasteInput.addEventListener('change', () => applySwatchPaste(swatchPasteInput.value));
+      const swatchPasteBtn = document.createElement('button');
+      swatchPasteBtn.type = 'button';
+      swatchPasteBtn.className = 'btn-paste-swatch';
+      swatchPasteBtn.textContent = 'Paste';
+      swatchPasteBtn.title = 'Paste ID from clipboard and set as Swatch of';
+      swatchPasteBtn.style.padding = '2px 6px';
+      swatchPasteBtn.style.fontSize = '11px';
+      swatchPasteBtn.style.background = '#e5e7eb';
+      swatchPasteBtn.style.border = '1px solid #ccc';
+      swatchPasteBtn.style.borderRadius = '4px';
+      swatchPasteBtn.style.cursor = 'pointer';
+      swatchPasteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          navigator.clipboard.readText().then(t => applySwatchPaste(t)).catch(() => showMsg('Paste failed', true));
+        } else showMsg('Paste not supported in this browser', true);
+      });
+      swatchPasteWrap.appendChild(swatchPasteInput);
+      swatchPasteWrap.appendChild(swatchPasteBtn);
+
+      const swatchColorInput = document.createElement('input');
+      swatchColorInput.type = 'text';
+      swatchColorInput.className = 'swatch-color-input';
+      swatchColorInput.placeholder = '#hex';
+      swatchColorInput.style.width = '72px';
+      swatchColorInput.style.padding = '4px 6px';
+      swatchColorInput.style.fontSize = '12px';
+      swatchColorInput.value = getSwatchColor(item) || '';
+      swatchColorInput.addEventListener('input', markUnsaved);
+
+      const setSelect = document.createElement('select');
+      setSelect.className = 'set-select';
+      setSelect.style.minWidth = '120px';
+      setSelect.style.padding = '4px 6px';
+      setSelect.style.border = '1px solid #ccc';
+      setSelect.style.borderRadius = '4px';
+      const noSetOpt = document.createElement('option');
+      noSetOpt.value = '';
+      noSetOpt.textContent = 'No set';
+      setSelect.appendChild(noSetOpt);
+      existingSetsList.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name;
+        setSelect.appendChild(opt);
+      });
+      const currentSetId = getSetIdFromItem(item);
+      setSelect.value = currentSetId || '';
+      if (currentSetId && !existingSetsList.some(s => s.id === currentSetId)) {
+        const opt = document.createElement('option');
+        opt.value = currentSetId;
+        opt.textContent = getSetNameFromItem(item) || currentSetId;
+        setSelect.appendChild(opt);
+        setSelect.value = currentSetId;
+      }
+      setSelect.addEventListener('change', markUnsaved);
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn-delete';
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', async () => {
+        if (!confirm('Delete item ' + (item.id || item.filename) + '? This cannot be undone.')) return;
+        try {
+          const res = await fetch('/api/items/' + encodeURIComponent(item.filename), { method: 'DELETE' });
+          if (!res.ok) throw new Error('Delete failed');
+          showMsg('Deleted: ' + item.filename);
+          loadItems();
+        } catch (e) {
+          showMsg('Error: ' + (e.message || 'could not delete'), true);
+        }
+      });
+
+      const dateAddedText = item.dateAdded
+        ? new Date(item.dateAdded).toLocaleDateString(undefined, { dateStyle: 'short' })
+        : '—';
+      const previewBar = document.createElement('div');
+      previewBar.className = 'preview-bar';
+      thumb.draggable = true;
+      thumb.title = (thumb.alt || '') + ' — drag onto another row to make this a swatch of that item';
+      thumb.addEventListener('dragstart', function (e) {
+        e.stopPropagation();
+        e.dataTransfer.setData('text/plain', item.filename);
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      previewBar.appendChild(thumb);
+      const swatches = (lastLoadedList || []).filter(function (i) { return i && i.filename && getSwatchParentFilename(i) === item.filename; });
+      swatches.forEach(function (swatch) {
+        const swatchImg = document.createElement('img');
+        swatchImg.className = 'swatch-thumb' + (swatch.slotId === 'body-slot' ? ' body-item' : '');
+        swatchImg.src = '/Uploads/' + swatch.filename;
+        swatchImg.alt = swatch.id || swatch.filename;
+        swatchImg.title = (swatch.id || swatch.filename) + ' — drag to "Separate swatch" to make its own item';
+        swatchImg.dataset.filename = swatch.filename;
+        swatchImg.draggable = true;
+        swatchImg.onerror = function () { swatchImg.src = 'https://via.placeholder.com/28?text=?'; };
+        swatchImg.addEventListener('dragstart', function (e) {
+          e.stopPropagation();
+          e.dataTransfer.setData('text/plain', swatch.filename);
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        swatchImg.addEventListener('click', function (e) {
+          e.stopPropagation();
+          e.preventDefault();
+          if (selectedRow && selectedRow !== tr && selectedItem) {
+            flushCoordsFromRowToItem(selectedRow, selectedItem);
+            saveSingleItem(selectedItem);
+          }
+          selectedFilenames.clear();
+          selectedFilenames.add(swatch.filename);
+          selectedRow = tr;
+          selectedItem = swatch;
+          selectedSetIdForPreview = null;
+          updateAlignPreview();
+          updateSelectionVisual();
+        });
+        previewBar.appendChild(swatchImg);
+      });
+      const tdAll = document.createElement('td');
+      tdAll.dataset.column = 'all';
+      tr.appendChild(tdAll);
+      (function () { const td = document.createElement('td'); td.dataset.column = 'preview'; td.appendChild(previewBar); tr.appendChild(td); })();
+      (function () { const td = document.createElement('td'); td.dataset.column = 'id'; tr.appendChild(td).appendChild(idWrap); })();
+      (function () { const td = document.createElement('td'); td.dataset.column = 'set'; tr.appendChild(td).appendChild(setSelect); })();
+      (function () { const td = document.createElement('td'); td.dataset.column = 'category'; tr.appendChild(td).appendChild(slotSelect); })();
+      (function () { const td = document.createElement('td'); td.dataset.column = 'designer'; tr.appendChild(td).appendChild(designerSelect); })();
+      (function () {
+        const tdSwatch = document.createElement('td');
+        tdSwatch.dataset.column = 'swatch';
+        tdSwatch.style.verticalAlign = 'top';
+        tdSwatch.appendChild(swatchOfSelect);
+        tdSwatch.appendChild(swatchPasteWrap);
+        tr.appendChild(tdSwatch);
+      })();
+      (function () {
+        const tdColor = document.createElement('td');
+        tdColor.dataset.column = 'color';
+        tdColor.appendChild(swatchColorInput);
+        tr.appendChild(tdColor);
+      })();
+      const tagSourceSelect = document.createElement('select');
+      tagSourceSelect.className = 'item-source-select';
+      tagSourceSelect.style.minWidth = '100px';
+      tagSourceSelect.style.padding = '4px 6px';
+      tagSourceSelect.style.fontSize = '12px';
+      tagSourceSelect.style.border = '1px solid #ccc';
+      tagSourceSelect.style.borderRadius = '4px';
+      [{ value: '', label: '— None —' }, { value: 'gacha-prize', label: 'Gacha prize' }, { value: 'gacha-set', label: 'Gacha set' }, { value: 'store', label: 'Store' }].forEach(function (o) {
+        const opt = document.createElement('option');
+        opt.value = o.value;
+        opt.textContent = o.label;
+        tagSourceSelect.appendChild(opt);
+      });
+      tagSourceSelect.value = getItemSourceTag(item) || '';
+      tagSourceSelect.addEventListener('change', function () {
+        const v = tagSourceSelect.value ? tagSourceSelect.value.trim() : '';
+        if (item) item.tags = buildTagsWithItemSource(item.tags || [], v);
+        markUnsaved();
+      });
+      const tdTag = document.createElement('td');
+      tdTag.dataset.column = 'type';
+      tdTag.appendChild(tagSourceSelect);
+      tr.appendChild(tdTag);
+      (function () { const td = document.createElement('td'); td.dataset.column = 'date'; td.textContent = dateAddedText; tr.appendChild(td); })();
+      const tdX = document.createElement('td');
+      tdX.dataset.column = 'x';
+      tdX.className = 'coord-col';
+      tdX.appendChild(xInput);
+      tr.appendChild(tdX);
+      const tdY = document.createElement('td');
+      tdY.dataset.column = 'y';
+      tdY.className = 'coord-col';
+      tdY.appendChild(yInput);
+      tr.appendChild(tdY);
+      const tdZ = document.createElement('td');
+      tdZ.dataset.column = 'z';
+      tdZ.className = 'coord-col';
+      tdZ.appendChild(zInput);
+      tr.appendChild(tdZ);
+      const ticketInput = document.createElement('input');
+      ticketInput.type = 'number';
+      ticketInput.className = 'golden-ticket-price';
+      ticketInput.min = 0;
+      ticketInput.placeholder = '0';
+      ticketInput.value = (item.goldenTicketPrice != null && item.goldenTicketPrice !== '') ? item.goldenTicketPrice : '';
+      ticketInput.style.width = '48px';
+      ticketInput.style.padding = '4px 6px';
+      ticketInput.title = 'Golden ticket price (0 = not in ticket store)';
+      ticketInput.addEventListener('input', function () { var n = parseInt(ticketInput.value, 10); item.goldenTicketPrice = (ticketInput.value === '' || isNaN(n)) ? 0 : Math.max(0, n); markUnsaved(); });
+      ticketInput.addEventListener('change', function () { var n = parseInt(ticketInput.value, 10); item.goldenTicketPrice = (ticketInput.value === '' || isNaN(n)) ? 0 : Math.max(0, n); saveSingleItem(item); });
+      const tdTicket = document.createElement('td');
+      tdTicket.dataset.column = 'ticket';
+      tdTicket.appendChild(ticketInput);
+      tr.appendChild(tdTicket);
+      const tdActions = document.createElement('td');
+      tdActions.dataset.column = 'actions';
+      tdActions.appendChild(delBtn);
+      tr.appendChild(tdActions);
+
+      tr.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        tr.classList.add('drag-over');
+      });
+      tr.addEventListener('dragleave', function (e) {
+        if (!tr.contains(e.relatedTarget)) tr.classList.remove('drag-over');
+      });
+      tr.addEventListener('drop', function (e) {
+        e.preventDefault();
+        tr.classList.remove('drag-over');
+        var draggedFilename = e.dataTransfer.getData('text/plain');
+        var targetFilename = tr.dataset.filename;
+        if (!draggedFilename || !targetFilename || draggedFilename === targetFilename) return;
+        var draggedItem = itemsByFilename[draggedFilename];
+        if (!draggedItem) return;
+        var targetItem = itemsByFilename[targetFilename];
+        if (!targetItem) return;
+        var newTags = (Array.isArray(draggedItem.tags) ? draggedItem.tags : []).filter(function (t) {
+          return typeof t !== 'string' || (!t.startsWith('swatch-parent:') && !t.startsWith('swatch-of:'));
+        });
+        newTags.push('swatch-parent:' + targetFilename);
+        draggedItem.tags = newTags;
+        var parentX = targetItem.defaultX != null && !isNaN(Number(targetItem.defaultX)) ? Number(targetItem.defaultX) : 0;
+        var parentY = targetItem.defaultY != null && !isNaN(Number(targetItem.defaultY)) ? Number(targetItem.defaultY) : 0;
+        var parentZ = targetItem.defaultZ != null && !isNaN(parseInt(targetItem.defaultZ, 10)) ? parseInt(targetItem.defaultZ, 10) : 0;
+        draggedItem.defaultX = parentX;
+        draggedItem.defaultY = parentY;
+        draggedItem.defaultZ = parentZ;
+        var payload = {
+          id: draggedItem.id,
+          name: draggedItem.name,
+          slotId: draggedItem.slotId,
+          tags: draggedItem.tags,
+          heart: draggedItem.heart,
+          designer: draggedItem.designer,
+          isSet: draggedItem.isSet,
+          defaultX: parentX,
+          defaultY: parentY,
+          defaultZ: parentZ,
+          bundleParts: draggedItem.bundleParts,
+          goldenTicketPrice: (draggedItem.goldenTicketPrice != null && draggedItem.goldenTicketPrice !== '' && !isNaN(Number(draggedItem.goldenTicketPrice))) ? Math.max(0, Math.floor(Number(draggedItem.goldenTicketPrice))) : 0
+        };
+        fetch('/api/items/update/' + encodeURIComponent(draggedItem.filename), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).then(function (r) {
+          if (!r.ok) throw new Error('Update failed');
+          return r.json();
+        }).then(function (updated) {
+          var idx = lastLoadedList.findIndex(function (i) { return i && i.filename === draggedItem.filename; });
+          if (idx >= 0) lastLoadedList[idx] = updated;
+          itemsByFilename[draggedItem.filename] = updated;
+          showMsg('Item is now a swatch of ' + (targetItem.name || targetItem.filename));
+          loadItems();
+        }).catch(function (err) {
+          showMsg('Error: ' + (err.message || 'failed'), true);
+        });
+      });
+
+      tr.addEventListener('click', (e) => {
+        if (e.target.closest('button') || e.target.closest('select') || e.target.closest('input')) return;
+        const fn = item.filename;
+        selectedSetIdForPreview = null;
+        if (selectedRow && selectedRow !== tr && selectedItem) {
+          flushCoordsFromRowToItem(selectedRow, selectedItem);
+          saveSingleItem(selectedItem);
+        }
+        if (e.shiftKey) {
+          if (selectedFilenames.has(fn)) selectedFilenames.delete(fn);
+          else selectedFilenames.add(fn);
+          selectedRow = tr;
+          selectedItem = item;
+          updateAlignPreview();
+        } else {
+          selectedFilenames.clear();
+          selectedFilenames.add(fn);
+          selectedRow = tr;
+          selectedItem = item;
+          updateAlignPreview();
+        }
+        updateSelectionVisual();
+      });
+
+      return tr;
+    }
+
+    function sortByDate(list, order) {
+      const getTime = (item) => {
+        if (!item || item.dateAdded == null) return 0;
+        const t = new Date(item.dateAdded).getTime();
+        return isNaN(t) ? 0 : t;
+      };
+      return [...list].sort((a, b) => {
+        const ta = getTime(a);
+        const tb = getTime(b);
+        return order === 'newest' ? tb - ta : ta - tb;
+      });
+    }
+    function sortByDesigner(list, order) {
+      return [...list].sort((a, b) => {
+        const da = (a.designer || '').trim().toLowerCase();
+        const db = (b.designer || '').trim().toLowerCase();
+        const c = da.localeCompare(db);
+        return order === 'designer-za' ? -c : c;
+      });
+    }
+    function sortItemList(list, order) {
+      if (!order || order === 'newest' || order === 'oldest') return sortByDate(list, order || 'newest');
+      return sortByDesigner(list, order);
+    }
+    function applyDesignerFilter(list) {
+      const filterEl = document.getElementById('filter-designer');
+      const filterBy = (filterEl && filterEl.value) ? String(filterEl.value).trim() : '';
+      if (!filterBy) return list;
+      return list.filter(function (i) { return (i.designer || '').trim() === filterBy; });
+    }
+
+    const SLOT_LAYER_ORDER_DEBUG = { 'body-slot': 0, 'pants-slot': 1, 'skirt-slot': 2, 'dress-slot': 3, 'shirt-slot': 4, 'jacket-slot': 5, 'socks-slot': 6, 'shoes-slot': 7, 'hat-slot': 8, 'makeup-slot': 9, 'jewelry-slot': 10, 'hair-slot': 11, 'other-slot': 12 };
+    /** Preview-only display order per set (filename array). When set, preview uses this order without saving to items. */
+    var setPreviewOrderOverride = {};
+    function getFlatItemsForSetPreview(setItems, setId) {
+      let visible = (setItems || []).filter(item => !hasSetPreviewHidden(item));
+      const orderOverride = setId && setPreviewOrderOverride[setId];
+      if (orderOverride && orderOverride.length) {
+        const orderMap = {};
+        orderOverride.forEach(function (fn, idx) { orderMap[fn] = idx; });
+        visible = visible.slice().sort(function (a, b) {
+          const ia = orderMap[a.filename];
+          const ib = orderMap[b.filename];
+          if (ia != null && ib != null) return ia - ib;
+          if (ia != null) return -1;
+          if (ib != null) return 1;
+          return 0;
+        });
+      }
+      const layers = [];
+      visible.forEach(function (item, index) {
+        const slotId = item.slotId || 'other-slot';
+        const slotOrder = SLOT_LAYER_ORDER_DEBUG[slotId] != null ? SLOT_LAYER_ORDER_DEBUG[slotId] : 12;
+        const customZ = !orderOverride ? getSetPreviewZ(item) : null;
+        const baseZ = customZ != null ? customZ : (orderOverride ? (visible.length - 1 - index) * 100 : (slotOrder * 100));
+        if (item.bundleParts && Array.isArray(item.bundleParts) && item.bundleParts.length > 0) {
+          item.bundleParts.forEach((part, idx) => {
+            layers.push({
+              src: '/Uploads/' + (part.filename || ''),
+              x: part.defaultX != null ? part.defaultX : 0,
+              y: part.defaultY != null ? part.defaultY : 0,
+              zIndex: orderOverride ? (baseZ + idx) : (part.defaultZ != null ? part.defaultZ : baseZ + idx)
+            });
+          });
+        } else {
+          layers.push({
+            src: '/Uploads/' + (item.filename || ''),
+            x: item.defaultX != null ? item.defaultX : 0,
+            y: item.defaultY != null ? item.defaultY : 0,
+            zIndex: orderOverride ? baseZ : (item.defaultZ != null ? item.defaultZ : baseZ)
+          });
+        }
+      });
+      layers.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+      const base = { src: '/Uploads/character.png', x: 0, y: 0, zIndex: -1 };
+      return [base].concat(layers);
+    }
+    function compositeSetToCanvas(setItems, canvas, done, setId) {
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      ctx.mozImageSmoothingEnabled = false;
+      ctx.webkitImageSmoothingEnabled = false;
+      ctx.msImageSmoothingEnabled = false;
+      const W = 250;
+      const H = 350;
+      const items = getFlatItemsForSetPreview(setItems, setId);
+      if (items.length === 0) {
+        ctx.clearRect(0, 0, W, H);
+        if (done) done();
+        return;
+      }
+      const loadedImages = new Array(items.length);
+      let loadedCount = 0;
+      function tryDrawAll() {
+        if (loadedCount !== items.length) return;
+        ctx.clearRect(0, 0, W, H);
+        for (let i = 0; i < items.length; i++) {
+          const img = loadedImages[i];
+          const item = items[i];
+          if (!img || !img.complete) continue;
+          const nw = img.naturalWidth || W;
+          const nh = img.naturalHeight || H;
+          let scale = Math.min(1, W / nw, H / nh);
+          if (scale < 1) scale = 1 / Math.ceil(1 / scale);
+          let drawW = Math.round(nw * scale), drawH = Math.round(nh * scale);
+          if (drawW % 2 !== 0) drawW++; if (drawH % 2 !== 0) drawH++;
+          const cx = 125 + (item.x || 0);
+          const cy = 175 + (item.y || 0);
+          ctx.drawImage(img, 0, 0, nw, nh, Math.round(cx - drawW / 2), Math.round(cy - drawH / 2), drawW, drawH);
+        }
+        if (done) done();
+      }
+      items.forEach((item, i) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => { loadedImages[i] = img; loadedCount++; tryDrawAll(); };
+        img.onerror = () => { loadedCount++; tryDrawAll(); };
+        img.src = item.src || '';
+      });
+    }
+
+    function refreshSetPreview(setId) {
+      if (!setId) return;
+      const list = lastLoadedList || [];
+      const bySetId = {};
+      list.forEach(function (item) {
+        if (!item || !item.filename) return;
+        const id = getSetIdFromItem(item);
+        if (!id) return;
+        if (!bySetId[id]) bySetId[id] = [];
+        bySetId[id].push(item);
+      });
+      const items = bySetId[setId];
+      if (!items || items.length === 0) return;
+      const container = document.getElementById('sets-view-content');
+      if (!container) return;
+      const card = container.querySelector('.set-card[data-set-id="' + (typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(setId) : setId.replace(/"/g, '\\"')) + '"]');
+      if (!card) return;
+      const previewImg = card.querySelector('.set-card-preview');
+      if (!previewImg) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = 250;
+      canvas.height = 350;
+      compositeSetToCanvas(items, canvas, function () {
+        try { previewImg.src = canvas.toDataURL('image/png'); } catch (e) {}
+      }, setId);
+    }
+
+    var SETS_PAGE_SIZE = 10;
+    var setsViewSetIds = [];
+    var setsViewBySetId = {};
+    var setsViewCurrentPage = 1;
+
+    function sortSetIds(setIds, bySetId, order) {
+      if (!order || order === 'newest' || order === 'oldest') {
+        var getSetTime = function (setId, wantNewest) {
+          var items = bySetId[setId];
+          if (!items || !items.length) return 0;
+          var t = null;
+          items.forEach(function (item) {
+            var d = item.dateAdded != null ? new Date(item.dateAdded).getTime() : 0;
+            if (isNaN(d)) d = 0;
+            if (t == null) t = d;
+            else t = wantNewest ? Math.max(t, d) : Math.min(t, d);
+          });
+          return t != null ? t : 0;
+        };
+        return setIds.slice().sort(function (a, b) {
+          var ta = getSetTime(a, order === 'newest');
+          var tb = getSetTime(b, order === 'newest');
+          return order === 'newest' ? tb - ta : ta - tb;
+        });
+      }
+      var getDesigner = function (setId) {
+        var items = bySetId[setId];
+        return (items && items[0] && (items[0].designer || '').trim().toLowerCase()) || '';
+      };
+      return setIds.slice().sort(function (a, b) {
+        var da = getDesigner(a);
+        var db = getDesigner(b);
+        var c = da.localeCompare(db);
+        return order === 'designer-za' ? -c : c;
+      });
+    }
+
+    function renderSetsView() {
+      const container = document.getElementById('sets-view-content');
+      const paginationBar = document.getElementById('sets-pagination-bar');
+      if (!container) return;
+      var itemsScrollBySetId = {};
+      if (container.children.length) {
+        container.querySelectorAll('.set-card').forEach(function (c) {
+          var id = c.dataset.setId;
+          var listEl = c.querySelector('.set-card-items');
+          if (id && listEl) itemsScrollBySetId[id] = listEl.scrollTop;
+        });
+      }
+      const list = lastLoadedList || [];
+      const bySetId = {};
+      list.forEach(item => {
+        if (!item || !item.filename) return;
+        const setId = getSetIdFromItem(item);
+        if (!setId) return;
+        if (!bySetId[setId]) bySetId[setId] = [];
+        bySetId[setId].push(item);
+      });
+      var rawSetIds = Object.keys(bySetId).sort();
+      container.innerHTML = '';
+      if (rawSetIds.length === 0) {
+        if (paginationBar) paginationBar.style.display = 'none';
+        container.innerHTML = '<p class="empty">No sets. Assign items to a set using the Set dropdown and save.</p>';
+        setsViewSetIds = [];
+        setsViewBySetId = {};
+        return;
+      }
+      var sortOrder = (document.getElementById('sets-sort-order') && document.getElementById('sets-sort-order').value) || 'newest';
+      setsViewSetIds = sortSetIds(rawSetIds, bySetId, sortOrder);
+      setsViewBySetId = bySetId;
+      var totalPages = Math.max(1, Math.ceil(setsViewSetIds.length / SETS_PAGE_SIZE));
+      if (setsViewCurrentPage > totalPages) setsViewCurrentPage = totalPages;
+      if (setsViewCurrentPage < 1) setsViewCurrentPage = 1;
+      var start = (setsViewCurrentPage - 1) * SETS_PAGE_SIZE;
+      var end = Math.min(start + SETS_PAGE_SIZE, setsViewSetIds.length);
+      var setIdsPage = setsViewSetIds.slice(start, end);
+      var maxCards = 10;
+      for (var b = 0; b < setIdsPage.length && b < maxCards; b++) {
+        var setId = setIdsPage[b];
+        var items = setsViewBySetId[setId];
+        if (!items) continue;
+        var setName = items.length ? (getSetNameFromItem(items[0]) || setId) : setId;
+        var card = document.createElement('div');
+        card.className = 'set-card';
+        card.dataset.setId = setId;
+        const cardBody = document.createElement('div');
+        cardBody.className = 'set-card-body';
+        const previewWrap = document.createElement('div');
+        previewWrap.className = 'set-card-preview-wrap';
+        const previewImg = document.createElement('img');
+        previewImg.className = 'set-card-preview';
+        previewImg.alt = 'Set preview: ' + setName;
+        previewImg.src = 'data:image/gif;base64,R0lGOODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+        previewWrap.appendChild(previewImg);
+        cardBody.appendChild(previewWrap);
+        const cardInfo = document.createElement('div');
+        cardInfo.className = 'set-card-info';
+        const header = document.createElement('div');
+        header.className = 'set-card-header';
+        const h3 = document.createElement('h3');
+        h3.textContent = setName + ' (' + items.length + ')';
+        header.appendChild(h3);
+        const deleteSetBtn = document.createElement('button');
+        deleteSetBtn.type = 'button';
+        deleteSetBtn.className = 'set-card-delete-btn';
+        deleteSetBtn.textContent = 'Delete set';
+        deleteSetBtn.title = 'Remove this set from all ' + items.length + ' items';
+        deleteSetBtn.addEventListener('click', function () {
+          if (!confirm('Remove set "' + setName + '" from all ' + items.length + ' items? Items will keep their category and designer.')) return;
+          function clearSetTags(tags) {
+            return (Array.isArray(tags) ? tags : []).filter(function (t) {
+              if (typeof t !== 'string') return true;
+              return !t.startsWith('set-id:') && !t.startsWith('set-name:') && !t.startsWith('set:') && !t.startsWith('set-brand:') && !t.startsWith('set-source:');
+            });
+          }
+          Promise.all(items.map(function (item) {
+            const newTags = clearSetTags(item.tags);
+            return updateItemSetPreviewTags(item.filename, newTags);
+          })).then(function () {
+            const stored = getStoredSetDefinitions();
+            const filtered = stored.filter(function (s) { return s.id !== setId; });
+            saveStoredSetDefinitions(filtered);
+            loadItems();
+            if (document.querySelector('.table-wrap.sets-view-active')) renderSetsView();
+            showMsg('Set "' + setName + '" removed from ' + items.length + ' item(s).');
+          }).catch(function (err) {
+            showMsg('Failed to delete set: ' + (err && err.message ? err.message : 'error'), true);
+          });
+        });
+        header.appendChild(deleteSetBtn);
+        cardInfo.appendChild(header);
+        const orderActions = document.createElement('div');
+        orderActions.className = 'set-card-order-actions';
+        orderActions.title = 'Preview order: top = on top (in front), bottom = underneath (behind). Drag to reorder. Apply saves to items; Reset discards.';
+        const applyOrderBtn = document.createElement('button');
+        applyOrderBtn.type = 'button';
+        applyOrderBtn.className = 'btn-apply-order';
+        applyOrderBtn.textContent = 'Apply order';
+        applyOrderBtn.title = 'Save current preview order to items (set-preview-z)';
+        const resetOrderBtn = document.createElement('button');
+        resetOrderBtn.type = 'button';
+        resetOrderBtn.textContent = 'Reset order';
+        resetOrderBtn.title = 'Discard preview-only order and use saved order';
+        const updatePreviewBtn = document.createElement('button');
+        updatePreviewBtn.type = 'button';
+        updatePreviewBtn.textContent = 'Update preview';
+        updatePreviewBtn.title = 'Redraw set preview (e.g. after reordering by drag)';
+        orderActions.appendChild(applyOrderBtn);
+        orderActions.appendChild(resetOrderBtn);
+        orderActions.appendChild(updatePreviewBtn);
+        cardInfo.appendChild(orderActions);
+        applyOrderBtn.addEventListener('click', function () {
+          const listEl = card.querySelector('.set-card-items');
+          if (!listEl) return;
+          const rows = listEl.querySelectorAll('.set-item-row:not(.hidden-in-preview)');
+          const order = Array.from(rows).map(function (r) { return r.dataset.filename; }).filter(Boolean);
+          if (order.length === 0) return;
+          Promise.all(order.map(function (filename, idx) {
+            const it = itemsByFilename[filename];
+            if (!it) return Promise.resolve();
+            let tags = (it.tags || []).filter(function (t) { return typeof t !== 'string' || !t.startsWith('set-preview-z:'); });
+            tags.push('set-preview-z:' + ((order.length - 1 - idx) * 100));
+            if (hasSetPreviewHidden(it)) tags.push('set-preview-hidden');
+            return updateItemSetPreviewTags(filename, tags);
+          })).then(function () {
+            delete setPreviewOrderOverride[setId];
+            loadItems();
+            if (document.querySelector('.table-wrap.sets-view-active')) renderSetsView();
+            showMsg('Preview order saved to items.');
+          }).catch(function (err) { showMsg('Failed: ' + (err && err.message ? err.message : 'error'), true); });
+        });
+        resetOrderBtn.addEventListener('click', function () {
+          delete setPreviewOrderOverride[setId];
+          renderSetsView();
+          showMsg('Preview order reset to saved order.');
+        });
+        updatePreviewBtn.addEventListener('click', function () {
+          refreshSetPreview(setId);
+          showMsg('Preview updated.');
+        });
+        var displayItems = items;
+        if (setPreviewOrderOverride[setId] && setPreviewOrderOverride[setId].length) {
+          var orderMap = {};
+          setPreviewOrderOverride[setId].forEach(function (fn, i) { orderMap[fn] = i; });
+          displayItems = items.slice().sort(function (a, b) {
+            var ia = orderMap[a.filename];
+            var ib = orderMap[b.filename];
+            if (ia != null && ib != null) return ia - ib;
+            if (ia != null) return -1;
+            if (ib != null) return 1;
+            return 0;
+          });
+        }
+        const itemsWrap = document.createElement('div');
+        itemsWrap.className = 'set-card-items';
+        itemsWrap.title = 'Top = on top (in front), bottom = underneath (behind). Drag to reorder (does not save until you click Apply order)';
+        displayItems.forEach((item, itemIdx) => {
+          const row = document.createElement('div');
+          row.className = 'set-item-row' + (hasSetPreviewHidden(item) ? ' hidden-in-preview' : '');
+          if (selectedItem && selectedItem.filename === item.filename && selectedSetIdForPreview === setId) row.classList.add('set-item-row-selected');
+          row.dataset.filename = item.filename;
+          row.draggable = true;
+          const dragHandle = document.createElement('span');
+          dragHandle.className = 'set-item-drag-handle';
+          dragHandle.textContent = '\u22EE';
+          dragHandle.title = 'Drag to reorder: top = on top (in front), bottom = underneath (behind)';
+          const thumb = document.createElement('img');
+          thumb.className = 'set-item-thumb' + ((item.slotId || '') === 'body-slot' ? ' body-item' : '');
+          thumb.src = '/Uploads/' + item.filename;
+          thumb.alt = item.id || item.filename;
+          thumb.title = item.id || item.filename;
+          thumb.onerror = function () { thumb.style.opacity = '0.3'; };
+          thumb.draggable = false;
+          row.appendChild(dragHandle);
+          const visBtn = document.createElement('button');
+          visBtn.type = 'button';
+          visBtn.className = 'set-item-visibility';
+          visBtn.title = hasSetPreviewHidden(item) ? 'Show in set preview' : 'Hide from set preview';
+          visBtn.setAttribute('aria-pressed', hasSetPreviewHidden(item) ? 'true' : 'false');
+          visBtn.textContent = hasSetPreviewHidden(item) ? '\uD83D\uDC41\u200D\uFE00' : '\uD83D\uDC41';
+          const zInput = document.createElement('input');
+          zInput.type = 'number';
+          zInput.className = 'set-item-z';
+          zInput.title = 'Z-order in set preview (lower = underneath, higher = on top)';
+          zInput.min = -100;
+          zInput.max = 9999;
+          zInput.value = getSetPreviewZ(item) != null ? getSetPreviewZ(item) : (SLOT_LAYER_ORDER_DEBUG[item.slotId || 'other-slot'] != null ? SLOT_LAYER_ORDER_DEBUG[item.slotId || 'other-slot'] * 100 : 1200);
+          const labelSpan = document.createElement('span');
+          labelSpan.className = 'set-item-label';
+          labelSpan.textContent = ((item.id || item.filename) + ' (' + (item.slotId || '').replace('-slot', '') + ')').slice(0, 28);
+          labelSpan.title = item.id || item.filename;
+          row.appendChild(thumb);
+          row.appendChild(visBtn);
+          row.appendChild(zInput);
+          row.appendChild(labelSpan);
+          row.addEventListener('dragstart', function (e) {
+            e.dataTransfer.setData('text/plain', item.filename);
+            e.dataTransfer.setData('application/x-set-id', setId);
+            e.dataTransfer.effectAllowed = 'move';
+          });
+          row.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            itemsWrap.querySelectorAll('.set-item-row.drag-over-preview').forEach(function (r) { r.classList.remove('drag-over-preview'); });
+            row.classList.add('drag-over-preview');
+          });
+          row.addEventListener('dragleave', function (e) {
+            if (!row.contains(e.relatedTarget)) row.classList.remove('drag-over-preview');
+          });
+          row.addEventListener('drop', function (e) {
+            e.preventDefault();
+            itemsWrap.querySelectorAll('.set-item-row.drag-over-preview').forEach(function (r) { r.classList.remove('drag-over-preview'); });
+            var sourceFilename = e.dataTransfer.getData('text/plain');
+            var sourceSetId = e.dataTransfer.getData('application/x-set-id');
+            if (!sourceFilename || sourceSetId !== setId) return;
+            var sourceRow = itemsWrap.querySelector('.set-item-row[data-filename="' + CSS.escape(sourceFilename) + '"]');
+            if (!sourceRow || sourceRow === row) return;
+            if (sourceRow.nextSibling === row) return;
+            itemsWrap.insertBefore(sourceRow, row);
+            var order = Array.from(itemsWrap.querySelectorAll('.set-item-row')).map(function (r) { return r.dataset.filename; }).filter(Boolean);
+            setPreviewOrderOverride[setId] = order;
+            refreshSetPreview(setId);
+          });
+          visBtn.addEventListener('click', function () {
+            const nextHidden = !hasSetPreviewHidden(item);
+            const tags = (item.tags || []).filter(t => t !== 'set-preview-hidden');
+            if (nextHidden) tags.push('set-preview-hidden');
+            updateItemSetPreviewTags(item.filename, tags).then(function () {
+              item.tags = tags;
+              refreshSetPreview(setId);
+              row.classList.toggle('hidden-in-preview', nextHidden);
+              visBtn.title = nextHidden ? 'Show in set preview' : 'Hide from set preview';
+              visBtn.setAttribute('aria-pressed', nextHidden ? 'true' : 'false');
+              visBtn.textContent = nextHidden ? '\uD83D\uDC41\u200D\uFE00' : '\uD83D\uDC41';
+            });
+          });
+          zInput.addEventListener('change', function () {
+            const z = parseInt(zInput.value, 10);
+            const num = isNaN(z) ? null : z;
+            let tags = (item.tags || []).filter(t => typeof t !== 'string' || !t.startsWith('set-preview-z:'));
+            if (num != null) tags.push('set-preview-z:' + num);
+            if (hasSetPreviewHidden(item)) tags.push('set-preview-hidden');
+            updateItemSetPreviewTags(item.filename, tags).then(function () {
+              item.tags = tags;
+              refreshSetPreview(setId);
+            });
+          });
+          row.addEventListener('click', function (e) {
+            if (e.target.closest('button') || e.target.closest('input')) return;
+            selectedItem = item;
+            selectedRow = null;
+            selectedSetIdForPreview = setId;
+            selectedFilenames.clear();
+            selectedFilenames.add(item.filename);
+            container.querySelectorAll('.set-item-row-selected').forEach(function (el) { el.classList.remove('set-item-row-selected'); });
+            row.classList.add('set-item-row-selected');
+            updateAlignPreview();
+            updateSelectionVisual();
+          });
+          itemsWrap.appendChild(row);
+        });
+        cardInfo.appendChild(itemsWrap);
+        cardBody.appendChild(cardInfo);
+        card.appendChild(cardBody);
+        container.appendChild(card);
+        previewWrap.dataset.setId = setId;
+        card._setPreviewData = { items: items, setId: setId };
+        if (typeof IntersectionObserver !== 'undefined') {
+          var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+              if (!entry.isIntersecting) return;
+              var el = entry.target;
+              var c = el.closest && el.closest('.set-card');
+              if (!c || !c._setPreviewData) return;
+              var data = c._setPreviewData;
+              delete c._setPreviewData;
+              io.unobserve(el);
+              var can = document.createElement('canvas');
+              can.width = 250;
+              can.height = 350;
+              compositeSetToCanvas(data.items, can, function () {
+                try {
+                  var img = c.querySelector('.set-card-preview');
+                  if (img) img.src = can.toDataURL('image/png');
+                } catch (e) {}
+              }, data.setId);
+            });
+          }, { root: container, rootMargin: '100px', threshold: 0.01 });
+          io.observe(previewWrap);
+        } else {
+          var canvas = document.createElement('canvas');
+          canvas.width = 250;
+          canvas.height = 350;
+          compositeSetToCanvas(items, canvas, function () {
+            try { previewImg.src = canvas.toDataURL('image/png'); } catch (e) {}
+          }, setId);
+        }
+      }
+      var setCards = container.querySelectorAll('.set-card');
+      for (var i = 10; i < setCards.length; i++) setCards[i].remove();
+      if (paginationBar) {
+        paginationBar.style.display = 'flex';
+        var pageInfo = document.getElementById('sets-page-info');
+        if (pageInfo) pageInfo.textContent = 'Page ' + setsViewCurrentPage + ' of ' + totalPages;
+        var prevBtn = document.getElementById('sets-prev-btn');
+        var nextBtn = document.getElementById('sets-next-btn');
+        if (prevBtn) prevBtn.disabled = setsViewCurrentPage <= 1;
+        if (nextBtn) nextBtn.disabled = setsViewCurrentPage >= totalPages;
+        var pageButtons = document.getElementById('sets-page-buttons');
+        if (pageButtons) {
+          pageButtons.innerHTML = '';
+          for (var p = 1; p <= totalPages; p++) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'sets-page-btn' + (p === setsViewCurrentPage ? ' active' : '');
+            btn.textContent = p;
+            btn.setAttribute('aria-label', 'Page ' + p);
+            (function (pageNum) {
+              btn.addEventListener('click', function () {
+                setsViewCurrentPage = pageNum;
+                renderSetsView();
+              });
+            })(p);
+            pageButtons.appendChild(btn);
+          }
+        }
+      }
+      container.querySelectorAll('.set-card').forEach(function (c) {
+        var id = c.dataset.setId;
+        var listEl = c.querySelector('.set-card-items');
+        if (id && listEl && itemsScrollBySetId[id] != null) listEl.scrollTop = itemsScrollBySetId[id];
+      });
+    }
+
+    function isReservedTag(t) {
+      if (typeof t !== 'string') return true;
+      return t.startsWith('set-id:') || t.startsWith('set-name:') || t.startsWith('set:') || t.startsWith('set-brand:') || t.startsWith('set-source:') || t.startsWith('item-source:') || t.startsWith('swatch-parent:') || t.startsWith('swatch-color:') || t.startsWith('set-preview-z:') || t === 'set-preview-hidden';
+    }
+    function getSearchTags(item) {
+      if (!item || !Array.isArray(item.tags)) return [];
+      return item.tags.filter(function (t) { return !isReservedTag(t); });
+    }
+    function buildTagsWithSearchTags(itemTags, searchTagsArray) {
+      const reserved = (Array.isArray(itemTags) ? itemTags : []).filter(isReservedTag);
+      const added = (Array.isArray(searchTagsArray) ? searchTagsArray : []).map(function (t) { return String(t).trim(); }).filter(Boolean);
+      return reserved.concat(added);
+    }
+
+    function renderItemTypeSection() {
+      const tbody = document.getElementById('item-type-tbody');
+      if (!tbody) return;
+      const list = lastLoadedList || [];
+      tbody.innerHTML = '';
+      list.forEach(function (item) {
+        if (!item || !item.filename) return;
+        const tr = document.createElement('tr');
+        const tdId = document.createElement('td');
+        tdId.style.padding = '6px 8px';
+        tdId.style.borderBottom = '1px solid #eee';
+        tdId.textContent = item.id || item.filename;
+        tdId.title = item.filename;
+        const tdType = document.createElement('td');
+        tdType.style.padding = '6px 8px';
+        tdType.style.borderBottom = '1px solid #eee';
+        const sel = document.createElement('select');
+        sel.className = 'item-source-select';
+        sel.style.padding = '4px 6px';
+        sel.style.fontSize = '12px';
+        sel.style.minWidth = '100px';
+        [{ value: '', label: '— None —' }, { value: 'gacha-prize', label: 'Gacha prize' }, { value: 'gacha-set', label: 'Gacha set' }, { value: 'store', label: 'Store' }].forEach(function (o) {
+          const opt = document.createElement('option');
+          opt.value = o.value;
+          opt.textContent = o.label;
+          sel.appendChild(opt);
+        });
+        sel.value = getItemSourceTag(item) || '';
+        sel.addEventListener('change', function () {
+          const v = sel.value ? sel.value.trim() : '';
+          item.tags = buildTagsWithItemSource(item.tags || [], v);
+          const idx = lastLoadedList.findIndex(function (i) { return i.filename === item.filename; });
+          if (idx >= 0) lastLoadedList[idx] = item;
+          itemsByFilename[item.filename] = item;
+          fetch('/api/items/update/' + encodeURIComponent(item.filename), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: item.id,
+              name: item.name,
+              slotId: item.slotId,
+              tags: item.tags,
+              heart: item.heart,
+              designer: item.designer,
+              isSet: item.isSet,
+              defaultX: item.defaultX,
+              defaultY: item.defaultY,
+              defaultZ: item.defaultZ,
+              bundleParts: item.bundleParts
+            })
+          }).then(function (r) {
+            if (!r.ok) throw new Error('Update failed');
+            return r.json();
+          }).then(function (updated) {
+            const idx = lastLoadedList.findIndex(function (i) { return i.filename === item.filename; });
+            if (idx >= 0) lastLoadedList[idx] = updated;
+            itemsByFilename[item.filename] = updated;
+            showMsg('Type saved: ' + (item.id || item.filename));
+          }).catch(function (e) {
+            showMsg('Error saving type: ' + (e.message || 'failed'), true);
+          });
+        });
+        tdType.appendChild(sel);
+        tr.appendChild(tdId);
+        tr.appendChild(tdType);
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderSearchTagsSection() {
+      const tbody = document.getElementById('search-tags-tbody');
+      if (!tbody) return;
+      const list = lastLoadedList || [];
+      tbody.innerHTML = '';
+      list.forEach(function (item) {
+        if (!item || !item.filename) return;
+        const tr = document.createElement('tr');
+        const tdId = document.createElement('td');
+        tdId.style.padding = '6px 8px';
+        tdId.style.borderBottom = '1px solid #eee';
+        tdId.textContent = item.id || item.filename;
+        tdId.title = item.filename;
+        const tdTags = document.createElement('td');
+        tdTags.style.padding = '6px 8px';
+        tdTags.style.borderBottom = '1px solid #eee';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'e.g. casual, summer';
+        input.style.width = '100%';
+        input.style.maxWidth = '240px';
+        input.style.padding = '4px 8px';
+        input.style.fontSize = '12px';
+        input.style.border = '1px solid #ccc';
+        input.style.borderRadius = '4px';
+        input.style.boxSizing = 'border-box';
+        input.value = getSearchTags(item).join(', ');
+        input.addEventListener('change', function () {
+          const raw = input.value || '';
+          const searchTags = raw.split(/[\s,]+/).map(function (t) { return t.trim(); }).filter(Boolean);
+          item.tags = buildTagsWithSearchTags(item.tags || [], searchTags);
+          const idx = lastLoadedList.findIndex(function (i) { return i.filename === item.filename; });
+          if (idx >= 0) lastLoadedList[idx] = item;
+          itemsByFilename[item.filename] = item;
+          fetch('/api/items/update/' + encodeURIComponent(item.filename), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: item.id,
+              name: item.name,
+              slotId: item.slotId,
+              tags: item.tags,
+              heart: item.heart,
+              designer: item.designer,
+              isSet: item.isSet,
+              defaultX: item.defaultX,
+              defaultY: item.defaultY,
+              defaultZ: item.defaultZ,
+              bundleParts: item.bundleParts
+            })
+          }).then(function (r) {
+            if (!r.ok) throw new Error('Update failed');
+            return r.json();
+          }).then(function (updated) {
+            const idx = lastLoadedList.findIndex(function (i) { return i.filename === item.filename; });
+            if (idx >= 0) lastLoadedList[idx] = updated;
+            itemsByFilename[item.filename] = updated;
+            showMsg('Search tags saved: ' + (item.id || item.filename));
+          }).catch(function (e) {
+            showMsg('Error saving search tags: ' + (e.message || 'failed'), true);
+          });
+        });
+        tdTags.appendChild(input);
+        tr.appendChild(tdId);
+        tr.appendChild(tdTags);
+        tbody.appendChild(tr);
+      });
+    }
+
+    function switchToItemsView() {
+      selectedSetIdForPreview = null;
+      const wrap = document.querySelector('.table-wrap');
+      if (wrap) { wrap.classList.remove('sets-view-active'); wrap.classList.add('items-view-active'); }
+      const itemsBtn = document.getElementById('view-items-btn');
+      const setsBtn = document.getElementById('view-sets-btn');
+      if (itemsBtn) { itemsBtn.classList.add('active'); itemsBtn.setAttribute('aria-pressed', 'true'); }
+      if (setsBtn) { setsBtn.classList.remove('active'); setsBtn.setAttribute('aria-pressed', 'false'); }
+    }
+
+    function switchToSetsView() {
+      const wrap = document.querySelector('.table-wrap');
+      if (wrap) { wrap.classList.remove('items-view-active'); wrap.classList.add('sets-view-active'); }
+      const itemsBtn = document.getElementById('view-items-btn');
+      const setsBtn = document.getElementById('view-sets-btn');
+      if (itemsBtn) { itemsBtn.classList.remove('active'); itemsBtn.setAttribute('aria-pressed', 'false'); }
+      if (setsBtn) { setsBtn.classList.add('active'); setsBtn.setAttribute('aria-pressed', 'true'); }
+      renderSetsView();
+      renderItemTypeSection();
+      renderSearchTagsSection();
+    }
+
+    async function loadItems() {
+      selectedItem = null;
+      selectedRow = null;
+      clearUnsavedState();
+      const tbody = document.getElementById('items-tbody');
+      const emptyEl = document.getElementById('empty');
+      if (!tbody || !emptyEl) {
+        if (typeof showMsg === 'function') showMsg('Item debug: page elements not ready. Refresh the page.', true);
+        return;
+      }
+      emptyEl.style.display = 'block';
+      emptyEl.textContent = 'Loading items…';
+      try {
+        updateAlignPreview();
+      } catch (alignErr) {
+        console.warn('Item debug: updateAlignPreview:', alignErr);
+      }
+      try {
+        var items = null;
+        if (typeof window !== 'undefined' && window.__ITEM_DEBUG_INITIAL_ITEMS__ && Array.isArray(window.__ITEM_DEBUG_INITIAL_ITEMS__)) {
+          items = window.__ITEM_DEBUG_INITIAL_ITEMS__;
+          delete window.__ITEM_DEBUG_INITIAL_ITEMS__;
+        } else {
+          const res = await fetch('/api/items?t=' + Date.now(), { cache: 'no-store', credentials: 'same-origin' });
+          if (!res.ok) {
+            let errText = 'Failed to load items (' + res.status + ')';
+            try { const body = await res.text(); if (body) errText += ': ' + body.slice(0, 120); } catch (_) {}
+            throw new Error(errText);
+          }
+          items = await res.json();
+          if (items && typeof items === 'object' && !Array.isArray(items) && items.error) {
+            throw new Error(items.error || 'Server returned an error');
+          }
+        }
+        let list = Array.isArray(items) ? items : (items && items[0] && Array.isArray(items[0]) ? items.flat() : []);
+        list.forEach(function (it) {
+          if (!it) return;
+          if (it.defaultX == null || it.defaultX === '' || isNaN(Number(it.defaultX))) it.defaultX = 0;
+          else it.defaultX = Number(it.defaultX);
+          if (it.defaultY == null || it.defaultY === '' || isNaN(Number(it.defaultY))) it.defaultY = 0;
+          else it.defaultY = Number(it.defaultY);
+          if (it.defaultZ == null || it.defaultZ === '' || isNaN(parseInt(it.defaultZ, 10))) it.defaultZ = 0;
+          else it.defaultZ = parseInt(it.defaultZ, 10);
+        });
+        lastLoadedList = list.slice();
+        designersList = [...new Set(list.map(i => (i.designer || '').trim()).filter(Boolean))].sort();
+        refreshDesignerDropdowns();
+        list = applyDesignerFilter(list);
+        const order = (document.getElementById('sort-order') && document.getElementById('sort-order').value) || 'newest';
+        list = sortItemList(list, order);
+        var saveBtn = document.getElementById('save-btn');
+        if (saveBtn) saveBtn.disabled = true;
+        emptyEl.style.display = list.length === 0 ? 'block' : 'none';
+        if (list.length === 0) {
+          emptyEl.textContent = 'No items yet. Upload items using the Upload item button.';
+          tbody.innerHTML = '';
+        } else {
+          itemsViewCurrentPage = 1;
+          existingSetsList = getExistingSetsFromList(list);
+          itemsByFilename = {};
+          list.forEach(function (item) { itemsByFilename[item.filename] = item; });
+          const groupBySet = document.getElementById('group-by-set') && document.getElementById('group-by-set').checked;
+          try {
+            populateTableBody(list, groupBySet);
+          } catch (populateErr) {
+            console.error('Item debug populateTableBody:', populateErr);
+            emptyEl.style.display = 'block';
+            emptyEl.textContent = 'Error rendering list: ' + (populateErr.message || 'unknown');
+          }
+          if (tbody.children.length === 0 && lastLoadedList.length > 0) {
+            emptyEl.style.display = 'block';
+            emptyEl.textContent = 'No items to display. Try "All designers" in the filter or turn off "Group by set".';
+          }
+          if (groupBySet && lastExpandedSetIds && lastExpandedSetIds.length) {
+            expandSetIds(lastExpandedSetIds);
+            lastExpandedSetIds = [];
+          } else if (groupBySet) collapseAllSets();
+          if (saveBtn) saveBtn.disabled = false;
+        }
+        if (list.length === 0) existingSetsList = getExistingSetsFromList(lastLoadedList);
+        updateSelectionVisual();
+        if (typeof applyColumnView === 'function') applyColumnView();
+        if (typeof updateSetToggleButtonsState === 'function') updateSetToggleButtonsState();
+        if (document.querySelector('.table-wrap.sets-view-active')) {
+          renderSetsView();
+          renderItemTypeSection();
+          renderSearchTagsSection();
+        }
+        var bootBox = document.getElementById('item-debug-boot-box');
+        if (bootBox) bootBox.style.display = 'none';
+      } catch (e) {
+        lastLoadedList = [];
+        console.error('Item debug loadItems error:', e);
+        var msg = 'Could not load items: ' + (e.message || 'error');
+        if (typeof showMsg === 'function') showMsg(msg, true);
+        if (emptyEl) { emptyEl.style.display = 'block'; emptyEl.textContent = msg; }
+        // Do not clear tbody on error so server-rendered rows stay visible
+        var bootBox = document.getElementById('item-debug-boot-box');
+        if (bootBox) bootBox.style.display = 'none';
+      }
+    }
+
+    (function runLoadItemsFirst() {
+      try { loadItems(); } catch (e) { console.error('Item debug init loadItems:', e); }
+    })();
+
+    function safeOn(id, ev, fn) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener(ev, fn);
+    }
+
+    safeOn('refresh-btn', 'click', function () {
+      lastExpandedSetIds = [];
+      loadItems();
+    });
+
+    var repopulateItemsViewTimeout;
+    function repopulateItemsViewImmediate() {
+      if (!lastLoadedList || !lastLoadedList.length) return;
+      let list = applyDesignerFilter(lastLoadedList);
+      const order = (document.getElementById('sort-order') && document.getElementById('sort-order').value) || 'newest';
+      list = sortItemList(list, order);
+      const groupBySet = document.getElementById('group-by-set') && document.getElementById('group-by-set').checked;
+      itemsByFilename = {};
+      list.forEach(function (item) { itemsByFilename[item.filename] = item; });
+      populateTableBody(list, groupBySet);
+      if (groupBySet && lastExpandedSetIds && lastExpandedSetIds.length) {
+        expandSetIds(lastExpandedSetIds);
+      } else if (groupBySet) collapseAllSets();
+      updateSelectionVisual();
+      if (typeof applyColumnView === 'function') applyColumnView();
+    }
+    function repopulateItemsView() {
+      clearTimeout(repopulateItemsViewTimeout);
+      repopulateItemsViewTimeout = setTimeout(repopulateItemsViewImmediate, 120);
+    }
+
+    function updateSetToggleButtonsState() {
+      const groupBySet = document.getElementById('group-by-set') && document.getElementById('group-by-set').checked;
+      const collapseAllSetsBtn = document.getElementById('collapse-all-sets-btn');
+      const expandAllSetsBtn = document.getElementById('expand-all-sets-btn');
+      if (collapseAllSetsBtn) collapseAllSetsBtn.disabled = !groupBySet;
+      if (expandAllSetsBtn) expandAllSetsBtn.disabled = !groupBySet;
+    }
+    const groupBySetCheck = document.getElementById('group-by-set');
+    if (groupBySetCheck) {
+      groupBySetCheck.addEventListener('change', function () {
+        itemsViewCurrentPage = 1;
+        updateSetToggleButtonsState();
+        repopulateItemsView();
+      });
+    }
+    const filterDesignerSelect = document.getElementById('filter-designer');
+    if (filterDesignerSelect) {
+      filterDesignerSelect.addEventListener('change', function () {
+        itemsViewCurrentPage = 1;
+        repopulateItemsView();
+      });
+    }
+    (function () {
+      var prevBtn = document.getElementById('items-prev-btn');
+      var nextBtn = document.getElementById('items-next-btn');
+      if (prevBtn) prevBtn.addEventListener('click', function () {
+        if (itemsViewCurrentPage <= 1) return;
+        itemsViewCurrentPage--;
+        repopulateItemsViewImmediate();
+      });
+      if (nextBtn) nextBtn.addEventListener('click', function () {
+        itemsViewCurrentPage++;
+        repopulateItemsViewImmediate();
+      });
+    })();
+    const collapseAllSetsBtn = document.getElementById('collapse-all-sets-btn');
+    if (collapseAllSetsBtn) collapseAllSetsBtn.addEventListener('click', collapseAllSets);
+    const expandAllSetsBtn = document.getElementById('expand-all-sets-btn');
+    if (expandAllSetsBtn) expandAllSetsBtn.addEventListener('click', expandAllSets);
+
+    var syncSwatchCoordsBtn = document.getElementById('sync-swatch-coords-btn');
+    if (syncSwatchCoordsBtn) {
+      syncSwatchCoordsBtn.addEventListener('click', function () {
+        syncSwatchCoordsBtn.disabled = true;
+        fetch('/api/items/sync-swatch-coordinates', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } })
+          .then(function (r) {
+            if (!r.ok) throw new Error('Sync failed');
+            return r.json();
+          })
+          .then(function (data) {
+            showMsg('Swatch coordinates synced: ' + (data.updated || 0) + ' items updated.');
+            loadItems();
+          })
+          .catch(function (err) {
+            showMsg('Error: ' + (err.message || 'sync failed'), true);
+          })
+          .finally(function () {
+            syncSwatchCoordsBtn.disabled = false;
+          });
+      });
+    }
+
+    (function setupSeparateSwatchDrop() {
+      const dropEl = document.getElementById('separate-swatch-drop');
+      if (!dropEl) return;
+      dropEl.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        dropEl.classList.add('drag-over');
+      });
+      dropEl.addEventListener('dragleave', function (e) {
+        if (!dropEl.contains(e.relatedTarget)) dropEl.classList.remove('drag-over');
+      });
+      dropEl.addEventListener('drop', function (e) {
+        e.preventDefault();
+        dropEl.classList.remove('drag-over');
+        var filename = e.dataTransfer.getData('text/plain');
+        if (!filename) return;
+        var item = itemsByFilename[filename];
+        if (!item) return;
+        if (!getSwatchParentFilename(item)) {
+          showMsg('Item is not a swatch. Drag a swatch thumbnail (small image next to a parent item) here.', true);
+          return;
+        }
+        var newTags = (Array.isArray(item.tags) ? item.tags : []).filter(function (t) {
+          return typeof t !== 'string' || (!t.startsWith('swatch-parent:') && !t.startsWith('swatch-color:'));
+        });
+        var payload = {
+          id: item.id,
+          name: item.name,
+          slotId: item.slotId,
+          tags: newTags,
+          heart: item.heart,
+          designer: item.designer,
+          isSet: item.isSet,
+          defaultX: item.defaultX,
+          defaultY: item.defaultY,
+          defaultZ: item.defaultZ,
+          bundleParts: item.bundleParts,
+          goldenTicketPrice: (item.goldenTicketPrice != null && item.goldenTicketPrice !== '' && !isNaN(Number(item.goldenTicketPrice))) ? Math.max(0, Math.floor(Number(item.goldenTicketPrice))) : 0
+        };
+        fetch('/api/items/update/' + encodeURIComponent(item.filename), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).then(function (r) {
+          if (!r.ok) throw new Error('Update failed');
+          return r.json();
+        }).then(function (updated) {
+          var idx = lastLoadedList.findIndex(function (i) { return i && i.filename === item.filename; });
+          if (idx >= 0) lastLoadedList[idx] = updated;
+          itemsByFilename[item.filename] = updated;
+          showMsg('"' + (item.name || item.filename) + '" is now its own item.');
+          loadItems();
+        }).catch(function (err) {
+          showMsg('Error: ' + (err.message || 'failed'), true);
+        });
+      });
+    })();
+
+    safeOn('upload-item-btn', 'click', function () {
+      var input = document.getElementById('upload-item-input');
+      if (input) input.click();
+    });
+
+    var uploadInputEl = document.getElementById('upload-item-input');
+    if (uploadInputEl) uploadInputEl.addEventListener('change', async function () {
+      const input = this;
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('item', file);
+      formData.append('slotId', 'other-slot');
+      formData.append('designer', '');
+      input.value = '';
+      const saveBtn = document.getElementById('save-btn');
+      const uploadBtn = document.getElementById('upload-item-btn');
+      const emptyEl = document.getElementById('empty');
+      const tbody = document.getElementById('items-tbody');
+      try {
+        uploadBtn.disabled = true;
+        const res = await fetch('/api/items/upload', {
+          method: 'POST',
+          body: formData
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || 'Upload failed');
+        }
+        const newItem = await res.json();
+        lastLoadedList = lastLoadedList || [];
+        lastLoadedList.push(newItem);
+        const order = (document.getElementById('sort-order') && document.getElementById('sort-order').value) || 'newest';
+        const list = sortItemList(lastLoadedList, order);
+        designersList = [...new Set(list.map(i => (i.designer || '').trim()).filter(Boolean))].sort();
+        existingSetsList = getExistingSetsFromList(list);
+        refreshDesignerDropdowns();
+        repopulateItemsView();
+        emptyEl.style.display = 'none';
+        saveBtn.disabled = false;
+        showMsg('Item uploaded. Adjust category and details in the table, then Save all.');
+      } catch (e) {
+        showMsg('Upload failed: ' + (e.message || 'error'), true);
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    });
+
+    let pendingFolderFiles = [];
+    const folderOverlay = document.getElementById('upload-folder-overlay');
+    const folderDesignerEl = document.getElementById('folder-designer');
+    const folderSetNameEl = document.getElementById('folder-set-name');
+    const folderBrandEl = document.getElementById('folder-brand');
+    const folderChooseBtn = document.getElementById('folder-choose-btn');
+    const folderUploadBtn = document.getElementById('folder-upload-btn');
+    const folderCancelBtn = document.getElementById('folder-cancel-btn');
+    const folderStatusEl = document.getElementById('folder-status');
+    const folderInput = document.getElementById('upload-folder-input');
+
+    safeOn('upload-folder-btn', 'click', function () {
+      pendingFolderFiles = [];
+      folderDesignerEl.value = '';
+      folderSetNameEl.value = '';
+      folderBrandEl.value = '';
+      folderStatusEl.textContent = '';
+      folderUploadBtn.style.display = 'none';
+      folderUploadBtn.textContent = 'Upload 0 items';
+      folderOverlay.classList.add('visible');
+      folderOverlay.setAttribute('aria-hidden', 'false');
+    });
+
+    folderCancelBtn.addEventListener('click', () => {
+      folderOverlay.classList.remove('visible');
+      folderOverlay.setAttribute('aria-hidden', 'true');
+      pendingFolderFiles = [];
+    });
+    folderOverlay.addEventListener('click', (e) => {
+      if (e.target === folderOverlay) {
+        folderOverlay.classList.remove('visible');
+        folderOverlay.setAttribute('aria-hidden', 'true');
+        pendingFolderFiles = [];
+      }
+    });
+
+    folderChooseBtn.addEventListener('click', () => { folderInput.click(); });
+
+    folderInput.addEventListener('change', function () {
+      const files = this.files && Array.from(this.files) || [];
+      const imageTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/jpg'];
+      pendingFolderFiles = files.filter(f => imageTypes.includes(f.type) || /\.(png|jpe?g|gif|webp)$/i.test(f.name || ''));
+      this.value = '';
+      var folderName = '';
+      if (pendingFolderFiles.length > 0 && pendingFolderFiles[0].webkitRelativePath) {
+        folderName = pendingFolderFiles[0].webkitRelativePath.split('/')[0] || '';
+        folderSetNameEl.value = folderName;
+      }
+      folderStatusEl.textContent = pendingFolderFiles.length === 0
+        ? 'No image files found in the folder. Use PNG, JPEG, GIF, or WebP.'
+        : pendingFolderFiles.length + ' image(s) selected. Set name is the folder name; you can edit it. Set designer/brand if needed, then click Upload.';
+      folderUploadBtn.style.display = 'block';
+      folderUploadBtn.textContent = 'Upload ' + pendingFolderFiles.length + ' items';
+    });
+
+    folderUploadBtn.addEventListener('click', async () => {
+      if (pendingFolderFiles.length === 0) return;
+      const designer = (folderDesignerEl.value || '').trim();
+      const setName = (folderSetNameEl.value || '').trim();
+      const brand = (folderBrandEl.value || '').trim();
+      const tagParts = [];
+      if (setName) {
+        const slug = setName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || setName;
+        tagParts.push('set-id:' + slug, 'set-name:' + setName, 'set:' + setName);
+        if (brand) tagParts.push('set-brand:' + brand);
+      } else if (brand) {
+        tagParts.push('set-brand:' + brand);
+      }
+      const tagsStr = tagParts.join(',');
+      folderUploadBtn.disabled = true;
+      folderChooseBtn.disabled = true;
+      let done = 0;
+      let failed = 0;
+      for (let i = 0; i < pendingFolderFiles.length; i++) {
+        folderStatusEl.textContent = 'Uploading ' + (i + 1) + ' / ' + pendingFolderFiles.length + '...';
+        const formData = new FormData();
+        formData.append('item', pendingFolderFiles[i]);
+        formData.append('slotId', 'other-slot');
+        formData.append('designer', designer);
+        if (tagsStr) formData.append('tags', tagsStr);
+        try {
+          const res = await fetch('/api/items/upload', { method: 'POST', body: formData });
+          if (res.ok) done++;
+          else failed++;
+        } catch (e) { failed++; }
+      }
+      folderStatusEl.textContent = 'Done. Uploaded ' + done + (failed ? ', failed ' + failed : '') + '.';
+      folderUploadBtn.disabled = false;
+      folderChooseBtn.disabled = false;
+      if (setName) {
+        const slug = setName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || setName;
+        const stored = getStoredSetDefinitions();
+        if (!stored.some(s => s.id === slug)) {
+          stored.push({ id: slug, name: setName, brand: brand || '', tag: 'none' });
+          saveStoredSetDefinitions(stored);
+        }
+      }
+      showMsg('Folder upload complete: ' + done + ' item(s).');
+      loadItems();
+      pendingFolderFiles = [];
+      folderUploadBtn.style.display = 'none';
+      setTimeout(() => {
+        folderOverlay.classList.remove('visible');
+        folderOverlay.setAttribute('aria-hidden', 'true');
+      }, 1500);
+    });
+
+    safeOn('add-designer-btn', 'click', function () {
+      const raw = window.prompt('Designer name:');
+      if (raw == null) return;
+      const name = (raw || '').trim();
+      if (!name) {
+        showMsg('Designer name cannot be empty.', true);
+        return;
+      }
+      if (designersList.includes(name)) {
+        showMsg('Designer "' + name + '" is already in the list.', true);
+        return;
+      }
+      designersList.push(name);
+      designersList.sort();
+      refreshDesignerDropdowns();
+      showMsg('Designer "' + name + '" added to the list.');
+    });
+
+    safeOn('view-items-btn', 'click', switchToItemsView);
+    safeOn('view-sets-btn', 'click', switchToSetsView);
+
+    var setsSortOrderEl = document.getElementById('sets-sort-order');
+    if (setsSortOrderEl) setsSortOrderEl.addEventListener('change', function () {
+      setsViewCurrentPage = 1;
+      renderSetsView();
+    });
+    var setsPrevBtn = document.getElementById('sets-prev-btn');
+    if (setsPrevBtn) setsPrevBtn.addEventListener('click', function () {
+      if (setsViewCurrentPage > 1) {
+        setsViewCurrentPage--;
+        renderSetsView();
+      }
+    });
+    var setsNextBtn = document.getElementById('sets-next-btn');
+    if (setsNextBtn) setsNextBtn.addEventListener('click', function () {
+      var totalPages = Math.max(1, Math.ceil((setsViewSetIds || []).length / SETS_PAGE_SIZE));
+      if (setsViewCurrentPage < totalPages) {
+        setsViewCurrentPage++;
+        renderSetsView();
+      }
+    });
+
+    const createSetOverlay = document.getElementById('create-set-overlay');
+    const createSetNameEl = document.getElementById('create-set-name');
+    const createSetBrandEl = document.getElementById('create-set-brand');
+    const createSetTagRadios = document.querySelectorAll('input[name="create-set-tag"]');
+    safeOn('create-set-btn', 'click', function () {
+      createSetNameEl.value = '';
+      createSetBrandEl.value = '';
+      createSetTagRadios.forEach(r => { r.checked = r.value === 'none'; });
+      createSetOverlay.classList.add('visible');
+      createSetOverlay.setAttribute('aria-hidden', 'false');
+      createSetNameEl.focus();
+    });
+    safeOn('create-set-cancel', 'click', function () {
+      createSetOverlay.classList.remove('visible');
+      createSetOverlay.setAttribute('aria-hidden', 'true');
+    });
+    createSetOverlay.addEventListener('click', (e) => {
+      if (e.target === createSetOverlay) {
+        createSetOverlay.classList.remove('visible');
+        createSetOverlay.setAttribute('aria-hidden', 'true');
+      }
+    });
+
+    safeOn('create-set-submit', 'click', function () {
+      const name = (createSetNameEl.value || '').trim();
+      if (!name) {
+        showMsg('Set name is required.', true);
+        return;
+      }
+      const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || name;
+      const tagRadio = document.querySelector('input[name="create-set-tag"]:checked');
+      const tag = tagRadio ? tagRadio.value : 'none';
+      const brand = (createSetBrandEl.value || '').trim();
+      const stored = getStoredSetDefinitions();
+      if (stored.some(s => s.id === slug)) {
+        showMsg('A set with this name already exists.', true);
+        return;
+      }
+      stored.push({ id: slug, name: name, brand: brand, tag: tag });
+      saveStoredSetDefinitions(stored);
+      existingSetsList = getExistingSetsFromList(lastLoadedList);
+      createSetOverlay.classList.remove('visible');
+      createSetOverlay.setAttribute('aria-hidden', 'true');
+      showMsg('Set "' + name + '" created. Assign it to items from the Set dropdown and save.');
+      if (lastLoadedList.length) repopulateItemsView();
+    });
+
+    safeOn('sort-order', 'change', function () {
+      if (!lastLoadedList.length) return;
+      itemsViewCurrentPage = 1;
+      selectedItem = null;
+      selectedRow = null;
+      selectedFilenames.clear();
+      updateAlignPreview();
+      const order = document.getElementById('sort-order').value;
+      const list = sortItemList(lastLoadedList, order);
+      existingSetsList = getExistingSetsFromList(list);
+      repopulateItemsView();
+    });
+
+    const showCoordsCheck = document.getElementById('show-coords');
+    const showSwatchColorCheck = document.getElementById('show-swatch-color');
+    const itemsTable = document.getElementById('items-table');
+    if (showCoordsCheck && itemsTable) {
+      showCoordsCheck.addEventListener('change', function () {
+        itemsTable.classList.toggle('coords-hidden', !showCoordsCheck.checked);
+      });
+    }
+    if (showSwatchColorCheck && itemsTable) {
+      showSwatchColorCheck.addEventListener('change', function () {
+        itemsTable.classList.toggle('swatch-color-hidden', !showSwatchColorCheck.checked);
+      });
+    }
+
+    let activeColumnView = '';
+    function applyColumnView() {
+      if (!itemsTable) return;
+      const showAll = !activeColumnView || activeColumnView === 'all';
+      const coordsHidden = itemsTable.classList.contains('coords-hidden');
+      const els = itemsTable.querySelectorAll('th[data-column], td[data-column]');
+      els.forEach(function (el) {
+        const col = el.getAttribute('data-column');
+        if (showAll) {
+          el.style.display = '';
+        } else {
+          const visible = col === 'all' || col === 'preview' || col === 'id' || col === activeColumnView;
+          const isCoordCol = (col === 'x' || col === 'y' || col === 'z');
+          if (visible && isCoordCol && coordsHidden) {
+            el.style.display = 'none';
+          } else {
+            const showCell = visible ? (el.tagName === 'TD' || el.tagName === 'TH' ? 'table-cell' : '') : 'none';
+            el.style.display = showCell;
+          }
+        }
+      });
+      itemsTable.querySelectorAll('thead th.th-column-toggle').forEach(function (th) {
+        const col = th.getAttribute('data-column');
+        th.classList.toggle('active-column', showAll ? col === 'all' : col === activeColumnView);
+      });
+      if (showAll) itemsTable.removeAttribute('data-active-column');
+      else itemsTable.setAttribute('data-active-column', activeColumnView);
+    }
+    function setupColumnViewToggles() {
+      if (!itemsTable) return;
+      itemsTable.removeEventListener('click', itemsTable._columnViewDelegate);
+      itemsTable._columnViewDelegate = function (e) {
+        const th = e.target && e.target.closest && e.target.closest('thead th.th-column-toggle');
+        if (!th) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const col = th.getAttribute('data-column');
+        if (col === 'all') {
+          activeColumnView = '';
+        } else {
+          activeColumnView = (activeColumnView === col) ? '' : col;
+        }
+        applyColumnView();
+      };
+      itemsTable.addEventListener('click', itemsTable._columnViewDelegate);
+    }
+    setupColumnViewToggles();
+
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    (function initAlignZoom() {
+      const zoomSelect = document.getElementById('align-zoom-select');
+      const zoomWrap = document.getElementById('align-zoom-wrap');
+      const zoomInner = document.getElementById('align-zoom-inner');
+      const alignCharacter = document.getElementById('align-character');
+      function applyAlignZoom() {
+        const z = parseFloat(zoomSelect.value) || 1;
+        alignZoom = z;
+        if (zoomInner && alignCharacter) {
+          zoomInner.style.width = (250 * z) + 'px';
+          zoomInner.style.height = (350 * z) + 'px';
+          alignCharacter.style.transform = 'translateZ(0) scale(' + z + ')';
+        }
+      }
+      if (zoomSelect) zoomSelect.addEventListener('change', applyAlignZoom);
+      applyAlignZoom();
+    })();
+
+    safeOn('align-x', 'input', function () {
+      if (selectedItem) {
+        selectedItem.defaultX = parseFloat(document.getElementById('align-x').value) || 0;
+        const img = document.getElementById('align-slot') && document.getElementById('align-slot').querySelector('img');
+        if (img) img.style.transform = 'translate(-50%, -50%) translate(' + selectedItem.defaultX + 'px, ' + selectedItem.defaultY + 'px)';
+        if (selectedRow) {
+          const xInput = selectedRow.querySelector('.coord-x');
+          if (xInput) xInput.value = selectedItem.defaultX;
+        }
+        saveSingleItemDebounced(selectedItem);
+        if (selectedSetIdForPreview) refreshSetPreview(selectedSetIdForPreview);
+      }
+    });
+    safeOn('align-y', 'input', function () {
+      if (selectedItem) {
+        selectedItem.defaultY = parseFloat(document.getElementById('align-y').value) || 0;
+        const img = document.getElementById('align-slot') && document.getElementById('align-slot').querySelector('img');
+        if (img) img.style.transform = 'translate(-50%, -50%) translate(' + selectedItem.defaultX + 'px, ' + selectedItem.defaultY + 'px)';
+        if (selectedRow) {
+          const yInput = selectedRow.querySelector('.coord-y');
+          if (yInput) yInput.value = selectedItem.defaultY;
+        }
+        saveSingleItemDebounced(selectedItem);
+        if (selectedSetIdForPreview) refreshSetPreview(selectedSetIdForPreview);
+      }
+    });
+
+    function coordNumFromInput(input, fallback) {
+      if (!input || input.value === '' || input.value == null) return fallback;
+      var n = parseFloat(input.value);
+      return (n === n) ? n : fallback;
+    }
+    function coordIntFromInput(input, fallback) {
+      if (!input || input.value === '' || input.value == null) return fallback;
+      var n = parseInt(input.value, 10);
+      return (n === n) ? n : fallback;
+    }
+
+    safeOn('save-btn', 'click', async function () {
+      const tbody = document.getElementById('items-tbody');
+      const rows = tbody.querySelectorAll('tr[data-filename]');
+      if (rows.length === 0) {
+        showMsg('No items to save.', true);
+        return;
+      }
+      const saveBtn = document.getElementById('save-btn');
+      saveBtn.disabled = true;
+      let done = 0;
+      let failed = null;
+      for (const tr of rows) {
+        const filename = tr.dataset.filename;
+        if (!filename) continue;
+        const item = itemsByFilename[filename];
+        if (!item) continue;
+        const idEl = tr.querySelector('.id-display');
+        const setSelect = tr.querySelector('.set-select');
+        const slotSelect = tr.querySelector('.slot-select');
+        const designerSelect = tr.querySelector('.designer-select');
+        const swatchOfSelect = tr.querySelector('.swatch-of-select');
+        const swatchColorInput = tr.querySelector('.swatch-color-input');
+        const tagSourceSelect = tr.querySelector('.item-source-select');
+        const xInput = tr.querySelector('.coord-x');
+        const yInput = tr.querySelector('.coord-y');
+        const zInput = tr.querySelector('.coord-z');
+        const ticketInput = tr.querySelector('.golden-ticket-price');
+        const setValue = setSelect && setSelect.value ? (existingSetsList.find(s => s.id === setSelect.value) || {}).name || setSelect.value : '';
+        let newTags = buildTagsWithSet(item.tags, setValue);
+        newTags = newTags.filter(t => typeof t !== 'string' || (!t.startsWith('swatch-parent:') && !t.startsWith('swatch-color:')));
+        const swatchOf = swatchOfSelect && swatchOfSelect.value ? swatchOfSelect.value.trim() : '';
+        const swatchColor = swatchColorInput && swatchColorInput.value ? swatchColorInput.value.trim() : '';
+        if (swatchOf) newTags.push('swatch-parent:' + swatchOf);
+        if (swatchColor) newTags.push('swatch-color:' + (swatchColor.startsWith('#') ? swatchColor : '#' + swatchColor));
+        const setDef = setSelect && setSelect.value ? getSetDefinition(setSelect.value) : null;
+        if (setDef) {
+          newTags = newTags.filter(t => typeof t !== 'string' || (!t.startsWith('set-brand:') && !t.startsWith('set-source:')));
+          if (setDef.brand) newTags.push('set-brand:' + setDef.brand);
+          if (setDef.tag && setDef.tag !== 'none') newTags.push('set-source:' + setDef.tag);
+        }
+        newTags = buildTagsWithItemSource(newTags, tagSourceSelect && tagSourceSelect.value ? tagSourceSelect.value.trim() : '');
+        flushCoordsFromRowToItem(tr, item);
+        var saveX = coordNumFromInput(xInput, item.defaultX ?? 0);
+        var saveY = coordNumFromInput(yInput, item.defaultY ?? 0);
+        var saveZ = coordIntFromInput(zInput, item.defaultZ ?? 0);
+        var saveTicket = (ticketInput && ticketInput.value !== '' && !isNaN(parseInt(ticketInput.value, 10))) ? Math.max(0, parseInt(ticketInput.value, 10)) : 0;
+        item.defaultX = saveX;
+        item.defaultY = saveY;
+        item.defaultZ = saveZ;
+        item.goldenTicketPrice = saveTicket;
+        try {
+          var updateUrl = '/api/items/update/' + encodeURIComponent(filename);
+          try {
+            var coordRes = await fetch(updateUrl + '/coordinates', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ defaultX: saveX, defaultY: saveY, defaultZ: saveZ })
+            });
+          } catch (_) { /* ignore PATCH failure; PUT will persist coords */ }
+          const savedId = (idEl && idEl.textContent) ? idEl.textContent.trim() : (item.id || randomId());
+          const res = await fetch(updateUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: savedId,
+              name: savedId,
+              slotId: slotSelect ? slotSelect.value : item.slotId,
+              tags: newTags,
+              heart: item.heart || false,
+              designer: (designerSelect && designerSelect.value) ? designerSelect.value.trim() : '',
+              isSet: item.isSet || false,
+              defaultX: saveX,
+              defaultY: saveY,
+              defaultZ: saveZ,
+              bundleParts: item.bundleParts,
+              goldenTicketPrice: saveTicket
+            })
+          });
+          if (!res.ok) throw new Error('Update failed');
+          done++;
+        } catch (e) {
+          failed = failed || e;
+        }
+      }
+      saveBtn.disabled = false;
+      if (failed) {
+        showMsg('Error saving: ' + (failed.message || 'could not save'), true);
+        return;
+      }
+      clearUnsavedState();
+      showMsg('Saved all ' + done + ' item(s).');
+      var wasSetsView = document.querySelector('.table-wrap.sets-view-active');
+      var preservedSetIdForPreview = selectedSetIdForPreview;
+      lastExpandedSetIds = [];
+      tbody.querySelectorAll('.set-header-row').forEach(function (tr) {
+        if (!tr.classList.contains('collapsed') && tr.dataset.setId) lastExpandedSetIds.push(tr.dataset.setId);
+      });
+      await loadItems();
+      if (wasSetsView && preservedSetIdForPreview) {
+        selectedSetIdForPreview = preservedSetIdForPreview;
+        refreshSetPreview(preservedSetIdForPreview);
+      }
+    });
+
+    window.addEventListener('beforeunload', (e) => {
+      if (unsavedEdits) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest('a[href]');
+      if (!link || !unsavedEdits) return;
+      const href = link.getAttribute('href');
+      if (!href || href.startsWith('#') || link.target === '_blank') return;
+      const samePage = (href === '' || href === window.location.pathname);
+      if (samePage) return;
+      e.preventDefault();
+      if (confirm('You have unsaved changes. Leave without saving?')) {
+        window.location.href = href;
+      }
+    }, true);
+
+    safeOn('bulk-apply-btn', 'click', function () {
+      if (selectedFilenames.size === 0) {
+        showMsg('Select one or more items (Shift+click to add to selection).', true);
+        return;
+      }
+      const bulkCategory = document.getElementById('bulk-category');
+      const bulkDesigner = document.getElementById('bulk-designer');
+      const category = bulkCategory ? bulkCategory.value : '';
+      const designer = (bulkDesigner && bulkDesigner.value !== undefined && bulkDesigner.value !== '') ? String(bulkDesigner.value).trim() : null;
+      const tbody = document.getElementById('items-tbody');
+      tbody.querySelectorAll('tr[data-filename]').forEach(tr => {
+        if (!selectedFilenames.has(tr.dataset.filename)) return;
+        if (category) {
+          const sel = tr.querySelector('.slot-select');
+          if (sel) sel.value = category;
+        }
+        if (designer !== null) {
+          const sel = tr.querySelector('.designer-select');
+          if (sel) sel.value = designer;
+        }
+      });
+      markUnsaved();
+      showMsg('Applied to ' + selectedFilenames.size + ' item(s).');
+    });
+
+    var alignX = document.getElementById('align-x');
+    var alignY = document.getElementById('align-y');
+    if (alignX) alignX.addEventListener('input', markUnsaved);
+    if (alignY) alignY.addEventListener('input', markUnsaved);
+
+    document.addEventListener('mousemove', onAlignMouseMove);
+    document.addEventListener('mouseup', onAlignMouseUp);
+  </script>
+  <script>
+    (function itemDebugSafetyNet() {
+      setTimeout(function() {
+        var empty = document.getElementById('empty');
+        var tbody = document.getElementById('items-tbody');
+        if (!empty || !tbody) return;
+        if (tbody.children.length === 0 && (empty.textContent || '').indexOf('Loading') === 0) {
+          empty.style.display = 'block';
+          empty.textContent = 'Still loading… If this persists, open Console (F12) and check for errors.';
+          fetch('/api/items', { credentials: 'same-origin' }).then(function(r) {
+            if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
+            return r.json();
+          }).then(function(d) {
+            if (Array.isArray(d)) empty.textContent = 'API returned ' + d.length + ' items but list did not render. Refresh the page.';
+          }).catch(function(e) {
+            empty.textContent = 'Could not load: ' + (e.message || 'network error');
+          });
+        }
+      }, 4000);
+    })();
+  </script>
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+</body>
+</html>

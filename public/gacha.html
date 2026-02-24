@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gacha - Dress-Up Game</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    body { font-family: 'Comfortaa', 'Quicksand', Verdana, "Trebuchet MS", Tahoma, sans-serif; background: #f5f0e8; margin: 0; padding-top: 76px; min-height: 100vh; color: #1f2937; }
+    .gacha-back { display: inline-block; margin: 16px 0; color: #ec4899; text-decoration: none; font-size: 14px; }
+    .gacha-back:hover { text-decoration: underline; }
+
+    /* Revolving banner */
+    .gacha-banner-wrap { max-width: 1200px; margin: 0 auto 32px; padding: 0 16px; overflow: hidden; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .gacha-banner { height: 280px; background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 50%, #f9a8d4 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+    .gacha-banner-slide { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; opacity: 0; transition: opacity 0.6s ease; }
+    .gacha-banner-slide.active { opacity: 1; z-index: 1; }
+    .gacha-banner-slide h2 { margin: 0 0 12px 0; font-size: clamp(1.5rem, 4vw, 2.25rem); font-weight: 800; color: #111; text-transform: uppercase; letter-spacing: 0.02em; }
+    .gacha-banner-slide p { margin: 0 0 20px 0; font-size: 1rem; color: #4b5563; max-width: 400px; }
+    .gacha-banner-slide .btn-play { display: inline-block; background: #111; color: #fff; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; text-transform: uppercase; letter-spacing: 0.03em; border: none; cursor: pointer; }
+    .gacha-banner-slide .btn-play:hover { background: #333; color: #fff; }
+    .gacha-banner-dots { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 2; }
+    .gacha-banner-dots span { width: 8px; height: 8px; border-radius: 50%; background: rgba(0,0,0,0.3); cursor: pointer; transition: background 0.2s; }
+    .gacha-banner-dots span.active { background: #111; }
+    .gacha-banner-dots span:hover { background: rgba(0,0,0,0.5); }
+
+    /* Machines grid */
+    .gacha-section { max-width: 1200px; width: 100%; margin: 0 auto 48px; padding: 0 16px; box-sizing: border-box; }
+    .gacha-section h3 { margin: 0 0 24px 0; font-size: 1.5rem; font-weight: 700; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; color: #374151; }
+    .gacha-machines-grid-wrap { width: 100%; display: flex; justify-content: center; }
+    .gacha-machines-grid { display: grid; grid-template-columns: repeat(3, 260px); gap: 24px; }
+    .gacha-machine-card { background: #fff; border: 2px solid #e5e7eb; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; align-items: center; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: border-color 0.2s, box-shadow 0.2s; cursor: pointer; }
+    .gacha-machine-card:hover { border-color: #c4b5fd; box-shadow: 0 4px 16px rgba(124, 58, 237, 0.15); }
+    .gacha-machine-card.coming-soon { opacity: 0.7; cursor: default; }
+    .gacha-machine-card.coming-soon:hover { border-color: #e5e7eb; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .gacha-machine-card .card-icon { width: 100px; height: 100px; border-radius: 12px; background: linear-gradient(135deg, #e9d5ff 0%, #c4b5fd 100%); margin-bottom: 16px; display: flex; align-items: center; justify-content: center; font-size: 48px; }
+    .gacha-machine-card .card-title { font-size: 1.1rem; font-weight: 700; margin: 0 0 8px 0; color: #111; }
+    .gacha-machine-card .card-desc { font-size: 13px; color: #6b7280; margin: 0 0 12px 0; line-height: 1.4; flex: 1; }
+    .gacha-machine-card .card-cost { font-size: 14px; font-weight: 600; color: #b45309; margin-bottom: 12px; }
+    .gacha-machine-card .card-btn { padding: 10px 20px; background: #7c3aed; color: #fff; border: none; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.03em; }
+    .gacha-machine-card .card-btn:hover { background: #6d28d9; }
+    .gacha-machine-card.coming-soon .card-btn { background: #9ca3af; cursor: not-allowed; }
+
+    /* Play modal: machine is the box */
+    #gacha-play-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+    #gacha-play-modal.open { display: flex; }
+    .gacha-play-inner {
+      display: flex; flex-direction: column; align-items: center; gap: 16px; max-width: 360px; width: 100%;
+    }
+    .gacha-play-inner .gacha-machine-square {
+      width: 280px; height: 360px; border: none; border-radius: 18px; position: relative;
+      display: flex; flex-direction: column; overflow: hidden; background: #1f2937; box-shadow: 0 14px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    /* Top half: two glass screens sandwiching the balls */
+    .gacha-machine-top {
+      flex: 1; min-height: 100px; position: relative; overflow: hidden;
+      background: linear-gradient(180deg, rgba(248,250,252,0.5) 0%, rgba(241,245,249,0.4) 100%);
+      border-bottom: 2px solid rgba(255,255,255,0.5);
+    }
+    .gacha-machine-glass-back {
+      position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background: linear-gradient(180deg, rgba(224,242,254,0.4) 0%, rgba(191,219,254,0.35) 40%, rgba(254,242,234,0.3) 70%, rgba(221,214,254,0.25) 100%);
+      box-shadow: inset 0 0 40px rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.25);
+      backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    }
+    .gacha-machine-balls {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 92%; pointer-events: none; z-index: 1;
+    }
+    .gacha-machine-glass-front {
+      position: absolute; inset: 0; z-index: 2; pointer-events: none;
+      background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 30%, transparent 60%);
+      box-shadow: inset 0 2px 20px rgba(255,255,255,0.15), inset 0 -1px 0 rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.35);
+      backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+    }
+    .gacha-machine-ball {
+      position: absolute; border-radius: 50%;
+      width: 38px; height: 38px;
+      box-shadow: inset 0 2px 8px rgba(255,255,255,0.5), 0 2px 6px rgba(0,0,0,0.25);
+    }
+    /* Pile: bottom row */
+    .gacha-machine-ball:nth-child(1) { bottom: 6px; left: 50%; transform: translateX(-50%); z-index: 1; }
+    .gacha-machine-ball:nth-child(2) { bottom: 8px; left: 22%; transform: translateX(-50%); z-index: 2; }
+    .gacha-machine-ball:nth-child(3) { bottom: 8px; left: 78%; transform: translateX(-50%); z-index: 2; }
+    .gacha-machine-ball:nth-child(4) { bottom: 4px; left: 8%; transform: translateX(-50%); z-index: 0; }
+    .gacha-machine-ball:nth-child(5) { bottom: 4px; left: 92%; transform: translateX(-50%); z-index: 0; }
+    /* Second row */
+    .gacha-machine-ball:nth-child(6) { bottom: 38px; left: 38%; transform: translateX(-50%); z-index: 3; }
+    .gacha-machine-ball:nth-child(7) { bottom: 38px; left: 62%; transform: translateX(-50%); z-index: 3; }
+    .gacha-machine-ball:nth-child(8) { bottom: 36px; left: 16%; transform: translateX(-50%); z-index: 2; }
+    .gacha-machine-ball:nth-child(9) { bottom: 36px; left: 84%; transform: translateX(-50%); z-index: 2; }
+    /* Third row */
+    .gacha-machine-ball:nth-child(10) { bottom: 66px; left: 50%; transform: translateX(-50%); z-index: 5; }
+    .gacha-machine-ball:nth-child(11) { bottom: 64px; left: 28%; transform: translateX(-50%); z-index: 4; }
+    .gacha-machine-ball:nth-child(12) { bottom: 64px; left: 72%; transform: translateX(-50%); z-index: 4; }
+    /* Fourth row */
+    .gacha-machine-ball:nth-child(13) { bottom: 94px; left: 42%; transform: translateX(-50%); z-index: 6; }
+    .gacha-machine-ball:nth-child(14) { bottom: 92px; left: 58%; transform: translateX(-50%); z-index: 6; }
+    .gacha-machine-ball:nth-child(15) { bottom: 90px; left: 20%; transform: translateX(-50%); z-index: 5; }
+    .gacha-machine-ball:nth-child(16) { bottom: 90px; left: 80%; transform: translateX(-50%); z-index: 5; }
+    /* Top */
+    .gacha-machine-ball:nth-child(17) { bottom: 120px; left: 50%; transform: translateX(-50%); z-index: 7; }
+    .gacha-machine-ball:nth-child(18) { bottom: 118px; left: 34%; transform: translateX(-50%); z-index: 7; }
+    .gacha-machine-ball:nth-child(19) { bottom: 118px; left: 66%; transform: translateX(-50%); z-index: 7; }
+    .gacha-machine-ball:nth-child(20) { bottom: 148px; left: 48%; transform: translateX(-50%); z-index: 8; }
+    /* Two-tone: each ball = different colored half (left/right split) */
+    .gacha-machine-ball:nth-child(1) { background: linear-gradient(90deg, #0ea5e9 50%, #7dd3fc 50%); }
+    .gacha-machine-ball:nth-child(2) { background: linear-gradient(90deg, #ec4899 50%, #f9a8d4 50%); }
+    .gacha-machine-ball:nth-child(3) { background: linear-gradient(90deg, #f59e0b 50%, #fcd34d 50%); }
+    .gacha-machine-ball:nth-child(4) { background: linear-gradient(90deg, #8b5cf6 50%, #c4b5fd 50%); }
+    .gacha-machine-ball:nth-child(5) { background: linear-gradient(90deg, #10b981 50%, #6ee7b7 50%); }
+    .gacha-machine-ball:nth-child(6) { background: linear-gradient(90deg, #06b6d4 50%, #67e8f9 50%); }
+    .gacha-machine-ball:nth-child(7) { background: linear-gradient(90deg, #f43f5e 50%, #fb7185 50%); }
+    .gacha-machine-ball:nth-child(8) { background: linear-gradient(90deg, #eab308 50%, #fde047 50%); }
+    .gacha-machine-ball:nth-child(9) { background: linear-gradient(90deg, #a855f7 50%, #d8b4fe 50%); }
+    .gacha-machine-ball:nth-child(10) { background: linear-gradient(90deg, #0ea5e9 50%, #ec4899 50%); }
+    .gacha-machine-ball:nth-child(11) { background: linear-gradient(90deg, #f59e0b 50%, #8b5cf6 50%); }
+    .gacha-machine-ball:nth-child(12) { background: linear-gradient(90deg, #10b981 50%, #06b6d4 50%); }
+    .gacha-machine-ball:nth-child(13) { background: linear-gradient(90deg, #ec4899 50%, #f59e0b 50%); }
+    .gacha-machine-ball:nth-child(14) { background: linear-gradient(90deg, #8b5cf6 50%, #10b981 50%); }
+    .gacha-machine-ball:nth-child(15) { background: linear-gradient(90deg, #06b6d4 50%, #a855f7 50%); }
+    .gacha-machine-ball:nth-child(16) { background: linear-gradient(90deg, #f43f5e 50%, #eab308 50%); }
+    .gacha-machine-ball:nth-child(17) { background: linear-gradient(90deg, #0ea5e9 50%, #f59e0b 50%); }
+    .gacha-machine-ball:nth-child(18) { background: linear-gradient(90deg, #ec4899 50%, #8b5cf6 50%); }
+    .gacha-machine-ball:nth-child(19) { background: linear-gradient(90deg, #10b981 50%, #ec4899 50%); }
+    .gacha-machine-ball:nth-child(20) { background: linear-gradient(90deg, #a855f7 50%, #06b6d4 50%); }
+    /* Bottom half: screw mechanism = play button; hole to the left */
+    .gacha-machine-bottom {
+      flex: 0 0 120px; background: linear-gradient(180deg, #e3eee9 0%, #93a5cf 100%);
+      border-top: 1px solid rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; position: relative;
+    }
+    .gacha-machine-bottom .hole-coin {
+      position: absolute; left: 28px; top: 50%; transform: translateY(-50%);
+      width: 44px; height: 44px; border-radius: 50%; z-index: 2;
+      background: linear-gradient(180deg, #e3eee9 0%, #93a5cf 100%); border: 2px solid rgba(0,0,0,0.12);
+      box-shadow: inset 0 2px 6px rgba(255,255,255,0.4), 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .gacha-machine-screw {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: linear-gradient(180deg, #e3eee9 0%, #93a5cf 100%); border: 3px solid rgba(0,0,0,0.15);
+      box-shadow: inset 0 2px 8px rgba(255,255,255,0.5), 0 2px 8px rgba(0,0,0,0.25);
+      display: flex; align-items: center; justify-content: center; position: relative;
+      cursor: pointer; padding: 0; appearance: none; -webkit-appearance: none;
+      transition: transform 0.1s ease, box-shadow 0.15s ease;
+    }
+    .gacha-machine-screw:hover { transform: scale(1.06); box-shadow: inset 0 2px 8px rgba(255,255,255,0.5), 0 4px 14px rgba(0,0,0,0.3); }
+    .gacha-machine-screw:active { transform: scale(0.96); box-shadow: inset 0 3px 10px rgba(0,0,0,0.25), 0 1px 4px rgba(0,0,0,0.3); }
+    .gacha-machine-screw:disabled { cursor: not-allowed; opacity: 0.7; transform: none; }
+    .gacha-machine-screw:focus { outline: 2px solid rgba(147,165,207,0.8); outline-offset: 2px; }
+    .gacha-machine-screw.gacha-screw-spin { animation: gacha-screw-turn 0.5s ease-out forwards; }
+    .gacha-machine-screw.gacha-screw-spin:hover { transform: none; }
+    @keyframes gacha-screw-turn {
+      0% { transform: rotate(0deg) scale(1); }
+      35% { transform: rotate(180deg) scale(0.96); }
+      70% { transform: rotate(320deg) scale(0.98); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+    .gacha-machine-screw-slot {
+      width: 34px; height: 16px; border-radius: 10px;
+      background: linear-gradient(180deg, #b8c5d9 0%, #93a5cf 100%);
+      box-shadow: inset 0 1px 4px rgba(0,0,0,0.25); pointer-events: none;
+    }
+    .gacha-machine-cost {
+      font-size: 15px; font-weight: 800; margin: 0 0 10px 0; text-align: center;
+      color: #b45309; text-shadow: 0 0 20px rgba(245,158,11,0.4);
+      letter-spacing: 0.03em; text-transform: uppercase;
+    }
+    .gacha-golden-tickets { margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #d97706; text-align: center; }
+    .gacha-rounds-wrap { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 8px; }
+    .gacha-rounds-wrap button {
+      padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;
+      border: 2px solid #93a5cf; background: #e3eee9; color: #374151;
+    }
+    .gacha-rounds-wrap button:hover { background: #d1e0db; border-color: #93a5cf; }
+    .gacha-rounds-wrap button.selected { background: #93a5cf; color: #fff; border-color: #7a8bb8; }
+    #gacha-message { min-height: 22px; font-size: 13px; color: #f87171; text-align: center; }
+
+    /* Gacha ball: shown after handle spin (delay in JS) so spin stays visible */
+    #gacha-ball {
+      position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 118px; height: 118px; cursor: pointer; z-index: 101; display: none;
+      pointer-events: none;
+    }
+    #gacha-ball.visible { display: block; pointer-events: auto; }
+    #gacha-ball.visible .gacha-ball-top { animation: gacha-pop-top 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) forwards; }
+    #gacha-ball.visible .gacha-ball-glitter { animation: gacha-glitter 0.8s ease-out 0.2s forwards; opacity: 0; }
+    #gacha-ball.visible .gacha-ball-rise { animation: gacha-rise 0.7s ease-out 0.25s forwards; opacity: 0; }
+    #gacha-ball:hover { transform: translate(-50%, -50%) scale(1.08); }
+    #gacha-ball:hover .gacha-ball-half { filter: brightness(1.12); }
+
+    .gacha-ball-half {
+      position: absolute; left: 0; width: 118px; height: 59px;
+      border-radius: 0; overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.5);
+      box-shadow: inset 0 2px 14px rgba(255,255,255,0.4), 0 4px 20px rgba(0,0,0,0.28);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .gacha-ball-bottom {
+      bottom: 0; border-radius: 0 0 59px 59px;
+      border-top: 1px solid rgba(255,255,255,0.3);
+      background: radial-gradient(ellipse 90% 70% at 50% 0%, rgba(253,186,116,0.95), rgba(251,113,133,0.9) 35%, rgba(167,139,250,0.85) 60%, rgba(52,211,153,0.85));
+    }
+    .gacha-ball-top {
+      top: 0; border-radius: 59px 59px 0 0;
+      border-bottom: 1px solid rgba(59,130,246,0.4);
+      transform-origin: center bottom;
+      background: radial-gradient(ellipse 90% 70% at 50% 100%, rgba(191,219,254,0.95), rgba(96,165,250,0.9) 50%, rgba(59,130,246,0.85));
+    }
+
+    .gacha-ball-glitter {
+      position: absolute; inset: -10px; pointer-events: none;
+      opacity: 0;
+    }
+    .gacha-glitter-dot {
+      position: absolute; width: 8px; height: 8px; border-radius: 50%;
+      background: radial-gradient(circle, #fff 0%, rgba(254,243,199,0.9) 40%, transparent 70%);
+      box-shadow: 0 0 10px rgba(254,243,199,0.8);
+    }
+    .gacha-ball-glitter .gacha-glitter-dot:nth-child(1) { top: 15%; left: 25%; animation: gacha-sparkle 0.5s ease-out 0.1s; }
+    .gacha-ball-glitter .gacha-glitter-dot:nth-child(2) { top: 25%; right: 20%; animation: gacha-sparkle 0.5s ease-out 0.2s; }
+    .gacha-ball-glitter .gacha-glitter-dot:nth-child(3) { top: 35%; left: 50%; animation: gacha-sparkle 0.5s ease-out 0.15s; }
+    .gacha-ball-glitter .gacha-glitter-dot:nth-child(4) { top: 20%; right: 35%; animation: gacha-sparkle 0.5s ease-out 0.25s; }
+    .gacha-ball-glitter .gacha-glitter-dot:nth-child(5) { top: 30%; left: 15%; animation: gacha-sparkle 0.5s ease-out 0.2s; }
+    .gacha-ball-glitter .gacha-glitter-dot:nth-child(6) { top: 40%; right: 45%; animation: gacha-sparkle 0.5s ease-out 0.3s; }
+
+    .gacha-ball-rise {
+      position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+      width: 70px; height: 58px; pointer-events: none; opacity: 0;
+    }
+    .gacha-rise-dot {
+      position: absolute; width: 10px; height: 10px; border-radius: 50%;
+      background: radial-gradient(circle, #fef3c7, #f59e0b);
+      box-shadow: 0 0 12px rgba(254,243,199,0.9);
+      left: 50%; bottom: 6px; transform: translateX(-50%);
+    }
+    .gacha-ball-rise .gacha-rise-dot:nth-child(1) { left: 20%; animation: gacha-rise-up 0.6s ease-out 0.1s forwards; }
+    .gacha-ball-rise .gacha-rise-dot:nth-child(2) { left: 50%; animation: gacha-rise-up 0.6s ease-out 0.2s forwards; }
+    .gacha-ball-rise .gacha-rise-dot:nth-child(3) { left: 80%; animation: gacha-rise-up 0.6s ease-out 0.15s forwards; }
+
+    @keyframes gacha-pop-top {
+      0% { transform: translateY(0) scaleY(1); opacity: 1; }
+      100% { transform: translateY(-28px) scaleY(1); opacity: 1; }
+    }
+    @keyframes gacha-glitter {
+      0% { opacity: 0; transform: scale(0.8); }
+      40% { opacity: 1; transform: scale(1.1); }
+      100% { opacity: 0.85; transform: scale(1); }
+    }
+    @keyframes gacha-sparkle {
+      0% { opacity: 0; transform: scale(0); }
+      50% { opacity: 1; transform: scale(1.2); }
+      100% { opacity: 0.6; transform: scale(1); }
+    }
+    @keyframes gacha-rise {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+    @keyframes gacha-rise-up {
+      0% { bottom: 6px; opacity: 0; transform: translateX(-50%) scale(0.3); }
+      40% { opacity: 1; transform: translateX(-50%) scale(1.1); }
+      100% { bottom: 52px; opacity: 0.4; transform: translateX(-50%) scale(0.6); }
+    }
+    /* Center-screen prize reveal (bam bam bam roll-out) */
+    #gacha-prize-reveal {
+      position: fixed; inset: 0; z-index: 103; display: none; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.65); pointer-events: auto;
+    }
+    #gacha-prize-reveal.open { display: flex; cursor: pointer; }
+    #gacha-prize-reveal .gacha-reveal-inner {
+      display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; align-items: center; padding: 32px; max-width: 90vw; max-height: 60vh; overflow: auto;
+    }
+    #gacha-prize-reveal .gacha-reveal-card {
+      flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 10px;
+      padding: 20px; border-radius: 16px; position: relative; overflow: hidden;
+      border: 2px solid rgba(245,158,11,0.5); box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08);
+      opacity: 0; transform: scale(0.3);
+      animation: gacha-bam 0.45s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+    }
+    #gacha-prize-reveal .gacha-reveal-card::before {
+      content: ''; position: absolute; inset: -50%; z-index: 0;
+      background: repeating-conic-gradient(#fce4ec 0deg 9deg, #fff8e7 9deg 18deg);
+      animation: gacha-sunburst-spin 10s linear infinite;
+    }
+    #gacha-prize-reveal .gacha-reveal-card::after {
+      content: ''; position: absolute; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 35%, rgba(255,255,255,0.25) 75%, rgba(255,255,255,0.45) 100%);
+      pointer-events: none;
+    }
+    @keyframes gacha-sunburst-spin { to { transform: rotate(360deg); } }
+    #gacha-prize-reveal .gacha-reveal-card.reveal-done { opacity: 1; transform: scale(1); }
+    #gacha-prize-reveal .gacha-reveal-card img { width: 80px; height: 80px; object-fit: contain; image-rendering: pixelated; border-radius: 10px; border: 1px solid rgba(0,0,0,0.15); position: relative; z-index: 1; background: rgba(255,255,255,0.5); }
+    #gacha-prize-reveal .gacha-reveal-card span { font-size: 14px; font-weight: 600; color: #1f2937; max-width: 120px; text-align: center; overflow: hidden; text-overflow: ellipsis; position: relative; z-index: 1; text-shadow: 0 1px 0 rgba(255,255,255,0.8); }
+    @keyframes gacha-bam {
+      0% { opacity: 0; transform: scale(0.3); }
+      55% { transform: scale(1.12); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    #gacha-rewards-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #111827; color: #fff; padding: 12px 44px 12px 16px; z-index: 102; display: none; max-height: 160px; overflow-x: auto; overflow-y: hidden; box-shadow: 0 -4px 16px rgba(0,0,0,0.4); }
+    #gacha-rewards-bar.open { display: block; }
+    #gacha-rewards-bar h4 { margin: 0 0 8px 0; font-size: 14px; }
+    .gacha-rewards-list { display: flex; gap: 16px; align-items: center; flex-wrap: nowrap; padding-bottom: 4px; }
+    .gacha-reward-item {
+      flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 10px; border-radius: 12px; position: relative; overflow: hidden;
+      border: 1px solid rgba(245,158,11,0.35);
+    }
+    .gacha-reward-item::before {
+      content: ''; position: absolute; inset: -50%; z-index: 0;
+      background: repeating-conic-gradient(#fce4ec 0deg 9deg, #fff8e7 9deg 18deg);
+      animation: gacha-sunburst-spin 12s linear infinite;
+    }
+    .gacha-reward-item::after {
+      content: ''; position: absolute; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse 75% 75% at 50% 50%, transparent 30%, rgba(255,255,255,0.2) 70%, rgba(255,255,255,0.4) 100%);
+      pointer-events: none;
+    }
+    .gacha-reward-item img { width: 52px; height: 52px; object-fit: contain; image-rendering: pixelated; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12); position: relative; z-index: 1; background: rgba(255,255,255,0.5); }
+    .gacha-reward-item span { font-size: 12px; max-width: 80px; text-align: center; overflow: hidden; text-overflow: ellipsis; position: relative; z-index: 1; color: #1f2937; text-shadow: 0 1px 0 rgba(255,255,255,0.6); }
+    .gacha-reward-already-own { position: relative; z-index: 1; font-size: 11px; font-weight: 700; color: #b45309; text-transform: uppercase; letter-spacing: 0.02em; }
+    .gacha-reward-golden-tickets { position: relative; z-index: 1; font-size: 12px; font-weight: 600; color: #d97706; }
+    .gacha-reveal-already-own { position: relative; z-index: 1; font-size: 13px; font-weight: 700; color: #b45309; text-transform: uppercase; letter-spacing: 0.02em; }
+    .gacha-reveal-golden-tickets { position: relative; z-index: 1; font-size: 14px; font-weight: 600; color: #d97706; }
+    #gacha-rewards-close { position: absolute; top: 10px; right: 14px; background: transparent; border: none; color: #9ca3af; cursor: pointer; font-size: 22px; line-height: 1; padding: 0 4px; }
+    #gacha-rewards-close:hover { color: #fff; }
+
+    /* Gacha prize sets */
+    .gacha-sets-section { max-width: 1200px; width: 100%; margin: 0 auto 48px; padding: 0 16px; box-sizing: border-box; }
+    .gacha-sets-section h3 { margin: 0 0 24px 0; font-size: 1.5rem; font-weight: 700; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; color: #374151; }
+    .gacha-sets-grid-wrap { width: 100%; display: flex; justify-content: center; }
+    .gacha-sets-grid { display: grid; grid-template-columns: repeat(3, 260px); gap: 24px; }
+    .gacha-set-card { background: #fff; border: 2px solid #e5e7eb; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; align-items: center; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .gacha-set-card.coming-soon { opacity: 0.65; }
+    .gacha-set-card .set-icon { width: 64px; height: 64px; border-radius: 12px; background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); margin-bottom: 12px; display: flex; align-items: center; justify-content: center; font-size: 32px; }
+    .gacha-set-card .set-title { font-size: 1.1rem; font-weight: 700; margin: 0 0 8px 0; color: #111; }
+    .gacha-set-card .set-progress { font-size: 1.25rem; font-weight: 700; color: #7c3aed; margin: 0 0 8px 0; }
+    .gacha-set-card .set-progress-bar { width: 100%; height: 12px; background: #e5e7eb; border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+    .gacha-set-card .set-progress-fill { height: 100%; background: linear-gradient(90deg, #c4b5fd, #7c3aed); border-radius: 6px; transition: width 0.3s ease; }
+    .gacha-set-card .set-desc { font-size: 13px; color: #6b7280; margin: 0; line-height: 1.4; }
+    .gacha-set-card.gacha-set-placeholder { border-style: dashed; }
+
+    /* Golden Ticket Store */
+    .gacha-ticket-store-section { max-width: 1200px; width: 100%; margin: 0 auto 48px; padding: 0 16px; box-sizing: border-box; }
+    .gacha-ticket-store-section h3 { margin: 0 0 8px 0; font-size: 1.5rem; font-weight: 700; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; color: #374151; }
+    .gacha-ticket-store-section .ticket-store-desc { text-align: center; color: #6b7280; margin: 0 0 20px 0; font-size: 14px; }
+    .gacha-ticket-store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px; justify-content: center; }
+    .gacha-ticket-store-card {
+      background: #fff; border: 2px solid #e5e7eb; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; align-items: center; text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .gacha-ticket-store-card:hover { border-color: #fcd34d; box-shadow: 0 4px 12px rgba(245,158,11,0.15); }
+    .gacha-ticket-store-card img { width: 64px; height: 64px; object-fit: contain; image-rendering: pixelated; border-radius: 8px; border: 1px solid #e5e7eb; margin-bottom: 8px; background: #f9fafb; }
+    .gacha-ticket-store-card .ticket-store-name { font-size: 12px; font-weight: 600; color: #111; margin: 0 0 6px 0; overflow: hidden; text-overflow: ellipsis; max-width: 100%; white-space: nowrap; }
+    .gacha-ticket-store-card .ticket-store-price { font-size: 13px; font-weight: 700; color: #d97706; margin-bottom: 8px; }
+    .gacha-ticket-store-card .ticket-store-btn { padding: 8px 14px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; border: none; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer; }
+    .gacha-ticket-store-card .ticket-store-btn:hover { background: linear-gradient(135deg, #d97706, #b45309); }
+    .gacha-ticket-store-card .ticket-store-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+    .gacha-ticket-store-card .ticket-store-owned { font-size: 11px; font-weight: 700; color: #059669; text-transform: uppercase; }
+
+    @media (max-width: 900px) {
+      .gacha-machines-grid { grid-template-columns: repeat(2, 260px); }
+      .gacha-sets-grid { grid-template-columns: repeat(2, 260px); }
+    }
+    @media (max-width: 580px) {
+      .gacha-machines-grid { grid-template-columns: 260px; }
+      .gacha-sets-grid { grid-template-columns: 260px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+
+  <div class="gacha-section" style="position: relative;">
+    <a href="./store-menu.html" class="gacha-back">← Back to Shopping</a>
+  </div>
+
+  <!-- Revolving banner -->
+  <div class="gacha-banner-wrap">
+    <div class="gacha-banner">
+      <div class="gacha-banner-slide active" data-index="0">
+        <h2>New gacha prizes</h2>
+        <p>Fresh items added to the pool. Pull now for a chance to get the latest looks!</p>
+        <button type="button" class="btn-play gacha-scroll-to-machines">Play now</button>
+      </div>
+      <div class="gacha-banner-slide" data-index="1">
+        <h2>Spring collection</h2>
+        <p>Seasonal styles are here. Try your luck and dress up your character.</p>
+        <button type="button" class="btn-play gacha-scroll-to-machines">Play now</button>
+      </div>
+      <div class="gacha-banner-slide" data-index="2">
+        <h2>Try your luck</h2>
+        <p>One coin, one surprise. Random items from the full store catalog.</p>
+        <button type="button" class="btn-play gacha-scroll-to-machines">Play now</button>
+      </div>
+      <div class="gacha-banner-dots" id="gacha-banner-dots"></div>
+    </div>
+  </div>
+
+  <!-- Gacha machines grid -->
+  <section class="gacha-section">
+    <h3>Gacha machines</h3>
+    <div class="gacha-machines-grid-wrap">
+      <div class="gacha-machines-grid" id="gacha-machines-grid">
+      <div class="gacha-machine-card" data-machine="classic" id="gacha-card-classic">
+        <div class="card-icon">🎰</div>
+        <div class="card-title">Classic Gacha</div>
+        <div class="card-desc">Random item from the store. One pull, one surprise!</div>
+        <div class="card-cost">50 Gold Coins</div>
+        <button type="button" class="card-btn">Play</button>
+      </div>
+      <div class="gacha-machine-card coming-soon" data-machine="premium">
+        <div class="card-icon">✨</div>
+        <div class="card-title">Premium Gacha</div>
+        <div class="card-desc">Rarer items, higher stakes. Coming soon.</div>
+        <div class="card-cost">—</div>
+        <button type="button" class="card-btn" disabled>Coming soon</button>
+      </div>
+      <div class="gacha-machine-card coming-soon" data-machine="daily">
+        <div class="card-icon">🎁</div>
+        <div class="card-title">Daily free pull</div>
+        <div class="card-desc">One free pull per day. Coming soon.</div>
+        <div class="card-cost">Free</div>
+        <button type="button" class="card-btn" disabled>Coming soon</button>
+      </div>
+    </div>
+    </div>
+  </section>
+
+  <!-- Gacha prize sets -->
+  <section class="gacha-sets-section">
+    <h3>Gacha prize sets</h3>
+    <p class="set-section-desc" style="text-align: center; color: #6b7280; margin: 0 0 20px 0; font-size: 14px;">Collect 10 cards from a gacha machine to complete a set and receive the reward.</p>
+    <div class="gacha-sets-grid-wrap">
+      <div class="gacha-sets-grid" id="gacha-sets-grid">
+        <div class="gacha-set-card gacha-set-placeholder" aria-hidden="true" id="gacha-set-placeholder">
+          <div class="set-icon">📦</div>
+          <div class="set-title">Prize set</div>
+          <div class="set-progress">0 / 10 cards</div>
+          <div class="set-progress-bar"><div class="set-progress-fill" style="width:0%"></div></div>
+          <div class="set-desc">Collect cards by playing a gacha machine. Complete a set to receive a reward!</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Golden Ticket Store -->
+  <section class="gacha-ticket-store-section">
+    <h3>Golden Ticket Store</h3>
+    <p class="ticket-store-desc">Spend your golden tickets here. You earn tickets when you pull duplicate items in the gacha.</p>
+    <div class="gacha-ticket-store-grid" id="gacha-ticket-store-grid"></div>
+  </section>
+
+  <!-- Play modal: machine is the box, screw is the play button -->
+  <div id="gacha-play-modal">
+    <div class="gacha-play-inner">
+      <div class="gacha-machine-square">
+        <div class="gacha-machine-top">
+          <div class="gacha-machine-glass-back" aria-hidden="true"></div>
+          <div class="gacha-machine-balls" aria-hidden="true">
+            <span class="gacha-machine-ball"></span><span class="gacha-machine-ball"></span><span class="gacha-machine-ball"></span>
+            <span class="gacha-machine-ball"></span><span class="gacha-machine-ball"></span><span class="gacha-machine-ball"></span>
+            <span class="gacha-machine-ball"></span><span class="gacha-machine-ball"></span><span class="gacha-machine-ball"></span>
+            <span class="gacha-machine-ball"></span><span class="gacha-machine-ball"></span><span class="gacha-machine-ball"></span>
+            <span class="gacha-machine-ball"></span><span class="gacha-machine-ball"></span><span class="gacha-machine-ball"></span>
+            <span class="gacha-machine-ball"></span><span class="gacha-machine-ball"></span><span class="gacha-machine-ball"></span>
+            <span class="gacha-machine-ball"></span><span class="gacha-machine-ball"></span><span class="gacha-machine-ball"></span>
+            <span class="gacha-machine-ball"></span>
+          </div>
+          <div class="gacha-machine-glass-front" aria-hidden="true"></div>
+        </div>
+        <div class="gacha-machine-bottom">
+          <div class="hole-coin" aria-hidden="true"></div>
+          <button type="button" id="gacha-screw-trigger" class="gacha-machine-screw" title="Turn to play (50 gold)" aria-label="Turn screw to play gacha">
+            <div class="gacha-machine-screw-slot"></div>
+          </button>
+        </div>
+      </div>
+      <p class="gacha-machine-cost" id="gacha-cost-label">50 gold</p>
+      <p class="gacha-golden-tickets" id="gacha-golden-tickets-label">0 Golden Tickets</p>
+      <div class="gacha-rounds-wrap" aria-label="Number of pulls">
+        <button type="button" class="gacha-round-opt selected" data-rounds="1">1 pull</button>
+        <button type="button" class="gacha-round-opt" data-rounds="5">5 pulls</button>
+        <button type="button" class="gacha-round-opt" data-rounds="10">10 pulls</button>
+      </div>
+      <div id="gacha-message"></div>
+    </div>
+    <div id="gacha-ball" class="gacha-ball-wrap" title="Click to see your rewards" aria-hidden="true">
+      <div class="gacha-ball-half gacha-ball-bottom"></div>
+      <div class="gacha-ball-half gacha-ball-top"></div>
+      <div class="gacha-ball-glitter" aria-hidden="true">
+        <span class="gacha-glitter-dot"></span><span class="gacha-glitter-dot"></span><span class="gacha-glitter-dot"></span>
+        <span class="gacha-glitter-dot"></span><span class="gacha-glitter-dot"></span><span class="gacha-glitter-dot"></span>
+      </div>
+      <div class="gacha-ball-rise" aria-hidden="true">
+        <span class="gacha-rise-dot"></span><span class="gacha-rise-dot"></span><span class="gacha-rise-dot"></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="gacha-prize-reveal" aria-hidden="true" title="Click anywhere to close">
+    <div class="gacha-reveal-inner" id="gacha-reveal-inner"></div>
+  </div>
+  <div id="gacha-rewards-bar">
+    <button type="button" id="gacha-rewards-close" aria-label="Close">×</button>
+    <h4>Your rewards</h4>
+    <div id="gacha-rewards-list" class="gacha-rewards-list"></div>
+  </div>
+
+  <script src="/js/toast.js"></script>
+  <script src="/js/header.js"></script>
+  <script>
+(function () {
+  const GACHA_COST_GOLD = 50;
+  const GACHA_CARDS_PER_SET = 10;
+  const GACHA_SET_REWARD_GOLD = 200;
+  const GACHA_SETS = [
+    { id: 'classic', name: 'Classic Set', machineId: 'classic', icon: '🎰', available: true },
+    { id: 'premium', name: 'Premium Set', machineId: 'premium', icon: '✨', available: false },
+    { id: 'daily', name: 'Daily Set', machineId: 'daily', icon: '🎁', available: false }
+  ];
+  let currency = 0;
+  let goldenTickets = 0;
+  let gachaCards = {};
+  let gachaRewards = [];
+  let purchased = [];
+  let ticketShopItems = [];
+  let selectedRounds = 1;
+  let bannerIndex = 0;
+  const BANNER_INTERVAL = 5000;
+
+  function showMsg(text, isError) {
+    var el = document.getElementById('gacha-message');
+    if (el) {
+      el.textContent = text || '';
+      el.style.color = isError ? '#f87171' : '#86efac';
+    }
+  }
+
+  function updateGoldDisplay() {
+    var cost = GACHA_COST_GOLD * selectedRounds;
+    var screwBtn = document.getElementById('gacha-screw-trigger');
+    if (screwBtn) screwBtn.disabled = currency < cost;
+    var ticketsEl = document.getElementById('gacha-golden-tickets-label');
+    if (ticketsEl) ticketsEl.textContent = goldenTickets + ' Golden Ticket' + (goldenTickets !== 1 ? 's' : '');
+  }
+
+  async function loadInventory() {
+    try {
+      var r = await fetch('/api/user-inventory', { credentials: 'same-origin' });
+      if (r.ok) {
+        var d = await r.json();
+        currency = d.currency != null ? d.currency : 0;
+        goldenTickets = d.goldenTickets != null ? d.goldenTickets : 0;
+        gachaCards = (d.gachaCards && typeof d.gachaCards === 'object') ? d.gachaCards : {};
+        purchased = Array.isArray(d.purchased) ? d.purchased : [];
+      }
+    } catch (e) { /* ignore */ }
+    updateGoldDisplay();
+    renderGachaSets();
+    loadTicketShop();
+  }
+
+  async function loadTicketShop() {
+    try {
+      var r = await fetch('/api/gacha-ticket-shop', { credentials: 'same-origin' });
+      if (r.ok) ticketShopItems = await r.json();
+      else ticketShopItems = [];
+    } catch (e) { ticketShopItems = []; }
+    renderTicketShop();
+  }
+
+  function renderTicketShop() {
+    var grid = document.getElementById('gacha-ticket-store-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    if (ticketShopItems.length === 0) {
+      var empty = document.createElement('p');
+      empty.style.textAlign = 'center';
+      empty.style.color = '#6b7280';
+      empty.style.margin = '0';
+      empty.textContent = 'No items in the ticket store right now. Items with a golden ticket price will appear here.';
+      grid.appendChild(empty);
+      return;
+    }
+    ticketShopItems.forEach(function (item) {
+      var owned = purchased.indexOf(item.filename) !== -1;
+      var canBuy = !owned && goldenTickets >= (item.goldenTicketPrice || 0);
+      var card = document.createElement('div');
+      card.className = 'gacha-ticket-store-card';
+      var img = document.createElement('img');
+      img.src = '/Uploads/' + (item.filename || '');
+      img.alt = item.name || item.filename || '';
+      img.onerror = function () { img.style.display = 'none'; };
+      card.appendChild(img);
+      var nameEl = document.createElement('div');
+      nameEl.className = 'ticket-store-name';
+      nameEl.textContent = item.name || item.filename || '';
+      card.appendChild(nameEl);
+      var priceEl = document.createElement('div');
+      priceEl.className = 'ticket-store-price';
+      priceEl.textContent = (item.goldenTicketPrice || 0) + ' 🎫';
+      card.appendChild(priceEl);
+      if (owned) {
+        var ownEl = document.createElement('div');
+        ownEl.className = 'ticket-store-owned';
+        ownEl.textContent = 'Owned';
+        card.appendChild(ownEl);
+      } else {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ticket-store-btn';
+        btn.textContent = 'Buy';
+        btn.disabled = !canBuy;
+        btn.dataset.filename = item.filename;
+        btn.addEventListener('click', function () {
+          var fn = btn.dataset.filename;
+          if (!fn || btn.disabled) return;
+          btn.disabled = true;
+          fetch('/api/gacha-ticket-shop/purchase/' + encodeURIComponent(fn), { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } })
+            .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+            .then(function (result) {
+              if (result.ok && result.data) {
+                goldenTickets = result.data.goldenTickets != null ? result.data.goldenTickets : goldenTickets;
+                purchased = Array.isArray(result.data.purchased) ? result.data.purchased : purchased;
+                if (typeof window.updateHeaderCurrency === 'function') window.updateHeaderCurrency();
+                updateGoldDisplay();
+                renderTicketShop();
+                if (typeof window.showToast === 'function') window.showToast('Item added to your wardrobe!');
+              } else {
+                if (typeof window.showToast === 'function') window.showToast(result.data && result.data.error ? result.data.error : 'Purchase failed', true);
+                renderTicketShop();
+              }
+            })
+            .catch(function () {
+              if (typeof window.showToast === 'function') window.showToast('Purchase failed', true);
+              renderTicketShop();
+            });
+        });
+        card.appendChild(btn);
+      }
+      grid.appendChild(card);
+    });
+  }
+
+  function renderGachaSets() {
+    var grid = document.getElementById('gacha-sets-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    var sets = GACHA_SETS && GACHA_SETS.length > 0 ? GACHA_SETS : null;
+    if (sets) {
+      sets.forEach(function (set) {
+        var card = document.createElement('div');
+        card.className = 'gacha-set-card' + (set.available ? '' : ' coming-soon');
+        var count = (gachaCards[set.id] != null && Number.isInteger(gachaCards[set.id])) ? Math.min(gachaCards[set.id], GACHA_CARDS_PER_SET) : 0;
+        var pct = GACHA_CARDS_PER_SET > 0 ? (count / GACHA_CARDS_PER_SET) * 100 : 0;
+        card.innerHTML =
+          '<div class="set-icon">' + set.icon + '</div>' +
+          '<div class="set-title">' + (set.name || set.id) + '</div>' +
+          '<div class="set-progress">' + count + ' / ' + GACHA_CARDS_PER_SET + ' cards</div>' +
+          '<div class="set-progress-bar"><div class="set-progress-fill" style="width:' + pct + '%"></div></div>' +
+          '<div class="set-desc">' + (set.available
+            ? 'Win cards by playing the ' + (set.name || set.id) + ' machine. Complete the set to receive <strong>' + GACHA_SET_REWARD_GOLD + ' gold</strong>!'
+            : 'Coming soon.') + '</div>';
+        grid.appendChild(card);
+      });
+    } else {
+      var placeholder = document.createElement('div');
+      placeholder.className = 'gacha-set-card gacha-set-placeholder';
+      placeholder.innerHTML =
+        '<div class="set-icon">📦</div>' +
+        '<div class="set-title">Prize set</div>' +
+        '<div class="set-progress">0 / ' + GACHA_CARDS_PER_SET + ' cards</div>' +
+        '<div class="set-progress-bar"><div class="set-progress-fill" style="width:0%"></div></div>' +
+        '<div class="set-desc">Collect cards by playing a gacha machine. Complete a set to receive <strong>' + GACHA_SET_REWARD_GOLD + ' gold</strong>!</div>';
+      grid.appendChild(placeholder);
+    }
+  }
+
+  function setBannerSlide(index) {
+    var slides = document.querySelectorAll('.gacha-banner-slide');
+    var dots = document.querySelectorAll('.gacha-banner-dots span');
+    if (!slides.length) return;
+    bannerIndex = ((index % slides.length) + slides.length) % slides.length;
+    slides.forEach(function (s, i) { s.classList.toggle('active', i === bannerIndex); });
+    dots.forEach(function (d, i) { d.classList.toggle('active', i === bannerIndex); });
+  }
+
+  function initBanner() {
+    var slides = document.querySelectorAll('.gacha-banner-slide');
+    var dotsWrap = document.getElementById('gacha-banner-dots');
+    if (!dotsWrap) return;
+    slides.forEach(function (_, i) {
+      var dot = document.createElement('span');
+      dot.setAttribute('aria-label', 'Slide ' + (i + 1));
+      dot.addEventListener('click', function () { setBannerSlide(i); });
+      dotsWrap.appendChild(dot);
+    });
+    setBannerSlide(0);
+    setInterval(function () { setBannerSlide(bannerIndex + 1); }, BANNER_INTERVAL);
+    document.querySelectorAll('.gacha-scroll-to-machines').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.getElementById('gacha-machines-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
+
+  function showRewardsBar() {
+    var bar = document.getElementById('gacha-rewards-bar');
+    var list = document.getElementById('gacha-rewards-list');
+    if (!bar || !list) return;
+    list.innerHTML = '';
+    gachaRewards.forEach(function (reward) {
+      var wrap = document.createElement('div');
+      wrap.className = 'gacha-reward-item';
+      var img = document.createElement('img');
+      img.src = '/Uploads/' + (reward.filename || '');
+      img.alt = reward.name || reward.filename || '';
+      img.onerror = function () { img.style.display = 'none'; };
+      wrap.appendChild(img);
+      if (reward.alreadyOwned) {
+        var ownLabel = document.createElement('div');
+        ownLabel.className = 'gacha-reward-already-own';
+        ownLabel.textContent = 'Already own';
+        wrap.appendChild(ownLabel);
+        var ticketsLabel = document.createElement('div');
+        ticketsLabel.className = 'gacha-reward-golden-tickets';
+        ticketsLabel.textContent = (reward.goldenTickets || 0) + ' Golden Ticket' + ((reward.goldenTickets || 0) !== 1 ? 's' : '');
+        wrap.appendChild(ticketsLabel);
+      }
+      list.appendChild(wrap);
+    });
+    if (gachaRewards.length === 0) {
+      var empty = document.createElement('span');
+      empty.style.color = '#9ca3af';
+      empty.textContent = 'No rewards yet. Turn the screw to play, then click the ball!';
+      list.appendChild(empty);
+    }
+    bar.classList.add('open');
+  }
+
+  var BAM_DELAY_MS = 180;
+  function showPrizeReveal() {
+    var reveal = document.getElementById('gacha-prize-reveal');
+    var inner = document.getElementById('gacha-reveal-inner');
+    if (!reveal || !inner) return;
+    inner.innerHTML = '';
+    if (gachaRewards.length === 0) {
+      showRewardsBar();
+      return;
+    }
+    gachaRewards.forEach(function (reward, i) {
+      var card = document.createElement('div');
+      card.className = 'gacha-reveal-card';
+      card.style.animationDelay = (i * BAM_DELAY_MS) + 'ms';
+      var img = document.createElement('img');
+      img.src = '/Uploads/' + (reward.filename || '');
+      img.alt = reward.name || reward.filename || '';
+      img.onerror = function () { img.style.display = 'none'; };
+      card.appendChild(img);
+      if (reward.alreadyOwned) {
+        var ownLabel = document.createElement('div');
+        ownLabel.className = 'gacha-reveal-already-own';
+        ownLabel.textContent = 'Already own';
+        card.appendChild(ownLabel);
+        var ticketsLabel = document.createElement('div');
+        ticketsLabel.className = 'gacha-reveal-golden-tickets';
+        ticketsLabel.textContent = (reward.goldenTickets || 0) + ' Golden Ticket' + ((reward.goldenTickets || 0) !== 1 ? 's' : '');
+        card.appendChild(ticketsLabel);
+      }
+      inner.appendChild(card);
+    });
+    reveal.classList.add('open');
+    reveal.setAttribute('aria-hidden', 'false');
+  }
+
+  function closePrizeReveal() {
+    var reveal = document.getElementById('gacha-prize-reveal');
+    if (reveal) {
+      reveal.classList.remove('open');
+      reveal.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  var playModal = document.getElementById('gacha-play-modal');
+  var gachaBall = document.getElementById('gacha-ball');
+  var gachaRewardsBar = document.getElementById('gacha-rewards-bar');
+
+  var prizeReveal = document.getElementById('gacha-prize-reveal');
+  if (prizeReveal) {
+    prizeReveal.addEventListener('click', closePrizeReveal);
+  }
+
+  document.getElementById('gacha-card-classic').addEventListener('click', function (e) {
+    if (e.target.closest('.coming-soon')) return;
+    if (e.target.tagName === 'BUTTON' && e.target.disabled) return;
+    gachaBall.classList.remove('visible');
+    gachaBall.setAttribute('aria-hidden', 'true');
+    showMsg('');
+    if (playModal) playModal.classList.add('open');
+    updateGoldDisplay();
+  });
+
+  if (playModal) {
+    playModal.addEventListener('click', function (e) {
+      if (e.target === playModal) {
+        playModal.classList.remove('open');
+        gachaBall.classList.remove('visible');
+        gachaBall.setAttribute('aria-hidden', 'true');
+        gachaRewardsBar.classList.remove('open');
+      }
+    });
+  }
+
+  function updateCostLabel() {
+    var cost = GACHA_COST_GOLD * selectedRounds;
+    var label = document.getElementById('gacha-cost-label');
+    if (label) label.textContent = cost + ' gold' + (selectedRounds > 1 ? ' (' + selectedRounds + '\u00D7)' : '');
+  }
+  document.querySelectorAll('.gacha-round-opt').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      selectedRounds = parseInt(btn.getAttribute('data-rounds'), 10) || 1;
+      document.querySelectorAll('.gacha-round-opt').forEach(function (b) { b.classList.remove('selected'); });
+      btn.classList.add('selected');
+      updateCostLabel();
+      updateGoldDisplay();
+    });
+  });
+
+  var screwBtn = document.getElementById('gacha-screw-trigger');
+  if (screwBtn) {
+    screwBtn.addEventListener('animationend', function (e) {
+      if (e.animationName === 'gacha-screw-turn') screwBtn.classList.remove('gacha-screw-spin');
+    });
+    screwBtn.addEventListener('click', async function () {
+      var cost = GACHA_COST_GOLD * selectedRounds;
+      if (currency < cost) {
+        showMsg('Not enough gold coins. Need ' + cost + '.', true);
+        return;
+      }
+      screwBtn.classList.add('gacha-screw-spin');
+      screwBtn.disabled = true;
+      showMsg('');
+      try {
+        for (var n = 0; n < selectedRounds; n++) {
+          var r = await fetch('/api/gacha', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ machineId: 'classic' }) });
+          var data = await r.json().catch(function () { return {}; });
+          if (!r.ok) {
+            showMsg(data.error || 'Gacha failed', true);
+            screwBtn.disabled = currency < cost;
+            return;
+          }
+          currency = data.currency !== undefined ? data.currency : currency;
+          if (data.goldenTickets !== undefined) goldenTickets = data.goldenTickets;
+          if (data.gachaCards && typeof data.gachaCards === 'object') gachaCards = data.gachaCards;
+          renderGachaSets();
+          var item = data.item;
+          if (item && (item.filename || item.name)) {
+            gachaRewards.push({
+              filename: item.filename,
+              name: item.name || item.filename,
+              alreadyOwned: !!data.alreadyOwned,
+              goldenTickets: item.goldenTickets != null ? item.goldenTickets : (data.goldenTicketsFromPull || 0)
+            });
+          }
+          if (data.setCompleted && data.setCompletedName && typeof window.showToast === 'function') {
+            window.showToast('Set complete! You received ' + GACHA_SET_REWARD_GOLD + ' gold for ' + data.setCompletedName + '.');
+          }
+        }
+        setTimeout(function () {
+          gachaBall.classList.add('visible');
+          gachaBall.setAttribute('aria-hidden', 'false');
+        }, 600);
+        updateGoldDisplay();
+        await loadInventory();
+        if (typeof window.updateHeaderCurrency === 'function') window.updateHeaderCurrency();
+        var headerAmt = document.getElementById('header-currency-amount');
+        if (headerAmt) headerAmt.textContent = currency;
+      } catch (e) {
+        showMsg('Gacha error: ' + (e.message || 'failed'), true);
+      }
+      screwBtn.disabled = currency < (GACHA_COST_GOLD * selectedRounds);
+    });
+  }
+
+  gachaBall.addEventListener('click', function () {
+    gachaBall.classList.remove('visible');
+    gachaBall.setAttribute('aria-hidden', 'true');
+    showPrizeReveal();
+  });
+
+  document.getElementById('gacha-rewards-close').addEventListener('click', function () {
+    gachaRewardsBar.classList.remove('open');
+  });
+
+  initBanner();
+  (async function init() {
+    await loadInventory();
+  })();
+})();
+  </script>
+</body>
+</html>
