@@ -174,8 +174,8 @@
       <div class="character-controls-wrap">
         <div id="character">
           <div id="character-backgrounds"></div>
-          <img src="/Uploads/character.png" id="fixed-base" alt="Character Base">
-          <img src="/Uploads/character.png" id="character-base" alt="Character Base">
+          <img src="https://i.ibb.co/938sCGCJ/character.png" id="fixed-base" alt="Character Base">
+          <img src="https://i.ibb.co/938sCGCJ/character.png" id="character-base" alt="Character Base">
           <div id="body-slot" class="slot"></div>
           <div id="shirt-slot" class="slot"></div>
           <div id="pants-slot" class="slot"></div>
@@ -207,20 +207,20 @@
       </div>
       <div id="store-message"></div>
       <div id="icon-menu">
-        <img src="/Uploads/body-icon.png" class="menu-icon" id="body-icon" alt="Body" role="button">
-        <img src="/Uploads/shirt-icon.png" class="menu-icon" data-categories="shirt" alt="Shirt" role="button">
-        <img src="/Uploads/pants-icon.png" class="menu-icon" data-categories="pants" alt="Pants" role="button">
-        <img src="/Uploads/skirt-icon.png" class="menu-icon" data-categories="skirt" alt="Skirt" role="button">
-        <img src="/Uploads/dress-icon.png" class="menu-icon" data-categories="dress" alt="Dress" role="button">
-        <img src="/Uploads/jacket-icon.png" class="menu-icon" data-categories="jacket" alt="Jacket" role="button">
-        <img src="/Uploads/shoes-icon.png" class="menu-icon" data-categories="shoes" alt="Shoes" role="button">
-        <img src="/Uploads/socks-icon.png" class="menu-icon" data-categories="socks" alt="Socks" role="button">
-        <img src="/Uploads/hat-icon.png" class="menu-icon" data-categories="hat" alt="Hat" role="button">
-        <img src="/Uploads/other-icon.png" class="menu-icon" id="other-icon" alt="Other" role="button">
-        <img src="/Uploads/hair-icon.png" class="menu-icon" data-categories="hair" alt="Hair" role="button">
-        <img src="/Uploads/makeup-icon.png" class="menu-icon" data-categories="makeup" alt="Makeup" role="button">
-        <img src="/Uploads/full-sets-icon.png" class="menu-icon" id="full-sets-icon" alt="Full Sets" role="button">
-        <img src="/Uploads/heart-icon.png" class="menu-icon" id="store-heart-icon" data-categories="favorites" alt="Favorites" role="button" aria-label="Favorites">
+        <img src="https://i.ibb.co/2pKRg9R/1769879784069.png" class="menu-icon" id="body-icon" alt="Body" role="button">
+        <img src="https://i.ibb.co/wFNWnRJR/shirt1.png" class="menu-icon" data-categories="shirt" alt="Shirt" role="button">
+        <img src="https://i.ibb.co/zV6R2TYC/pants1.png" class="menu-icon" data-categories="pants" alt="Pants" role="button">
+        <img src="https://i.ibb.co/zV6R2TYC/pants1.png" class="menu-icon" data-categories="skirt" alt="Skirt" role="button">
+        <img src="https://i.ibb.co/2pKRg9R/1769879784069.png" class="menu-icon" data-categories="dress" alt="Dress" role="button">
+        <img src="https://i.ibb.co/wFNWnRJR/shirt1.png" class="menu-icon" data-categories="jacket" alt="Jacket" role="button">
+        <img src="https://i.ibb.co/rGfkB6Gh/1770807444609.png" class="menu-icon" data-categories="shoes" alt="Shoes" role="button">
+        <img src="https://i.ibb.co/sJjPHwmf/socks1.png" class="menu-icon" data-categories="socks" alt="Socks" role="button">
+        <img src="https://i.ibb.co/2pKRg9R/1769879784069.png" class="menu-icon" data-categories="hat" alt="Hat" role="button">
+        <img src="https://i.ibb.co/2pKRg9R/1769879784069.png" class="menu-icon" id="other-icon" alt="Other" role="button">
+        <img src="https://i.ibb.co/2pKRg9R/1769879784069.png" class="menu-icon" data-categories="hair" alt="Hair" role="button">
+        <img src="https://i.ibb.co/2pKRg9R/1769879784069.png" class="menu-icon" data-categories="makeup" alt="Makeup" role="button">
+        <img src="https://i.ibb.co/rfRFkd0t/1770808865798.png" class="menu-icon" id="full-sets-icon" alt="Full Sets" role="button">
+        <img src="/img/heart-icon.svg" class="menu-icon" id="store-heart-icon" data-categories="favorites" alt="Favorites" role="button" aria-label="Favorites">
       </div>
       <div id="store-search-wrap" class="store-search-wrap" title="Hover to search by name or tags">
         <span class="store-search-glass" aria-hidden="true">
@@ -450,7 +450,7 @@
       });
       backgrounds.sort((a, b) => a.zIndex - b.zIndex);
       layers.sort((a, b) => a.zIndex - b.zIndex);
-      const flat = [{ src: '/Uploads/character.png', x: 0, y: 0, slotId: 'body-slot', zIndex: -1 }];
+      const flat = [{ src: 'https://i.ibb.co/938sCGCJ/character.png', x: 0, y: 0, slotId: 'body-slot', zIndex: -1 }];
       backgrounds.forEach(b => flat.push({ ...b, slotId: 'bg' }));
       layers.forEach(l => flat.push(l));
       return flat.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
@@ -599,7 +599,7 @@
       });
       wrap.appendChild(bgDiv);
       const base = document.createElement('img');
-      base.src = '/Uploads/character.png';
+      base.src = 'https://i.ibb.co/938sCGCJ/character.png';
       base.alt = 'Base';
       base.className = 'store-set-preview-base';
       base.style.width = '70px';

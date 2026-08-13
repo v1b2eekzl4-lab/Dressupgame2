@@ -5,6 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "db:import": "node scripts/import-postgres.js",
+    "imgbb:upload-items": "node scripts/upload-items-to-imgbb.js",
+    "imgbb:upload-ui": "node scripts/upload-ui-assets.js",
     "test": "jest tests/ --testEnvironment=node",
     "build:css": "tailwindcss -i ./src/input.css -o ./public/css/tailwind.css --minify"
   },

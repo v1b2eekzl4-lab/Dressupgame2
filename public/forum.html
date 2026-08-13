@@ -833,7 +833,7 @@
             });
             if (all.length === 0) return null;
             all.sort(function (a, b) { return (a.z || 0) - (b.z || 0); });
-            return [{ src: '/Uploads/character.png', x: 0, y: 0, z: -1 }].concat(all);
+            return [{ src: 'https://i.ibb.co/938sCGCJ/character.png', x: 0, y: 0, z: -1 }].concat(all);
         }
 
         function fetchFullAvatarItems(userId, currentUserId, post, cb) {
@@ -847,7 +847,7 @@
                     var items = outfitListToItems(outfits);
                     if (items && items.length > 0) return cb(items);
                     if (post.outfitItems && Array.isArray(post.outfitItems) && post.outfitItems.length > 0) {
-                        items = [{ src: '/Uploads/character.png', x: 0, y: 0, z: -1 }];
+                        items = [{ src: 'https://i.ibb.co/938sCGCJ/character.png', x: 0, y: 0, z: -1 }];
                         post.outfitItems.forEach(function (item) {
                             items.push({ src: item.src || '', x: item.x != null ? item.x : 0, y: item.y != null ? item.y : 0, z: item.zIndex != null ? item.zIndex : 0 });
                         });
@@ -929,7 +929,7 @@
             }
             var box = document.createElement('div');
             box.className = 'forum-avatar-outfit-box';
-            var baseUrl = (items[0] && items[0].src) ? items[0].src : '/Uploads/character.png';
+            var baseUrl = (items[0] && items[0].src) ? items[0].src : 'https://i.ibb.co/938sCGCJ/character.png';
             var baseImg = document.createElement('img');
             baseImg.className = 'forum-avatar-base';
             baseImg.src = baseUrl.indexOf('/') === 0 ? (window.location.origin || '') + baseUrl : baseUrl;

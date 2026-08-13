@@ -530,6 +530,11 @@
   let bannerIndex = 0;
   const BANNER_INTERVAL = 5000;
 
+  function itemImageUrl(it) {
+    if (!it) return '';
+    return it.imageUrl || (it.filename ? '/Uploads/' + it.filename : '');
+  }
+
   function showMsg(text, isError) {
     var el = document.getElementById('gacha-message');
     if (el) {
@@ -590,7 +595,7 @@
       var card = document.createElement('div');
       card.className = 'gacha-ticket-store-card';
       var img = document.createElement('img');
-      img.src = '/Uploads/' + (item.filename || '');
+      img.src = itemImageUrl(item);
       img.alt = item.name || item.filename || '';
       img.onerror = function () { img.style.display = 'none'; };
       card.appendChild(img);
@@ -715,7 +720,7 @@
       var wrap = document.createElement('div');
       wrap.className = 'gacha-reward-item';
       var img = document.createElement('img');
-      img.src = '/Uploads/' + (reward.filename || '');
+      img.src = itemImageUrl(reward);
       img.alt = reward.name || reward.filename || '';
       img.onerror = function () { img.style.display = 'none'; };
       wrap.appendChild(img);
@@ -755,7 +760,7 @@
       card.className = 'gacha-reveal-card';
       card.style.animationDelay = (i * BAM_DELAY_MS) + 'ms';
       var img = document.createElement('img');
-      img.src = '/Uploads/' + (reward.filename || '');
+      img.src = itemImageUrl(reward);
       img.alt = reward.name || reward.filename || '';
       img.onerror = function () { img.style.display = 'none'; };
       card.appendChild(img);

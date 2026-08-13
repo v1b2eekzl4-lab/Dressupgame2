@@ -18,6 +18,9 @@
     .catch(function () { return null; })
     .then(function (data) {
       var url = (data && data.wallpaperUrl) ? data.wallpaperUrl : '';
+      if (url.indexOf('/Uploads/site-wallpaper') === 0) {
+        url = 'https://i.ibb.co/xqGngknQ/site-wallpaper.png';
+      }
       if (url && document.body) {
         document.body.style.backgroundImage = 'url(' + url + ')';
         document.body.style.backgroundSize = 'cover';

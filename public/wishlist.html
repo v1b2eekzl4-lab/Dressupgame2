@@ -240,7 +240,7 @@
         });
         backgrounds.sort(function (a, b) { return a.zIndex - b.zIndex; });
         layers.sort(function (a, b) { return a.zIndex - b.zIndex; });
-        const flat = [{ src: '/Uploads/character.png', x: 0, y: 0, slotId: 'body-slot', zIndex: -1 }];
+        const flat = [{ src: 'https://i.ibb.co/938sCGCJ/character.png', x: 0, y: 0, slotId: 'body-slot', zIndex: -1 }];
         backgrounds.forEach(function (b) { flat.push({ src: b.src, x: b.x, y: b.y, zIndex: b.zIndex, slotId: 'bg' }); });
         layers.forEach(function (l) { flat.push(l); });
         return flat.sort(function (a, b) { return (a.zIndex || 0) - (b.zIndex || 0); });

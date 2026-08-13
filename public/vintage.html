@@ -80,7 +80,7 @@
         if (!slotId) return 'other-slot';
         return String(slotId).endsWith('-slot') ? slotId : slotId + '-slot';
       }
-      const categoryIcons = { all: '/Uploads/other-icon.png', body: '/Uploads/body-icon.png', shirt: '/Uploads/shirt-icon.png', pants: '/Uploads/pants-icon.png', skirt: '/Uploads/skirt-icon.png', dress: '/Uploads/dress-icon.png', jacket: '/Uploads/jacket-icon.png', shoes: '/Uploads/shoes-icon.png', socks: '/Uploads/socks-icon.png', hat: '/Uploads/hat-icon.png', jewelry: '/Uploads/jewelry-icon.png', other: '/Uploads/other-icon.png', hair: '/Uploads/hair-icon.png' };
+      const categoryIcons = { all: 'https://i.ibb.co/2pKRg9R/1769879784069.png', body: 'https://i.ibb.co/2pKRg9R/1769879784069.png', shirt: 'https://i.ibb.co/wFNWnRJR/shirt1.png', pants: 'https://i.ibb.co/zV6R2TYC/pants1.png', skirt: 'https://i.ibb.co/zV6R2TYC/pants1.png', dress: 'https://i.ibb.co/2pKRg9R/1769879784069.png', jacket: 'https://i.ibb.co/wFNWnRJR/shirt1.png', shoes: 'https://i.ibb.co/rGfkB6Gh/1770807444609.png', socks: 'https://i.ibb.co/sJjPHwmf/socks1.png', hat: 'https://i.ibb.co/2pKRg9R/1769879784069.png', jewelry: 'https://i.ibb.co/2pKRg9R/1769879784069.png', other: 'https://i.ibb.co/2pKRg9R/1769879784069.png', hair: 'https://i.ibb.co/2pKRg9R/1769879784069.png' };
       function buildIconMenu() {
         const menu = document.getElementById('icon-menu');
         if (!menu) return;
@@ -90,7 +90,7 @@
           btn.role = 'button';
           btn.tabIndex = 0;
           btn.className = 'menu-icon' + (cat === 'all' ? ' selected' : '');
-          btn.src = categoryIcons[cat] || '/Uploads/other-icon.png';
+          btn.src = categoryIcons[cat] || 'https://i.ibb.co/2pKRg9R/1769879784069.png';
           btn.alt = categoryLabels[cat] || cat;
           btn.title = categoryLabels[cat] || cat;
           btn.onerror = function () { this.style.display = 'none'; };
