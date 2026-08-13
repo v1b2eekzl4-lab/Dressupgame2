@@ -3204,17 +3204,6 @@
           } catch (_) {}
         }
       }
-      var hasAnyEquipped = Object.keys(equippedItems).some(function (k) { return Array.isArray(equippedItems[k]) && equippedItems[k].length > 0; });
-      if (!hasAnyEquipped && !loadOutfitName && lastLoadedSavedOutfits.length > 0) {
-        var lastOutfit = lastLoadedSavedOutfits[lastLoadedSavedOutfits.length - 1];
-        if (lastOutfit && typeof lastOutfit.items === 'object') {
-          try {
-            applySavedOutfitToCharacter(lastOutfit);
-            updateEquippedItems();
-            await saveEquippedItems();
-          } catch (_) {}
-        }
-      }
       try { if (typeof updateEquippedItems === 'function') updateEquippedItems(); } catch (_) {}
     })();
     // Refetch items when page becomes visible so edits from Adjust/Item Debug appear

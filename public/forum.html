@@ -570,6 +570,7 @@
             <div id="forum-right-avatar-wrap">
                 <p class="forum-avatar-label">Your avatar</p>
                 <div id="saved-avatar-box" class="forum-saved-avatar">
+                    <img src="https://i.ibb.co/938sCGCJ/character.png" class="forum-saved-item" alt="" id="forum-avatar-base" style="z-index:-1;transform:translate(-50%,-50%)">
                     <div id="saved-avatar-inner" class="forum-saved-inner"></div>
                 </div>
             </div>
@@ -654,6 +655,7 @@
         </div>
     </div>
 
+    <script src="/js/avatar-outfit.js"></script>
     <script>
         // Placeholder avatar URL
         const placeholderAvatar = 'https://p4vl0v.neocities.org/dfer5erer.png';
@@ -821,40 +823,36 @@
             }).catch(function() { if (cb) cb(); });
         }
 
-        function outfitListToItems(outfits) {
-            if (!Array.isArray(outfits) || outfits.length === 0) return null;
-            var last = outfits[outfits.length - 1];
-            if (!last || !last.items || typeof last.items !== 'object') return null;
-            var slotOrder = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
-            var all = [];
-            slotOrder.forEach(function (slotId) {
-                var arr = last.items[slotId];
-                if (Array.isArray(arr)) arr.forEach(function (item) { all.push({ src: item.src || '', x: item.x != null ? item.x : 0, y: item.y != null ? item.y : 0, z: item.zIndex != null ? item.zIndex : 0 }); });
-            });
-            if (all.length === 0) return null;
-            all.sort(function (a, b) { return (a.z || 0) - (b.z || 0); });
-            return [{ src: 'https://i.ibb.co/938sCGCJ/character.png', x: 0, y: 0, z: -1 }].concat(all);
+        function layersFromEquipped(equipped) {
+            var layers = (typeof equippedToLayers === 'function') ? equippedToLayers(equipped) : null;
+            if (layers && layers.length && typeof layersWithBase === 'function') return layersWithBase(layers);
+            return null;
         }
 
         function fetchFullAvatarItems(userId, currentUserId, post, cb) {
-            var url = (userId != null && String(userId) === String(currentUserId))
-                ? '/api/outfits'
-                : '/api/users/' + encodeURIComponent(userId) + '/outfits';
-            fetch(url, { credentials: 'same-origin' })
-                .then(function (r) { return r.ok ? r.json() : []; })
-                .catch(function () { return []; })
-                .then(function (outfits) {
-                    var items = outfitListToItems(outfits);
-                    if (items && items.length > 0) return cb(items);
-                    if (post.outfitItems && Array.isArray(post.outfitItems) && post.outfitItems.length > 0) {
-                        items = [{ src: 'https://i.ibb.co/938sCGCJ/character.png', x: 0, y: 0, z: -1 }];
-                        post.outfitItems.forEach(function (item) {
-                            items.push({ src: item.src || '', x: item.x != null ? item.x : 0, y: item.y != null ? item.y : 0, z: item.zIndex != null ? item.zIndex : 0 });
-                        });
-                        return cb(items);
-                    }
-                    cb([{ src: post.avatar || placeholderAvatar, x: 0, y: 0, z: 0 }]);
-                });
+            var baseSrc = (typeof AVATAR_BASE === 'string') ? AVATAR_BASE : 'https://i.ibb.co/938sCGCJ/character.png';
+            function finish(equipped, allowSnapshot) {
+                var items = layersFromEquipped(equipped);
+                if (items && items.length > 1) return cb(items);
+                if (equipped && typeof equipped === 'object' && !allowSnapshot) {
+                    return cb([{ src: baseSrc, x: 0, y: 0, z: -1 }]);
+                }
+                if (allowSnapshot && post && post.outfitItems && Array.isArray(post.outfitItems) && post.outfitItems.length > 0) {
+                    items = [{ src: baseSrc, x: 0, y: 0, z: -1 }];
+                    post.outfitItems.forEach(function (item) {
+                        items.push({ src: item.src || '', x: item.x != null ? item.x : 0, y: item.y != null ? item.y : 0, z: item.zIndex != null ? item.zIndex : 0 });
+                    });
+                    return cb(items);
+                }
+                cb([{ src: (post && post.avatar) || placeholderAvatar, x: 0, y: 0, z: 0 }]);
+            }
+            var fromProfile = post && post.authorProfile && post.authorProfile.equipped;
+            if (fromProfile) return finish(fromProfile, false);
+            if (typeof fetchEquipped === 'function' && userId != null) {
+                fetchEquipped(userId).then(function (equipped) { finish(equipped, true); });
+            } else {
+                finish(null, true);
+            }
         }
 
         function drawFullAvatarToCanvas(items, callback) {
@@ -1495,28 +1493,13 @@
         function loadSavedAvatar() {
             const inner = document.getElementById('saved-avatar-inner');
             if (!inner) return;
-            fetch('/api/outfits', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(outfits => {
-                inner.innerHTML = '';
-                if (!Array.isArray(outfits) || outfits.length === 0) return;
-                const last = outfits[outfits.length - 1];
-                if (!last || !last.items || typeof last.items !== 'object') return;
-                const slotOrder = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
-                const all = [];
-                slotOrder.forEach(slotId => {
-                    const arr = last.items[slotId];
-                    if (Array.isArray(arr)) arr.forEach(item => all.push({ ...item, slotId }));
-                });
-                all.forEach(item => {
-                    const img = document.createElement('img');
-                    img.className = 'forum-saved-item';
-                    img.src = item.src || '';
-                    img.alt = item.alt || '';
-                    img.style.zIndex = item.zIndex != null ? item.zIndex : 2;
-                    img.style.transform = 'translate(-50%, -50%) translate(' + (item.x || 0) + 'px, ' + (item.y || 0) + 'px)';
-                    img.onerror = () => { img.style.display = 'none'; };
-                    inner.appendChild(img);
-                });
-            }).catch(() => {});
+            (typeof fetchEquipped === 'function' ? fetchEquipped('me') : fetch('/api/equipped-items', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : {}; }))
+                .then(function (equipped) {
+                    inner.innerHTML = '';
+                    if (typeof renderEquippedLayers === 'function') {
+                        renderEquippedLayers(inner, equipped, { className: 'forum-saved-item' });
+                    }
+                }).catch(function () {});
         }
 
         function submitForumPost(parentId) {
@@ -1534,24 +1517,8 @@
                 return;
             }
 
-            fetch('/api/outfits', { credentials: 'same-origin' })
-                .then(r => r.ok ? r.json() : null)
-                .catch(() => null)
-                .then(outfits => {
-                    let outfitItems = null;
-                    if (Array.isArray(outfits) && outfits.length > 0) {
-                        const last = outfits[outfits.length - 1];
-                        if (last && last.items && typeof last.items === 'object') {
-                            const slots = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
-                            const all = [];
-                            slots.forEach(slotId => {
-                                const arr = last.items[slotId];
-                                if (Array.isArray(arr)) arr.forEach(item => all.push({ ...item, slotId }));
-                            });
-                            all.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
-                            outfitItems = all;
-                        }
-                    }
+            (typeof snapshotEquippedItems === 'function' ? snapshotEquippedItems() : Promise.resolve(null))
+                .then(outfitItems => {
                     var attachments = (window._forumAttachmentList && window._forumAttachmentList.length) ? window._forumAttachmentList.slice() : [];
                     return fetch('/api/forum/posts', {
                         method: 'POST',
@@ -2699,24 +2666,8 @@
                 return;
             }
 
-fetch('/api/outfits', { credentials: 'same-origin' })
-                    .then(r => r.ok ? r.json() : null)
-                    .catch(() => null)
-                    .then(outfits => {
-                        let outfitItems = null;
-                        if (Array.isArray(outfits) && outfits.length > 0) {
-                            const last = outfits[outfits.length - 1];
-                            if (last && last.items && typeof last.items === 'object') {
-                                const slots = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
-                                const all = [];
-                                slots.forEach(slotId => {
-                                    const arr = last.items[slotId];
-                                    if (Array.isArray(arr)) arr.forEach(item => all.push({ ...item, slotId }));
-                                });
-                                all.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
-                                outfitItems = all;
-                            }
-                        }
+(typeof snapshotEquippedItems === 'function' ? snapshotEquippedItems() : Promise.resolve(null))
+                    .then(outfitItems => {
                         return fetch('/api/forum/posts', {
                             method: 'POST',
                             credentials: 'same-origin',

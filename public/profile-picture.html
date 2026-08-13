@@ -59,6 +59,7 @@
   </div>
   <script src="/js/toast.js"></script>
   <script src="/js/header.js"></script>
+  <script src="/js/avatar-outfit.js"></script>
   <script>
 (function () {
   const AVATAR_W = 250;
@@ -86,60 +87,20 @@
   cropSquare.style.top = cropY + 'px';
 
   function loadOutfit() {
-    fetch('/api/outfits', { credentials: 'same-origin' })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (list) {
-        if (!Array.isArray(list) || list.length === 0) {
-          saveStatus.textContent = 'Save an outfit in your Room or Wardrobe first, then come back here.';
-          saveBtn.disabled = true;
-          return;
+    (typeof fetchEquipped === 'function' ? fetchEquipped('me') : fetch('/api/equipped-items', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : {}; }))
+      .then(function (equipped) {
+        var layers = (typeof equippedToLayers === 'function') ? equippedToLayers(equipped) : null;
+        var withBase = (typeof layersWithBase === 'function') ? layersWithBase(layers) : null;
+        if (!withBase || !withBase.length) {
+          var baseSrc = (typeof AVATAR_BASE === 'string') ? AVATAR_BASE : 'https://i.ibb.co/938sCGCJ/character.png';
+          withBase = [{ src: baseSrc, x: 0, y: 0, zIndex: -1 }];
         }
-        const last = list[list.length - 1];
-        if (!last) {
-          saveStatus.textContent = 'Save an outfit in your Room or Wardrobe first, then come back here.';
-          saveBtn.disabled = true;
-          return;
-        }
-        /* Prefer saved merged image when it exists - same asset as home, so forum icon crops from it */
-        if (last.mergedImageUrl) {
-          outfitItems = [];
-          canvasReady = false;
-          var img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = function () {
-            ctx.clearRect(0, 0, AVATAR_W, AVATAR_H);
-            var nw = img.naturalWidth, nh = img.naturalHeight;
-            var framesW = last.mergedFramesW || 1;
-            var srcW = framesW > 1 ? (nw / framesW) : nw;
-            ctx.drawImage(img, 0, 0, srcW, nh, 0, 0, AVATAR_W, AVATAR_H);
-            canvasReady = true;
-            updatePreview();
-          };
-          img.onerror = function () {
-            saveStatus.textContent = 'Could not load merged outfit image.';
-            saveBtn.disabled = true;
-          };
-          img.src = last.mergedImageUrl;
-          return;
-        }
-        /* No merged image: composite from layers (same as wardrobe) */
-        if (last.items && typeof last.items === 'object') {
-          canvasReady = false;
-          const slotOrder = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
-          outfitItems = [];
-          slotOrder.forEach(function (slotId) {
-            const arr = last.items[slotId];
-            if (Array.isArray(arr)) arr.forEach(function (item) { outfitItems.push({ ...item, slotId }); });
-          });
-          outfitItems.sort(function (a, b) { return (a.zIndex || 0) - (b.zIndex || 0); });
-          drawAvatar();
-          return;
-        }
-        saveStatus.textContent = 'Save an outfit in your Room or Wardrobe first, then come back here.';
-        saveBtn.disabled = true;
+        canvasReady = false;
+        outfitItems = withBase;
+        drawAvatar();
       })
       .catch(function () {
-        saveStatus.textContent = 'Could not load your outfit.';
+        saveStatus.textContent = 'Could not load your equipped outfit.';
         saveBtn.disabled = true;
       });
   }

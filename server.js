@@ -860,7 +860,8 @@ app.get('/api/profile', (req, res) => {
       bio: profile.bio != null ? profile.bio : '',
       displayName: profile.displayName != null ? String(profile.displayName).slice(0, 50) : '',
       accentColor: profile.accentColor != null ? String(profile.accentColor).slice(0, 20) : '',
-      profilePageHtml: profile.profilePageHtml != null ? String(profile.profilePageHtml) : ''
+      profilePageHtml: profile.profilePageHtml != null ? String(profile.profilePageHtml) : '',
+      equipped: getEquippedForUser(userId)
     });
   } catch (error) {
     console.error('Error fetching profile:', error);
@@ -1582,7 +1583,8 @@ app.get('/api/users/:id/profile', (req, res) => {
       displayName: profile.displayName != null ? String(profile.displayName).slice(0, 50) : '',
       bio: profile.bio != null ? profile.bio : '',
       profilePictureUrl: hostedUploads.resolvePublicUrl(profile.profilePictureUrl || '') || null,
-      profilePageHtml: profile.profilePageHtml != null ? String(profile.profilePageHtml) : ''
+      profilePageHtml: profile.profilePageHtml != null ? String(profile.profilePageHtml) : '',
+      equipped: getEquippedForUser(id)
     });
   } catch (error) {
     console.error('Error fetching user profile:', error);
@@ -1623,7 +1625,8 @@ app.get('/api/users/:id/forum-hover-profile', (req, res) => {
       })(),
       hoverCardSignature: (profileToUse && typeof profileToUse.hoverCardSignature === 'string') ? profileToUse.hoverCardSignature.trim().slice(0, 120) : '',
       hoverCardSignatureImage: (profileToUse && typeof profileToUse.hoverCardSignatureImage === 'string' && profileToUse.hoverCardSignatureImage.indexOf('data:image/') === 0) ? profileToUse.hoverCardSignatureImage.slice(0, 100000) : '',
-      hoverCardStickers: (profileToUse && Array.isArray(profileToUse.hoverCardStickers)) ? profileToUse.hoverCardStickers.filter(s => s && typeof s.id === 'string' && typeof s.x === 'number' && typeof s.y === 'number').slice(0, 12) : []
+      hoverCardStickers: (profileToUse && Array.isArray(profileToUse.hoverCardStickers)) ? profileToUse.hoverCardStickers.filter(s => s && typeof s.id === 'string' && typeof s.x === 'number' && typeof s.y === 'number').slice(0, 12) : [],
+      equipped: getEquippedForUser(id)
     };
     const authorRoles = getRoles(id);
     const profilePictureUrl = (profileToUse && profileToUse.profilePictureUrl) ? profileToUse.profilePictureUrl : null;
@@ -2225,21 +2228,12 @@ function getOrCreateProfile(userId) {
   const key = String(userId);
   const profiles = loadProfiles();
   if (!profiles[key]) {
-    let equipped = JSON.parse(JSON.stringify(DEFAULT_EQUIPPED_SLOTS));
-    if (key === '1' && fs.existsSync(equippedFile)) {
-      try {
-        const existing = JSON.parse(fs.readFileSync(equippedFile, 'utf8'));
-        if (existing && typeof existing === 'object' && Object.keys(existing).length > 0) {
-          equipped = existing;
-        }
-      } catch (e) { /* ignore */ }
-    }
     profiles[key] = {
       currency: 1000,
       currency2: 0,
       currency3: 50,
       purchased: [],
-      equipped,
+      equipped: JSON.parse(JSON.stringify(DEFAULT_EQUIPPED_SLOTS)),
       bio: '',
       displayName: '',
       accentColor: '',
@@ -2251,6 +2245,15 @@ function getOrCreateProfile(userId) {
   if (!Array.isArray(profiles[key].wishlistItems)) profiles[key].wishlistItems = [];
   if (!Array.isArray(profiles[key].wishlistSets)) profiles[key].wishlistSets = [];
   return profiles[key];
+}
+
+function getEquippedForUser(userId) {
+  if (userId == null) return JSON.parse(JSON.stringify(DEFAULT_EQUIPPED_SLOTS));
+  const profile = getOrCreateProfile(userId);
+  const equipped = (profile.equipped && typeof profile.equipped === 'object' && !Array.isArray(profile.equipped))
+    ? profile.equipped
+    : JSON.parse(JSON.stringify(DEFAULT_EQUIPPED_SLOTS));
+  return hostedUploads.resolveUrlsDeep(equipped);
 }
 
 function getWishlistItems(profile) {
@@ -3581,36 +3584,41 @@ app.post('/api/projects/:id/release', (req, res) => {
 
 app.get('/api/equipped-items', (req, res) => {
   try {
-    const userId = req.session.userId;
-    if (userId != null) {
-      const profile = getOrCreateProfile(userId);
-      const equipped = profile.equipped && typeof profile.equipped === 'object'
-        ? profile.equipped
-        : JSON.parse(JSON.stringify(DEFAULT_EQUIPPED_SLOTS));
-      return res.json(hostedUploads.resolveUrlsDeep(equipped));
+    if (req.session.userId == null) {
+      return res.json(JSON.parse(JSON.stringify(DEFAULT_EQUIPPED_SLOTS)));
     }
-    const equipped = JSON.parse(fs.readFileSync(equippedFile, 'utf8'));
-    res.json(hostedUploads.resolveUrlsDeep(equipped));
+    res.json(getEquippedForUser(req.session.userId));
   } catch (error) {
     console.error('Error fetching equipped items:', error);
     res.status(500).json({ error: 'Failed to fetch equipped items' });
   }
 });
 
-app.post('/api/equipped-items', (req, res) => {
+app.get('/api/users/:id/equipped', (req, res) => {
+  try {
+    const targetId = req.params.id;
+    const users = getUsersForAuth();
+    if (!users.some((u) => String(u.id) === String(targetId))) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json(getEquippedForUser(targetId));
+  } catch (error) {
+    console.error('Error fetching user equipped items:', error);
+    res.status(500).json({ error: 'Failed to fetch equipped items' });
+  }
+});
+
+app.post('/api/equipped-items', requireLogin, (req, res) => {
   try {
     const userId = req.session.userId;
-    if (userId != null) {
-      const key = String(userId);
-      withLock('profiles', () => {
-        const profiles = loadProfiles();
-        if (!profiles[key]) profiles[key] = { currency: 1000, currency2: 0, currency3: 50, purchased: [], equipped: JSON.parse(JSON.stringify(DEFAULT_EQUIPPED_SLOTS)) };
-        profiles[key].equipped = req.body;
-        saveProfiles(profiles);
-      });
-      return res.json({ success: true });
-    }
-    fs.writeFileSync(equippedFile, JSON.stringify(req.body, null, 2));
+    if (userId == null) return res.status(401).json({ error: 'Not logged in' });
+    const key = String(userId);
+    withLock('profiles', () => {
+      const profiles = loadProfiles();
+      if (!profiles[key]) profiles[key] = { currency: 1000, currency2: 0, currency3: 50, purchased: [], equipped: JSON.parse(JSON.stringify(DEFAULT_EQUIPPED_SLOTS)) };
+      profiles[key].equipped = req.body && typeof req.body === 'object' ? req.body : JSON.parse(JSON.stringify(DEFAULT_EQUIPPED_SLOTS));
+      saveProfiles(profiles);
+    });
     res.json({ success: true });
   } catch (error) {
     console.error('Error saving equipped items:', error);
@@ -3738,13 +3746,13 @@ async function handlePostOutfits(req, res) {
     if (items == null || typeof items !== 'object') {
       return res.status(400).json({ error: 'Outfit items are required' });
     }
-    const namesInUse = getAllNamesInUse();
-    if (namesInUse.has(normalizeNameForCheck(name))) {
-      return res.status(400).json({ error: 'An outfit, item upload project, or pixel drawing project with this name already exists. Please choose a different name.' });
-    }
     const byUser = loadOutfitsByUser();
     const key = String(userId);
     if (!Array.isArray(byUser[key])) byUser[key] = [];
+    const already = byUser[key].some((o) => normalizeNameForCheck(o && o.name) === normalizeNameForCheck(name));
+    if (already) {
+      return res.status(400).json({ error: 'You already have an outfit with this name. Choose a different name.' });
+    }
     const outfit = { name, items };
     if (mergedImageUrl) {
       outfit.mergedImageUrl = mergedImageUrl;
@@ -4126,7 +4134,8 @@ app.get('/api/forum/posts', (req, res) => {
             })(),
             hoverCardSignature: (profileToUse && typeof profileToUse.hoverCardSignature === 'string') ? profileToUse.hoverCardSignature.trim().slice(0, 120) : '',
             hoverCardSignatureImage: (profileToUse && typeof profileToUse.hoverCardSignatureImage === 'string' && profileToUse.hoverCardSignatureImage.indexOf('data:image/') === 0) ? profileToUse.hoverCardSignatureImage.slice(0, 100000) : '',
-            hoverCardStickers: (profileToUse && Array.isArray(profileToUse.hoverCardStickers)) ? profileToUse.hoverCardStickers.filter(s => s && typeof s.id === 'string' && typeof s.x === 'number' && typeof s.y === 'number').slice(0, 12) : []
+            hoverCardStickers: (profileToUse && Array.isArray(profileToUse.hoverCardStickers)) ? profileToUse.hoverCardStickers.filter(s => s && typeof s.id === 'string' && typeof s.x === 'number' && typeof s.y === 'number').slice(0, 12) : [],
+            equipped: getEquippedForUser(p.userId)
           };
         } catch (e) {
           ap = { userId: p.userId, username: p.username || '', bio: '' };

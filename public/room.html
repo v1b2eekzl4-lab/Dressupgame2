@@ -168,6 +168,7 @@
     <button type="button" id="chat-send" aria-label="Send message">Send</button>
   </div>
 
+  <script src="/js/avatar-outfit.js"></script>
   <script>
     (function () {
       var roomArea = document.getElementById('room-area');
@@ -200,65 +201,12 @@
 
       function loadOutfit() {
         outfitContainer.innerHTML = '';
-        fetch('/api/outfits', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (outfits) {
-          if (!Array.isArray(outfits) || outfits.length === 0) return;
-          var last = outfits[outfits.length - 1];
-          if (!last) return;
-          /* Prefer layered items (same as wardrobe) over merged image so display matches wardrobe */
-          if (last.items && typeof last.items === 'object') {
-          var slotOrder = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
-          var all = [];
-          slotOrder.forEach(function (slotId) {
-            var arr = last.items[slotId];
-            if (Array.isArray(arr)) arr.forEach(function (item) { all.push({ ...item, slotId }); });
-          });
-          all.forEach(function (item) {
-            var img = document.createElement('img');
-            img.className = 'room-item';
-            img.src = item.src || '';
-            img.alt = item.alt || '';
-            img.style.zIndex = item.zIndex != null ? item.zIndex : 2;
-            img.style.transform = 'translate(-50%, -50%) translate(' + (item.x || 0) + 'px, ' + (item.y || 0) + 'px)';
-            img.onerror = function () { img.style.display = 'none'; };
-            outfitContainer.appendChild(img);
-          });
-          return;
-          }
-          /* Fallback: merged image only when no items */
-          if (last.mergedImageUrl) {
-            var framesW = last.mergedFramesW || 1;
-            var frameDuration = last.mergedFrameDuration || 150;
-            var img = document.createElement('img');
-            img.className = 'room-item room-merged';
-            img.src = last.mergedImageUrl;
-            img.alt = last.name || '';
-            img.style.zIndex = 2;
-            img.style.width = (avatarW * framesW) + 'px';
-            img.style.height = avatarH + 'px';
-            img.style.maxWidth = 'none';
-            img.style.position = 'absolute';
-            img.style.left = '50%';
-            img.style.top = '50%';
-            img.style.transform = 'translate(-50%, -50%)';
-            img.style.imageRendering = 'pixelated';
-            img.onerror = function () { img.style.display = 'none'; };
-            if (framesW > 1) {
-              var wrap = document.createElement('div');
-              wrap.className = 'room-merged-wrap';
-              wrap.style.cssText = 'position:absolute;width:' + avatarW + 'px;height:' + avatarH + 'px;left:50%;top:50%;transform:translate(-50%,-50%);overflow:hidden;z-index:2;';
-              wrap.appendChild(img);
-              var frame = 0;
-              setInterval(function () {
-                frame = (frame + 1) % framesW;
-                img.style.marginLeft = (-frame * avatarW) + 'px';
-              }, frameDuration);
-              outfitContainer.appendChild(wrap);
-            } else {
-              img.style.objectFit = 'contain';
-              outfitContainer.appendChild(img);
+        (typeof fetchEquipped === 'function' ? fetchEquipped('me') : fetch('/api/equipped-items', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : {}; }))
+          .then(function (equipped) {
+            if (typeof renderEquippedLayers === 'function') {
+              renderEquippedLayers(outfitContainer, equipped, { className: 'room-item' });
             }
-          }
-        }).catch(function () {});
+          }).catch(function () {});
       }
 
       function updateAvatarPosition() {

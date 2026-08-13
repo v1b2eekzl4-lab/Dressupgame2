@@ -86,6 +86,11 @@
     .profile-outfit-card .profile-outfit-name { padding: 6px 8px; font-size: 12px; font-weight: 500; color: #374151; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .profile-outfits-empty { font-size: 14px; color: #6b7280; margin-top: 8px; }
     .profile-outfits-empty a { color: var(--profile-accent, #ec4899); font-weight: 600; }
+    .profile-current-look { width: 250px; height: 350px; position: relative; overflow: hidden; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff; margin-top: 12px; }
+    .profile-current-look .profile-look-base,
+    .profile-current-look .profile-look-item {
+      position: absolute; top: 50%; left: 50%; image-rendering: pixelated; object-fit: none; max-width: 250px; pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -124,6 +129,7 @@
 
   <script src="/js/toast.js" defer></script>
   <script src="/js/header.js" defer></script>
+  <script src="/js/avatar-outfit.js"></script>
   <script>
     (function () {
       const el = document.getElementById('profile-content');
@@ -142,7 +148,56 @@
               '<div class="profile-actions mb-4"><button type="button" id="profile-report-user-btn" class="profile-report-btn px-3 py-1 text-sm border border-gray-300 rounded hover:bg-red-50 hover:border-red-300 text-gray-600">Report user</button></div>' +
               '<div class="profile-custom-page-content">' +
               (hasPage ? data.profilePageHtml : '<p class="profile-custom-page-empty">This user has not set up a profile page yet.</p>') +
+              '</div>' +
+              '<div class="profile-outfits-section" id="profile-current-look-section">' +
+              '<div class="profile-section-title">Currently wearing</div>' +
+              '<div class="profile-current-look" id="profile-current-look"><img src="https://i.ibb.co/938sCGCJ/character.png" class="profile-look-base" alt="" style="z-index:-1;transform:translate(-50%,-50%)"></div>' +
+              '</div>' +
+              '<div class="profile-outfits-section" id="profile-outfits-section">' +
+              '<div class="profile-section-title">Saved outfits</div>' +
+              '<p class="profile-outfits-empty" id="profile-outfits-loading">Loading outfits…</p>' +
               '</div>';
+            if (typeof renderEquippedLayers === 'function') {
+              renderEquippedLayers(document.getElementById('profile-current-look'), data.equipped, { className: 'profile-look-item' });
+            }
+            var outfitsSection = document.getElementById('profile-outfits-section');
+            if (outfitsSection) {
+              fetch('/api/users/' + encodeURIComponent(viewUser) + '/outfits', { credentials: 'same-origin', cache: 'no-store' })
+                .then(function (r) { return r.ok ? r.json() : []; })
+                .then(function (outfits) {
+                  var loadingEl = document.getElementById('profile-outfits-loading');
+                  if (!outfitsSection || !loadingEl) return;
+                  var list = Array.isArray(outfits) ? outfits : [];
+                  if (list.length === 0) {
+                    loadingEl.textContent = 'No saved outfits yet.';
+                    return;
+                  }
+                  var grid = document.createElement('div');
+                  grid.className = 'profile-outfits-grid';
+                  list.forEach(function (outfit) {
+                    if (!outfit || !outfit.name) return;
+                    var card = document.createElement('div');
+                    card.className = 'profile-outfit-card';
+                    var img = document.createElement('img');
+                    img.src = outfit.mergedImageUrl || 'https://via.placeholder.com/250x350?text=Outfit';
+                    img.alt = outfit.name;
+                    img.loading = 'lazy';
+                    img.onerror = function () { img.src = 'https://via.placeholder.com/250x350?text=Outfit'; };
+                    var nameEl = document.createElement('div');
+                    nameEl.className = 'profile-outfit-name';
+                    nameEl.textContent = outfit.name;
+                    card.appendChild(img);
+                    card.appendChild(nameEl);
+                    grid.appendChild(card);
+                  });
+                  loadingEl.remove();
+                  outfitsSection.appendChild(grid);
+                })
+                .catch(function () {
+                  var loadingEl = document.getElementById('profile-outfits-loading');
+                  if (loadingEl) loadingEl.textContent = 'Could not load outfits.';
+                });
+            }
             var reportBtn = document.getElementById('profile-report-user-btn');
             if (reportBtn) {
               reportBtn.addEventListener('click', function () {
@@ -208,10 +263,17 @@
             '<a href="/profile-edit" class="profile-edit-btn">Edit profile</a>' +
             ' <a href="/profile-saved-outfits" class="profile-edit-btn">Saved outfits</a>' +
             '</div>' +
+            '<div class="profile-outfits-section" id="profile-current-look-section">' +
+            '<div class="profile-section-title">Currently wearing</div>' +
+            '<div class="profile-current-look" id="profile-current-look"><img src="https://i.ibb.co/938sCGCJ/character.png" class="profile-look-base" alt="" style="z-index:-1;transform:translate(-50%,-50%)"></div>' +
+            '</div>' +
             '<div class="profile-outfits-section" id="profile-outfits-section">' +
-            '<div class="profile-section-title">Outfits (from Wardrobe)</div>' +
+            '<div class="profile-section-title">Saved outfits</div>' +
             '<p class="profile-outfits-empty" id="profile-outfits-loading">Loading outfits…</p>' +
             '</div>';
+          if (typeof renderEquippedLayers === 'function') {
+            renderEquippedLayers(document.getElementById('profile-current-look'), data.equipped, { className: 'profile-look-item' });
+          }
           var outfitsSection = document.getElementById('profile-outfits-section');
           if (outfitsSection) {
             fetch('/api/outfits', { credentials: 'same-origin', cache: 'no-store' })

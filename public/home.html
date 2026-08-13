@@ -516,6 +516,7 @@
     <aside class="home-ad-side" aria-label="Ad space"><span>Ad</span></aside>
   </div>
 
+  <script src="/js/avatar-outfit.js"></script>
   <script>
     function applyPixelPerfectSize(img, maxW, maxH) {
       maxW = maxW || 250; maxH = maxH || 350;
@@ -639,36 +640,22 @@
           });
         });
     })();
-    // Load last saved outfit into avatar box (same approach as forum: use layered items so outfit always shows)
+    // Load currently equipped outfit into avatar box
     (function () {
       const container = document.getElementById('home-outfit-items');
       if (!container) return;
-      fetch('/api/outfits', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then(outfits => {
-        if (!Array.isArray(outfits) || outfits.length === 0) return;
-        const lastOutfit = outfits[outfits.length - 1];
-        if (!lastOutfit || !lastOutfit.items || typeof lastOutfit.items !== 'object') return;
-        const slotOrder = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
-        const all = [];
-        slotOrder.forEach(slotId => {
-          const arr = lastOutfit.items[slotId];
-          if (Array.isArray(arr)) arr.forEach(item => all.push({ ...item, slotId }));
-        });
-        all.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
-        all.forEach(item => {
-          const el = document.createElement('img');
-          el.className = 'home-outfit-item';
-          var src = (item.src || '').trim();
-          if (src && src.indexOf('/') === 0) src = window.location.origin + src;
-          el.src = src || '';
-          el.alt = item.alt || '';
-          el.loading = 'lazy';
-          el.style.zIndex = item.zIndex != null ? item.zIndex : 2;
-          el.style.transform = 'translate(-50%, -50%) translate(' + (item.x || 0) + 'px, ' + (item.y || 0) + 'px)';
-          el.onerror = () => { el.style.display = 'none'; };
-          hookPixelPerfect(el);
-          container.appendChild(el);
-        });
-      }).catch(function () {});
+      (typeof fetchEquipped === 'function' ? fetchEquipped('me') : fetch('/api/equipped-items', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : {}; }))
+        .then(function (equipped) {
+          if (typeof renderEquippedLayers === 'function') {
+            renderEquippedLayers(container, equipped, {
+              className: 'home-outfit-item',
+              onItem: function (el) {
+                el.loading = 'lazy';
+                if (typeof hookPixelPerfect === 'function') hookPixelPerfect(el);
+              }
+            });
+          }
+        }).catch(function () {});
     })();
     // Dashboard slides: load from API and run slideshow
     (function () {

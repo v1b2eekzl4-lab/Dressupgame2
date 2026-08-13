@@ -91,6 +91,7 @@
         </div>
     </div>
 
+    <script src="/js/avatar-outfit.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             loadTopics();
@@ -269,24 +270,8 @@
             const attachments = (window._threadAttachments && window._threadAttachments.length) ? window._threadAttachments.slice() : [];
             if (!title || !category || !postContent) return;
 
-            fetch('/api/outfits', { credentials: 'same-origin' })
-                .then(r => r.ok ? r.json() : null)
-                .catch(() => null)
-                .then(outfits => {
-                    let outfitItems = null;
-                    if (Array.isArray(outfits) && outfits.length > 0) {
-                        const last = outfits[outfits.length - 1];
-                        if (last && last.items && typeof last.items === 'object') {
-                            const slots = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
-                            const all = [];
-                            slots.forEach(slotId => {
-                                const arr = last.items[slotId];
-                                if (Array.isArray(arr)) arr.forEach(item => all.push({ ...item, slotId }));
-                            });
-                            all.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
-                            outfitItems = all;
-                        }
-                    }
+            (typeof snapshotEquippedItems === 'function' ? snapshotEquippedItems() : Promise.resolve(null))
+                .then(outfitItems => {
                     return fetch('/api/forum/topics', {
                         method: 'POST',
                         credentials: 'same-origin',
