@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const { getSupabase, isSupabaseConfigured } = require('./lib/supabase');
 const { startCloudSync } = require('./lib/cloud-store');
+const hostedUploads = require('./lib/hosted-uploads');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -12,7 +13,8 @@ const bcrypt = require('bcrypt');
 
 const app = express();
 const port = process.env.PORT || 3000;
-if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 2);
+const isRender = Boolean(process.env.RENDER);
+if (isRender || process.env.TRUST_PROXY === '1') app.set('trust proxy', 2);
 
 /** Atomic write: write to .tmp then rename, so we never leave a half-written file (safer with concurrent users). */
 function writeAtomic(filePath, content) {
@@ -52,6 +54,23 @@ async function uploadToImgBB(buffer, filename, mimetype) {
     console.error('[ImgBB] Error:', e.message || e);
     return null;
   }
+}
+
+async function hostLocalUpload(absPath, publicPath) {
+  try {
+    if (!process.env.IMGBB_API_KEY || !absPath || !fs.existsSync(absPath)) return null;
+    const ext = path.extname(absPath).toLowerCase();
+    if (['.mp4', '.webm', '.ogg', '.ogv'].includes(ext)) return null;
+    const buf = fs.readFileSync(absPath);
+    const result = await uploadToImgBB(buf, path.basename(absPath));
+    if (result && result.url) {
+      hostedUploads.setUrl(publicPath, result.url);
+      return result.url;
+    }
+  } catch (e) {
+    console.warn('[ImgBB] host failed', publicPath, e.message || e);
+  }
+  return null;
 }
 
 /** In-process lock per key so only one read-modify-write runs at a time (prevents lost updates with concurrent users). */
@@ -227,7 +246,7 @@ function checkAuthRateLimit(req, res, next) {
 // Middleware setup (higher JSON limit so outfit save with merged base64 image succeeds)
 app.use(express.json({ limit: '15mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '15mb' }));
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === 'production' || isRender;
 
 // Security headers (no helmet dependency)
 app.use((req, res, next) => {
@@ -288,7 +307,8 @@ try {
   console.error('[uploads] Could not create Uploads:', e.message || e);
 }
 const defaultUploadsDir = path.join(__dirname, 'default-uploads');
-app.use('/Uploads', express.static(uploadsDir, { maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0 }));
+app.use('/Uploads', hostedUploads.middleware);
+app.use('/Uploads', express.static(uploadsDir, { maxAge: isProduction ? '7d' : 0 }));
 app.use('/Uploads', express.static(defaultUploadsDir, { maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0 }));
 
 // Sticker dir and multer (fully defined here so route order is guaranteed)
@@ -329,12 +349,16 @@ app.get('/api/hover-card-stickers', (req, res) => {
       return [];
     })();
     const baseUrl = '/Uploads/hover-card-stickers/';
-    let out = (Array.isArray(list) ? list : []).map(s => ({
-      id: s.id || s.filename,
-      filename: s.filename || s.id,
-      url: baseUrl + (s.filename || s.id),
-      tags: Array.isArray(s.tags) ? s.tags : []
-    }));
+    let out = (Array.isArray(list) ? list : []).map(s => {
+      const filename = s.filename || s.id;
+      const localUrl = baseUrl + filename;
+      return {
+        id: s.id || s.filename,
+        filename,
+        url: hostedUploads.resolvePublicUrl(s.imageUrl || localUrl),
+        tags: Array.isArray(s.tags) ? s.tags : []
+      };
+    });
     const search = (req.query.search || '').trim().toLowerCase();
     if (search) {
       out = out.filter(s => {
@@ -381,7 +405,7 @@ app.patch('/api/hover-card-stickers/:id', requireLogin, (req, res) => {
   }
 });
 
-app.put('/api/hover-card-stickers/:id/replace-image', requireLogin, stickerReplaceMulterEarly.single('sticker'), (req, res) => {
+app.put('/api/hover-card-stickers/:id/replace-image', requireLogin, stickerReplaceMulterEarly.single('sticker'), async (req, res) => {
   try {
     const userId = req.session && req.session.userId;
     if (userId == null) return res.status(401).json({ error: 'Not logged in' });
@@ -405,14 +429,17 @@ app.put('/api/hover-card-stickers/:id/replace-image', requireLogin, stickerRepla
     }
     const filePath = path.join(hoverCardStickersDirEarly, id);
     fs.writeFileSync(filePath, req.file.buffer);
-    res.json({ id, url: '/Uploads/hover-card-stickers/' + encodeURIComponent(id) });
+    const publicPath = '/Uploads/hover-card-stickers/' + id;
+    const hosted = await uploadToImgBB(req.file.buffer, id, req.file.mimetype);
+    if (hosted && hosted.url) hostedUploads.setUrl(publicPath, hosted.url);
+    res.json({ id, url: hostedUploads.resolvePublicUrl(publicPath) });
   } catch (e) {
     console.error('PUT hover-card-stickers replace-image:', e);
     res.status(500).json({ error: 'Failed to replace sticker image: ' + (e.message || 'server error') });
   }
 });
 
-app.post('/api/hover-card-stickers/upload', requireLogin, stickerUploadMulterEarly.single('sticker'), (req, res) => {
+app.post('/api/hover-card-stickers/upload', requireLogin, stickerUploadMulterEarly.single('sticker'), async (req, res) => {
   try {
     const userId = req.session && req.session.userId;
     if (userId == null) return res.status(401).json({ error: 'Not logged in' });
@@ -434,7 +461,9 @@ app.post('/api/hover-card-stickers/upload', requireLogin, stickerUploadMulterEar
     }
     list.push({ id: filename, filename });
     fs.writeFileSync(hoverCardStickersFileEarly, JSON.stringify(list, null, 2), 'utf8');
-    res.json({ id: filename, filename, url: '/Uploads/hover-card-stickers/' + filename });
+    const publicPath = '/Uploads/hover-card-stickers/' + filename;
+    const hosted = await hostLocalUpload(req.file.path, publicPath);
+    res.json({ id: filename, filename, url: hosted || hostedUploads.resolvePublicUrl(publicPath) });
   } catch (e) {
     console.error('POST hover-card-stickers/upload:', e);
     res.status(500).json({ error: 'Failed to upload sticker: ' + (e.message || 'server error') });
@@ -827,7 +856,7 @@ app.get('/api/profile', (req, res) => {
       currency2: req.session.currency2 != null ? req.session.currency2 : 0,
       currency3: req.session.currency3 != null ? req.session.currency3 : 0,
       purchasedCount: purchased.length,
-      profilePictureUrl: profile.profilePictureUrl || null,
+      profilePictureUrl: hostedUploads.resolvePublicUrl(profile.profilePictureUrl || '') || null,
       bio: profile.bio != null ? profile.bio : '',
       displayName: profile.displayName != null ? String(profile.displayName).slice(0, 50) : '',
       accentColor: profile.accentColor != null ? String(profile.accentColor).slice(0, 20) : '',
@@ -871,7 +900,7 @@ app.get('/api/dashboard/slides', (req, res) => {
       ];
       return res.json(defaultSlides);
     }
-    res.json(slides);
+    res.json(hostedUploads.resolveUrlsDeep(slides));
   } catch (e) {
     res.status(500).json({ error: 'Failed to load slides' });
   }
@@ -970,10 +999,12 @@ const dashboardUploadMulter = multer({
   storage: dashboardUploadStorage,
   fileFilter: (req, file, cb) => cb(null, dashboardMediaMimes.includes(file.mimetype))
 });
-app.post('/api/dashboard/upload', requireLogin, dashboardUploadMulter.single('image'), (req, res) => {
+app.post('/api/dashboard/upload', requireLogin, dashboardUploadMulter.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image file' });
-    res.json({ url: '/Uploads/dashboard/' + path.basename(req.file.path) });
+    const publicPath = '/Uploads/dashboard/' + path.basename(req.file.path);
+    const hosted = await hostLocalUpload(req.file.path, publicPath);
+    res.json({ url: hosted || hostedUploads.resolvePublicUrl(publicPath) });
   } catch (e) {
     res.status(500).json({ error: 'Failed to upload' });
   }
@@ -1006,7 +1037,7 @@ const slideGalleryMulter = multer({
 app.post('/api/slide-gallery/upload', requireLogin, (req, res, next) => {
   if (!canEditDashboard(req.session.userId)) return res.status(403).json({ error: 'Admin or moderator required' });
   next();
-}, slideGalleryMulter.single('image'), (req, res) => {
+}, slideGalleryMulter.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image or video file' });
     const name = path.basename(req.file.path);
@@ -1017,7 +1048,9 @@ app.post('/api/slide-gallery/upload', requireLogin, (req, res, next) => {
       meta[name] = { tags };
       saveSlideGalleryMeta(meta);
     }
-    res.json({ url: '/Uploads/slide-gallery/' + name, name, tags });
+    const publicPath = '/Uploads/slide-gallery/' + name;
+    const hosted = await hostLocalUpload(req.file.path, publicPath);
+    res.json({ url: hosted || hostedUploads.resolvePublicUrl(publicPath), name, tags });
   } catch (e) {
     res.status(500).json({ error: 'Failed to upload' });
   }
@@ -1037,7 +1070,7 @@ app.get('/api/slide-gallery', requireLogin, (req, res) => {
       const entry = meta[name];
       const tags = Array.isArray(entry && entry.tags) ? entry.tags : [];
       const isVideo = /\.(mp4|webm|og[gv])$/i.test(name);
-      return { url: '/Uploads/slide-gallery/' + name, name, tags, type: isVideo ? 'video' : 'image' };
+      return { url: hostedUploads.resolvePublicUrl('/Uploads/slide-gallery/' + name), name, tags, type: isVideo ? 'video' : 'image' };
     });
     if (filterTag) {
       images = images.filter(img => (img.tags || []).some(t => String(t).toLowerCase() === filterTag));
@@ -1548,7 +1581,7 @@ app.get('/api/users/:id/profile', (req, res) => {
       username: u.username || '',
       displayName: profile.displayName != null ? String(profile.displayName).slice(0, 50) : '',
       bio: profile.bio != null ? profile.bio : '',
-      profilePictureUrl: profile.profilePictureUrl || null,
+      profilePictureUrl: hostedUploads.resolvePublicUrl(profile.profilePictureUrl || '') || null,
       profilePageHtml: profile.profilePageHtml != null ? String(profile.profilePageHtml) : ''
     });
   } catch (error) {
@@ -1635,7 +1668,19 @@ app.get('/api/users', (req, res) => {
     if (userId == null) return res.status(401).json({ error: 'Not logged in' });
     if (!canAssignRoles(userId)) return res.status(403).json({ error: 'Admin only' });
     const users = getUsersForAuth();
-    const list = users.map(u => ({ id: u.id, username: u.username || '', roles: (u.roles && Array.isArray(u.roles)) ? u.roles : [] }));
+    const profiles = loadProfiles();
+    const list = users.map(u => {
+      const p = profiles[String(u.id)] || {};
+      return {
+        id: u.id,
+        username: u.username || '',
+        roles: (u.roles && Array.isArray(u.roles)) ? u.roles : [],
+        currency: typeof p.currency === 'number' ? p.currency : 1000,
+        currency2: typeof p.currency2 === 'number' ? p.currency2 : 0,
+        currency3: typeof p.currency3 === 'number' ? p.currency3 : 50,
+        goldenTickets: typeof p.goldenTickets === 'number' ? p.goldenTickets : 0
+      };
+    });
     res.json(list);
   } catch (error) {
     console.error('Error listing users:', error);
@@ -1669,6 +1714,64 @@ app.put('/api/users/:id/roles', (req, res) => {
     if (error.message === 'User not found') return res.status(404).json({ error: 'User not found' });
     console.error('Error assigning roles:', error);
     res.status(500).json({ error: 'Failed to assign roles' });
+  }
+});
+
+app.post('/api/admin/users/:id/currency', requireLogin, (req, res) => {
+  try {
+    if (!canAssignRoles(req.session.userId)) return res.status(403).json({ error: 'Admin only' });
+    const targetId = Number(req.params.id);
+    if (!Number.isFinite(targetId)) return res.status(400).json({ error: 'Invalid user id' });
+    const mode = req.body && req.body.mode === 'set' ? 'set' : 'add';
+    const coins = Math.floor(Number(req.body && req.body.coins) || 0);
+    const gems = Math.floor(Number(req.body && req.body.gems) || 0);
+    const silver = Math.floor(Number(req.body && req.body.silver) || 0);
+    const tickets = Math.floor(Number(req.body && req.body.goldenTickets) || 0);
+    if (![coins, gems, silver, tickets].some((n) => n !== 0)) {
+      return res.status(400).json({ error: 'Provide coins, gems, silver, or goldenTickets' });
+    }
+    let result;
+    withLock('profiles', () => {
+      const profiles = loadProfiles();
+      const key = String(targetId);
+      if (!profiles[key]) {
+        profiles[key] = {
+          currency: 1000,
+          currency2: 0,
+          currency3: 50,
+          purchased: [],
+          equipped: JSON.parse(JSON.stringify(DEFAULT_EQUIPPED_SLOTS)),
+          bio: '',
+          goldenTickets: 0
+        };
+      }
+      const p = profiles[key];
+      if (mode === 'set') {
+        if (req.body.coins != null) p.currency = Math.max(0, coins);
+        if (req.body.gems != null) p.currency2 = Math.max(0, gems);
+        if (req.body.silver != null) p.currency3 = Math.max(0, silver);
+        if (req.body.goldenTickets != null) p.goldenTickets = Math.max(0, tickets);
+      } else {
+        p.currency = Math.max(0, (typeof p.currency === 'number' ? p.currency : 1000) + coins);
+        p.currency2 = Math.max(0, (typeof p.currency2 === 'number' ? p.currency2 : 0) + gems);
+        p.currency3 = Math.max(0, (typeof p.currency3 === 'number' ? p.currency3 : 50) + silver);
+        p.goldenTickets = Math.max(0, (typeof p.goldenTickets === 'number' ? p.goldenTickets : 0) + tickets);
+      }
+      saveProfiles(profiles);
+      result = {
+        currency: p.currency,
+        currency2: p.currency2,
+        currency3: p.currency3,
+        goldenTickets: p.goldenTickets || 0
+      };
+    });
+    if (String(req.session.userId) === String(targetId)) {
+      ensureUserInventory(req);
+    }
+    res.json({ success: true, userId: targetId, mode, ...result });
+  } catch (error) {
+    console.error('Error giving currency:', error);
+    res.status(500).json({ error: 'Failed to update currency' });
   }
 });
 
@@ -1725,7 +1828,7 @@ app.get('/wallpaper-debug.html', requireLogin, requireRole('admin', 'moderator')
 app.get('/api/site-settings', (req, res) => {
   try {
     const settings = loadSiteSettings();
-    res.json({ wallpaperUrl: settings.wallpaperUrl || '' });
+    res.json({ wallpaperUrl: hostedUploads.resolvePublicUrl(settings.wallpaperUrl || '') || '' });
   } catch (e) {
     res.status(500).json({ error: 'Failed to load site settings' });
   }
@@ -1762,10 +1865,12 @@ app.post('/api/site-settings/wallpaper', requireLogin, requireRole('admin', 'mod
     }
     next();
   });
-}, (req, res) => {
+}, async (req, res) => {
   try {
     if (!req.file || !req.file.filename) return res.status(400).json({ error: 'No image uploaded. Choose a PNG, JPG, GIF, or WebP file.' });
-    const url = '/Uploads/' + req.file.filename;
+    const publicPath = '/Uploads/' + req.file.filename;
+    const hosted = await hostLocalUpload(req.file.path, publicPath);
+    const url = hosted || hostedUploads.resolvePublicUrl(publicPath);
     withLock('siteSettings', () => {
       const settings = loadSiteSettings();
       settings.wallpaperUrl = url;
@@ -2795,7 +2900,10 @@ app.post('/api/items/upload', itemUploadMulter.single('item'), async (req, res) 
       defaultZ: parseInt(defaultZ) || 0,
       dateAdded: new Date().toISOString()
     };
-    if (imageUrl) newItem.imageUrl = imageUrl;
+    if (imageUrl) {
+      newItem.imageUrl = imageUrl;
+      hostedUploads.setUrl('/Uploads/' + filename, imageUrl);
+    }
     const fc = parseInt(frameCount, 10);
     if (fc > 1) {
       newItem.frameCount = fc;
@@ -2812,7 +2920,7 @@ app.post('/api/items/upload', itemUploadMulter.single('item'), async (req, res) 
 });
 
 // Profile picture (forum icon): upload cropped image from profile picture editor
-app.post('/api/profile-picture', requireLogin, profilePictureUpload.single('picture'), (req, res) => {
+app.post('/api/profile-picture', requireLogin, profilePictureUpload.single('picture'), async (req, res) => {
   try {
     const userId = req.session.userId;
     if (userId == null) return res.status(401).json({ error: 'Not logged in' });
@@ -2821,7 +2929,10 @@ app.post('/api/profile-picture', requireLogin, profilePictureUpload.single('pict
     const filename = String(userId) + ext;
     const filepath = path.join(profilePicturesDir, filename);
     fs.writeFileSync(filepath, req.file.buffer);
-    const profilePictureUrl = '/Uploads/profile-pictures/' + filename;
+    const publicPath = '/Uploads/profile-pictures/' + filename;
+    const hosted = await uploadToImgBB(req.file.buffer, filename, req.file.mimetype);
+    if (hosted && hosted.url) hostedUploads.setUrl(publicPath, hosted.url);
+    const profilePictureUrl = hostedUploads.resolvePublicUrl(publicPath);
     const key = String(userId);
     withLock('profiles', () => {
       const profiles = loadProfiles();
@@ -3072,20 +3183,90 @@ function removeCatalogItems(matchFn) {
   return removed;
 }
 
+function refundPurchasedFilenames(priceMap) {
+  const filenames = new Set(Object.keys(priceMap || {}));
+  let usersRefunded = 0;
+  let totalRefunded = 0;
+  if (!filenames.size) return { usersRefunded, totalRefunded };
+  withLock('profiles', () => {
+    const profiles = loadProfiles();
+    Object.keys(profiles).forEach((key) => {
+      const p = profiles[key];
+      if (!p || !Array.isArray(p.purchased)) return;
+      let refund = 0;
+      const kept = [];
+      p.purchased.forEach((fn) => {
+        if (filenames.has(fn)) refund += priceMap[fn] != null ? priceMap[fn] : DEFAULT_ITEM_PRICE;
+        else kept.push(fn);
+      });
+      if (refund === 0 && kept.length === p.purchased.length) return;
+      p.purchased = kept;
+      if (refund > 0) {
+        p.currency = (typeof p.currency === 'number' ? p.currency : 0) + refund;
+        usersRefunded++;
+        totalRefunded += refund;
+      }
+      if (p.equipped && typeof p.equipped === 'object') {
+        Object.keys(p.equipped).forEach((slot) => {
+          if (!Array.isArray(p.equipped[slot])) return;
+          p.equipped[slot] = p.equipped[slot].filter((eq) => {
+            const src = eq && (eq.src || eq.filename || '');
+            const base = path.basename(String(src).split('?')[0]);
+            return !filenames.has(base) && !filenames.has(eq && eq.filename);
+          });
+        });
+      }
+    });
+    saveProfiles(profiles);
+  });
+  return { usersRefunded, totalRefunded };
+}
+
 app.delete('/api/items/:filename', requireLogin, (req, res) => {
   try {
     if (!canSeeItemDebug(req.session.userId)) {
       return res.status(403).json({ error: 'Access denied' });
     }
     const { filename } = req.params;
+    const items = JSON.parse(fs.readFileSync(itemsFile));
+    const match = items.find((item) => item && item.filename === filename);
+    const priceMap = {};
+    if (match) {
+      priceMap[filename] = (match.price != null && !isNaN(Number(match.price))) ? Number(match.price) : DEFAULT_ITEM_PRICE;
+    }
     const removed = removeCatalogItems((item) => item.filename === filename);
     if (!removed.length) {
       return res.status(404).json({ error: 'Item not found' });
     }
-    res.json({ success: true, deleted: removed.map((i) => i.filename) });
+    const refund = refundPurchasedFilenames(priceMap);
+    if (req.session.userId != null) ensureUserInventory(req);
+    res.json({ success: true, deleted: removed.map((i) => i.filename), refund });
   } catch (error) {
     console.error('Error deleting item:', error);
     res.status(500).json({ error: 'Failed to delete item' });
+  }
+});
+
+app.get('/api/sets/:setId', requireLogin, (req, res) => {
+  try {
+    if (!canSeeItemDebug(req.session.userId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    const setId = decodeURIComponent(req.params.setId || '').trim();
+    if (!setId) return res.status(400).json({ error: 'Missing set id' });
+    const items = JSON.parse(fs.readFileSync(itemsFile));
+    const list = items.filter((item) => item && itemSetIds(item).includes(setId));
+    res.json({
+      setId,
+      items: list.map((i) => ({
+        filename: i.filename,
+        name: i.name || i.filename,
+        price: (i.price != null && !isNaN(Number(i.price))) ? Number(i.price) : DEFAULT_ITEM_PRICE
+      }))
+    });
+  } catch (error) {
+    console.error('Error listing set:', error);
+    res.status(500).json({ error: 'Failed to list set' });
   }
 });
 
@@ -3096,11 +3277,24 @@ app.delete('/api/sets/:setId', requireLogin, (req, res) => {
     }
     const setId = decodeURIComponent(req.params.setId || '').trim();
     if (!setId) return res.status(400).json({ error: 'Missing set id' });
+    const items = JSON.parse(fs.readFileSync(itemsFile));
+    const toRemove = items.filter((item) => item && itemSetIds(item).includes(setId));
+    const priceMap = {};
+    toRemove.forEach((i) => {
+      priceMap[i.filename] = (i.price != null && !isNaN(Number(i.price))) ? Number(i.price) : DEFAULT_ITEM_PRICE;
+    });
     const removed = removeCatalogItems((item) => itemSetIds(item).includes(setId));
     if (!removed.length) {
       return res.status(404).json({ error: 'No items found for that set' });
     }
-    res.json({ success: true, deletedCount: removed.length, deleted: removed.map((i) => i.filename) });
+    const refund = refundPurchasedFilenames(priceMap);
+    if (req.session.userId != null) ensureUserInventory(req);
+    res.json({
+      success: true,
+      deletedCount: removed.length,
+      deleted: removed.map((i) => i.filename),
+      refund
+    });
   } catch (error) {
     console.error('Error deleting set:', error);
     res.status(500).json({ error: 'Failed to delete set' });
@@ -3393,10 +3587,10 @@ app.get('/api/equipped-items', (req, res) => {
       const equipped = profile.equipped && typeof profile.equipped === 'object'
         ? profile.equipped
         : JSON.parse(JSON.stringify(DEFAULT_EQUIPPED_SLOTS));
-      return res.json(equipped);
+      return res.json(hostedUploads.resolveUrlsDeep(equipped));
     }
     const equipped = JSON.parse(fs.readFileSync(equippedFile, 'utf8'));
-    res.json(equipped);
+    res.json(hostedUploads.resolveUrlsDeep(equipped));
   } catch (error) {
     console.error('Error fetching equipped items:', error);
     res.status(500).json({ error: 'Failed to fetch equipped items' });
@@ -3432,7 +3626,7 @@ app.get('/api/outfits', (req, res) => {
     }
     const byUser = loadOutfitsByUser();
     const list = byUser[String(userId)];
-    res.json(Array.isArray(list) ? list : []);
+    res.json(hostedUploads.resolveUrlsDeep(Array.isArray(list) ? list : []));
   } catch (error) {
     console.error('Error fetching outfits:', error);
     res.status(500).json({ error: 'Failed to fetch outfits' });
@@ -3445,7 +3639,7 @@ app.get('/api/users/:id/outfits', (req, res) => {
     const targetUserId = req.params.id;
     const byUser = loadOutfitsByUser();
     const list = (targetUserId != null && byUser[String(targetUserId)]) ? byUser[String(targetUserId)] : [];
-    res.json(Array.isArray(list) ? list : []);
+    res.json(hostedUploads.resolveUrlsDeep(Array.isArray(list) ? list : []));
   } catch (error) {
     console.error('Error fetching user outfits:', error);
     res.status(500).json({ error: 'Failed to fetch outfits' });
@@ -3465,16 +3659,22 @@ app.post('/api/outfits', (req, res, next) => {
       { name: 'mergedFrameDuration', maxCount: 1 }
     ])(req, res, (err) => {
       if (err) return res.status(400).json({ error: err.message || 'Upload failed' });
-      handlePostOutfits(req, res);
+      handlePostOutfits(req, res).catch((e) => {
+        console.error('Error saving outfit:', e);
+        if (!res.headersSent) res.status(500).json({ error: e.message || 'Failed to save outfit' });
+      });
     });
   } else {
     next();
   }
 }, (req, res) => {
-  handlePostOutfits(req, res);
+  handlePostOutfits(req, res).catch((e) => {
+    console.error('Error saving outfit:', e);
+    if (!res.headersSent) res.status(500).json({ error: e.message || 'Failed to save outfit' });
+  });
 });
 
-function handlePostOutfits(req, res) {
+async function handlePostOutfits(req, res) {
   try {
     const userId = req.session.userId;
     if (userId == null) {
@@ -3499,6 +3699,11 @@ function handlePostOutfits(req, res) {
         const filepath = path.join(outfitsUploadDir, filename);
         fs.writeFileSync(filepath, mergedFile.buffer);
         mergedImageUrl = '/Uploads/outfits/' + filename;
+        const hosted = await uploadToImgBB(mergedFile.buffer, filename, mergedFile.mimetype);
+        if (hosted && hosted.url) {
+          hostedUploads.setUrl(mergedImageUrl, hosted.url);
+          mergedImageUrl = hosted.url;
+        }
       }
       mergedFramesW = b.mergedFramesW != null && b.mergedFramesW !== '' ? Math.max(1, parseInt(b.mergedFramesW, 10) || 1) : 1;
       mergedFrameDuration = b.mergedFrameDuration != null && b.mergedFrameDuration !== '' ? Math.max(50, parseInt(b.mergedFrameDuration, 10) || 150) : 150;
@@ -3516,6 +3721,11 @@ function handlePostOutfits(req, res) {
             const filepath = path.join(outfitsUploadDir, filename);
             fs.writeFileSync(filepath, buffer);
             mergedImageUrl = '/Uploads/outfits/' + filename;
+            const hosted = await uploadToImgBB(buffer, filename, 'image/png');
+            if (hosted && hosted.url) {
+              hostedUploads.setUrl(mergedImageUrl, hosted.url);
+              mergedImageUrl = hosted.url;
+            }
           }
         } catch (e) {
           console.error('Outfit merged base64 decode error:', e.message);
@@ -3723,14 +3933,16 @@ function saveForumGifs(custom) {
   fs.writeFileSync(forumGifsFile, JSON.stringify({ custom: custom || [] }, null, 2));
 }
 
-app.post('/api/forum/upload', requireLogin, upload.single('file'), (req, res) => {
+app.post('/api/forum/upload', requireLogin, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const mimetype = (req.file.mimetype || '').toLowerCase();
     const isImage = /^image\//.test(mimetype);
     const isVideo = /^video\//.test(mimetype);
     if (!isImage && !isVideo) return res.status(400).json({ error: 'Only images and videos are allowed' });
-    const url = '/Uploads/' + path.basename(req.file.path);
+    const publicPath = '/Uploads/' + path.basename(req.file.path);
+    const hosted = isImage ? await hostLocalUpload(req.file.path, publicPath) : null;
+    const url = hosted || hostedUploads.resolvePublicUrl(publicPath);
     res.json({ url, type: isImage ? 'image' : 'video' });
   } catch (e) {
     console.error('Forum upload error:', e);
@@ -3741,7 +3953,7 @@ app.post('/api/forum/upload', requireLogin, upload.single('file'), (req, res) =>
 app.get('/api/forum/emotes', (req, res) => {
   try {
     const custom = loadForumEmotes();
-    res.json({ builtin: FORUM_BUILTIN_EMOTES, custom });
+    res.json({ builtin: FORUM_BUILTIN_EMOTES, custom: hostedUploads.resolveUrlsDeep(custom) });
   } catch (e) {
     res.status(500).json({ error: 'Failed to load emoticons' });
   }
@@ -3749,7 +3961,7 @@ app.get('/api/forum/emotes', (req, res) => {
 
 const EMOTE_COST_GEMS = 10;
 
-app.post('/api/forum/emotes', requireLogin, upload.single('image'), (req, res) => {
+app.post('/api/forum/emotes', requireLogin, upload.single('image'), async (req, res) => {
   try {
     const roles = getRoles(req.session.userId);
     if (!roles.includes('admin') && !roles.includes('moderator')) return res.status(403).json({ error: 'Admin or moderator required to add custom emoticons' });
@@ -3761,7 +3973,9 @@ app.post('/api/forum/emotes', requireLogin, upload.single('image'), (req, res) =
     if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
     const mimetype = (req.file.mimetype || '').toLowerCase();
     if (!/^image\//.test(mimetype)) return res.status(400).json({ error: 'Only images allowed for emoticons' });
-    const url = '/Uploads/' + path.basename(req.file.path);
+    const publicPath = '/Uploads/' + path.basename(req.file.path);
+    const hosted = await hostLocalUpload(req.file.path, publicPath);
+    const url = hosted || hostedUploads.resolvePublicUrl(publicPath);
     const custom = loadForumEmotes();
     if (custom.some(e => e.shortcode === shortcode)) return res.status(400).json({ error: 'That shortcode already exists' });
     custom.push({ shortcode, url });
@@ -3782,7 +3996,7 @@ const GIF_COST_GEMS = 10;
 app.get('/api/forum/gifs', (req, res) => {
   try {
     const custom = loadForumGifs();
-    res.json({ custom });
+    res.json({ custom: hostedUploads.resolveUrlsDeep(custom) });
   } catch (e) {
     res.status(500).json({ error: 'Failed to load gifs' });
   }
@@ -3810,7 +4024,7 @@ app.get('/api/forum/giphy-search', (req, res) => {
   });
 });
 
-app.post('/api/forum/gifs', requireLogin, upload.single('gif'), (req, res) => {
+app.post('/api/forum/gifs', requireLogin, upload.single('gif'), async (req, res) => {
   try {
     const roles = getRoles(req.session.userId);
     if (!roles.includes('admin') && !roles.includes('moderator') && !roles.includes('membership')) {
@@ -3824,7 +4038,9 @@ app.post('/api/forum/gifs', requireLogin, upload.single('gif'), (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No GIF uploaded' });
     const mimetype = (req.file.mimetype || '').toLowerCase();
     if (mimetype !== 'image/gif') return res.status(400).json({ error: 'Only GIF images allowed' });
-    const url = '/Uploads/' + path.basename(req.file.path);
+    const publicPath = '/Uploads/' + path.basename(req.file.path);
+    const hosted = await hostLocalUpload(req.file.path, publicPath);
+    const url = hosted || hostedUploads.resolvePublicUrl(publicPath);
     const custom = loadForumGifs();
     if (custom.some(g => g.shortcode === shortcode)) return res.status(400).json({ error: 'That shortcode already exists' });
     custom.push({ shortcode, url });
@@ -3919,7 +4135,7 @@ app.get('/api/forum/posts', (req, res) => {
       copy.authorProfile = ap;
       return copy;
     });
-    res.json(enriched);
+    res.json(hostedUploads.resolveUrlsDeep(enriched));
   } catch (error) {
     console.error('Error fetching forum posts:', error);
     res.status(500).json({ error: 'Failed to fetch posts' });

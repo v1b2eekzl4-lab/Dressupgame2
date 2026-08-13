@@ -1912,7 +1912,10 @@
         deleteSetBtn.textContent = 'Delete set';
         deleteSetBtn.title = 'Permanently delete all ' + items.length + ' items in this set from the catalog';
         deleteSetBtn.addEventListener('click', function () {
-          if (!confirm('Delete set "' + setName + '" and all ' + items.length + ' items from the catalog? This cannot be undone.')) return;
+          const names = items.map(function (it) { return it.name || it.filename; });
+          const preview = names.slice(0, 15).join('\n');
+          const extra = names.length > 15 ? '\n…and ' + (names.length - 15) + ' more' : '';
+          if (!confirm('Delete set "' + setName + '" and refund anyone who bought these items?\n\n' + preview + extra + '\n\nThis cannot be undone.')) return;
           fetch('/api/sets/' + encodeURIComponent(setId), { method: 'DELETE', credentials: 'same-origin' })
             .then(function (res) {
               return res.json().then(function (data) { return { ok: res.ok, data: data }; });
@@ -1923,7 +1926,9 @@
               saveStoredSetDefinitions(stored.filter(function (s) { return s.id !== setId; }));
               loadItems();
               if (document.querySelector('.table-wrap.sets-view-active')) renderSetsView();
-              showMsg('Deleted set "' + setName + '" (' + (result.data.deletedCount || items.length) + ' items).');
+              var refund = result.data.refund || {};
+              var extraMsg = refund.usersRefunded ? (' Refunded ' + refund.usersRefunded + ' owner(s) (' + refund.totalRefunded + ' coins).') : '';
+              showMsg('Deleted set "' + setName + '" (' + (result.data.deletedCount || items.length) + ' items).' + extraMsg);
             })
             .catch(function (err) {
               showMsg('Failed to delete set: ' + (err && err.message ? err.message : 'error'), true);

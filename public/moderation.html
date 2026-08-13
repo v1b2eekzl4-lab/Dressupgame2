@@ -34,6 +34,13 @@
       <div id="users-list" class="bg-white rounded-lg shadow p-4"></div>
       <p id="save-status" class="mt-4 text-sm text-gray-500"></p>
     </section>
+
+    <section id="currency-section" class="hidden mt-8">
+      <h2 class="text-xl font-bold mb-2">Give currency</h2>
+      <p class="text-gray-600 mb-4">Add coins, candies, silver, or golden tickets to another account. Use negative numbers to subtract.</p>
+      <div id="currency-list" class="bg-white rounded-lg shadow p-4 overflow-x-auto"></div>
+      <p id="currency-status" class="mt-4 text-sm text-gray-500"></p>
+    </section>
   </div>
   <script src="/js/toast.js"></script>
   <script src="/js/header.js"></script>
@@ -43,6 +50,9 @@
   const permissionsSection = document.getElementById('permissions-section');
   const usersList = document.getElementById('users-list');
   const status = document.getElementById('save-status');
+  const currencySection = document.getElementById('currency-section');
+  const currencyList = document.getElementById('currency-list');
+  const currencyStatus = document.getElementById('currency-status');
 
   function loadReports() {
     fetch('/api/reports', { credentials: 'same-origin' })
@@ -170,6 +180,68 @@
       });
   }
 
+  function loadCurrencyUsers() {
+    fetch('/api/users', { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (users) {
+        if (!Array.isArray(users) || users.length === 0) {
+          currencyList.innerHTML = '<p class="text-gray-500">No users.</p>';
+          return;
+        }
+        currencyList.innerHTML = '<table class="w-full text-left text-sm"><thead><tr class="border-b"><th class="pb-2">User</th><th class="pb-2">Coins</th><th class="pb-2">Candies</th><th class="pb-2">Silver</th><th class="pb-2">Tickets</th><th class="pb-2"></th></tr></thead><tbody id="currency-tbody"></tbody></table>';
+        const tbody = document.getElementById('currency-tbody');
+        users.forEach(function (u) {
+          const tr = document.createElement('tr');
+          tr.className = 'border-b border-gray-100';
+          tr.innerHTML =
+            '<td class="py-2">' + (u.username || '') + ' <span class="text-gray-400">(ID ' + u.id + ')</span><div class="text-xs text-gray-500">' +
+            (u.currency != null ? u.currency : 0) + ' / ' + (u.currency2 != null ? u.currency2 : 0) + ' / ' + (u.currency3 != null ? u.currency3 : 0) + ' / ' + (u.goldenTickets != null ? u.goldenTickets : 0) +
+            '</div></td>' +
+            '<td class="py-2"><input type="number" class="give-coins w-20 border rounded px-1 py-0.5" data-user-id="' + u.id + '" value="0"></td>' +
+            '<td class="py-2"><input type="number" class="give-gems w-20 border rounded px-1 py-0.5" data-user-id="' + u.id + '" value="0"></td>' +
+            '<td class="py-2"><input type="number" class="give-silver w-20 border rounded px-1 py-0.5" data-user-id="' + u.id + '" value="0"></td>' +
+            '<td class="py-2"><input type="number" class="give-tickets w-20 border rounded px-1 py-0.5" data-user-id="' + u.id + '" value="0"></td>' +
+            '<td class="py-2"><button type="button" class="give-currency-btn px-3 py-1 bg-pink-500 text-white rounded text-sm" data-user-id="' + u.id + '">Give</button></td>';
+          tbody.appendChild(tr);
+        });
+        tbody.querySelectorAll('.give-currency-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            const userId = btn.dataset.userId;
+            const row = btn.closest('tr');
+            const body = {
+              coins: Number(row.querySelector('.give-coins').value) || 0,
+              gems: Number(row.querySelector('.give-gems').value) || 0,
+              silver: Number(row.querySelector('.give-silver').value) || 0,
+              goldenTickets: Number(row.querySelector('.give-tickets').value) || 0
+            };
+            currencyStatus.textContent = 'Saving…';
+            fetch('/api/admin/users/' + encodeURIComponent(userId) + '/currency', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body)
+            })
+              .then(function (r) {
+                if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || r.statusText); });
+                return r.json();
+              })
+              .then(function () {
+                currencyStatus.textContent = 'Updated user ' + userId + '.';
+                loadCurrencyUsers();
+                if (window.updateHeaderCurrency) window.updateHeaderCurrency();
+                setTimeout(function () { currencyStatus.textContent = ''; }, 2000);
+              })
+              .catch(function (err) {
+                currencyStatus.textContent = err.message || 'Failed to update.';
+              });
+          });
+        });
+      })
+      .catch(function () {
+        currencyList.innerHTML = '<p class="text-red-600">Could not load users.</p>';
+      });
+  }
+
   loadReports();
 
   fetch('/api/me', { credentials: 'same-origin' })
@@ -181,6 +253,10 @@
       if (permissionsSection && isAdmin) {
         permissionsSection.classList.remove('hidden');
         loadUsers();
+      }
+      if (currencySection && isAdmin) {
+        currencySection.classList.remove('hidden');
+        loadCurrencyUsers();
       }
     });
 })();
