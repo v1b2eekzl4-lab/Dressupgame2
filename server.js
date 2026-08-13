@@ -4143,10 +4143,22 @@ app.get('/api/forum/posts', (req, res) => {
       copy.authorProfile = ap;
       return copy;
     });
-    res.json(hostedUploads.resolveUrlsDeep(enriched));
+    try {
+      res.json(hostedUploads.resolveUrlsDeep(enriched));
+    } catch (e) {
+      console.error('Error resolving forum post URLs:', e);
+      res.json(enriched);
+    }
   } catch (error) {
     console.error('Error fetching forum posts:', error);
-    res.status(500).json({ error: 'Failed to fetch posts' });
+    try {
+      const topicId = req.query.topicId;
+      const posts = loadForumPosts();
+      const filtered = topicId ? posts.filter(p => String(p.topicId || '') === String(topicId)) : posts;
+      return res.json(Array.isArray(filtered) ? filtered : []);
+    } catch (e2) {
+      res.status(500).json({ error: 'Failed to fetch posts' });
+    }
   }
 });
 

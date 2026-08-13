@@ -422,7 +422,7 @@
         .forum-sidebar-right .forum-right-ads-guest .forum-ad-space { margin-top: 1rem; }
         .forum-sidebar-right .forum-right-ads-guest .forum-ad-space:first-child { margin-top: 0; }
         .forum-center { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 0 1.5rem; overflow: hidden; }
-        .forum-box { display: flex; flex-direction: column; min-height: 0; flex: 1; background: transparent; box-shadow: none; padding: 0; }
+        .forum-box { display: flex; flex-direction: column; min-height: 0; flex: 1; background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
         .forum-box .forum-title-row { margin-bottom: 1rem; }
         .forum-title-text { font-size: 1.5rem; font-weight: 700; color: #000; margin: 0; }
         .forum-posts-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; min-height: 0; }
@@ -541,7 +541,9 @@
                 </div>
                 <p id="thread-locked-notice" class="hidden text-amber-700 bg-amber-100 px-3 py-2 rounded text-sm mb-4">This thread is locked. Only admins and moderators can post.</p>
 
-                <div id="posts" class="forum-posts-scroll space-y-5 mb-4"></div>
+                <div id="posts" class="forum-posts-scroll space-y-5 mb-4">
+                    <div class="forum-main-box" id="forum-loading-box"><p class="text-sm text-gray-500">Loading thread…</p></div>
+                </div>
 
                 <div id="post-form-wrap" class="flex-shrink-0 pt-2">
                     <button type="button" id="write-comment-btn" class="btn-primary px-4 py-2 rounded-lg text-sm font-medium">Add Response</button>
@@ -823,48 +825,64 @@
             }).catch(function() { if (cb) cb(); });
         }
 
-        function layersFromEquipped(equipped) {
-            var layers = (typeof equippedToLayers === 'function') ? equippedToLayers(equipped) : null;
-            if (layers && layers.length && typeof layersWithBase === 'function') return layersWithBase(layers);
-            return null;
+        function outfitListToItems(outfits) {
+            if (!Array.isArray(outfits) || outfits.length === 0) return null;
+            var last = outfits[outfits.length - 1];
+            if (!last || !last.items || typeof last.items !== 'object') return null;
+            var slotOrder = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
+            var all = [];
+            slotOrder.forEach(function (slotId) {
+                var arr = last.items[slotId];
+                if (Array.isArray(arr)) arr.forEach(function (item) {
+                    if (!item || typeof item !== 'object') return;
+                    all.push({ src: item.src || '', x: item.x != null ? item.x : 0, y: item.y != null ? item.y : 0, z: item.zIndex != null ? item.zIndex : 0 });
+                });
+            });
+            if (all.length === 0) return null;
+            all.sort(function (a, b) { return (a.z || 0) - (b.z || 0); });
+            return [{ src: 'https://i.ibb.co/938sCGCJ/character.png', x: 0, y: 0, z: -1 }].concat(all);
         }
 
-        var _equippedCache = {};
         function fetchFullAvatarItems(userId, currentUserId, post, cb) {
-            var baseSrc = (typeof AVATAR_BASE === 'string') ? AVATAR_BASE : 'https://i.ibb.co/938sCGCJ/character.png';
+            var baseSrc = 'https://i.ibb.co/938sCGCJ/character.png';
             function done(items) {
-                setTimeout(function () {
-                    try { cb(items); } catch (e) {}
-                }, 0);
+                try { cb(items); } catch (e) {}
             }
-            function finish(equipped) {
-                try {
-                    var items = layersFromEquipped(equipped);
-                    if (items && items.length > 1) return done(items);
-                    if (post && post.outfitItems && Array.isArray(post.outfitItems) && post.outfitItems.length > 0) {
-                        items = [{ src: baseSrc, x: 0, y: 0, z: -1 }];
-                        post.outfitItems.forEach(function (item) {
-                            if (!item || typeof item !== 'object') return;
-                            items.push({ src: String(item.src || ''), x: item.x != null ? item.x : 0, y: item.y != null ? item.y : 0, z: item.zIndex != null ? item.zIndex : 0 });
-                        });
-                        if (items.length > 1) return done(items);
-                    }
-                    if (equipped && typeof equipped === 'object') {
-                        return done([{ src: baseSrc, x: 0, y: 0, z: -1 }]);
-                    }
-                } catch (e) {}
+            function fromSnapshot() {
+                if (post && post.outfitItems && Array.isArray(post.outfitItems) && post.outfitItems.length > 0) {
+                    var items = [{ src: baseSrc, x: 0, y: 0, z: -1 }];
+                    post.outfitItems.forEach(function (item) {
+                        if (!item || typeof item !== 'object') return;
+                        items.push({ src: item.src || '', x: item.x != null ? item.x : 0, y: item.y != null ? item.y : 0, z: item.zIndex != null ? item.zIndex : 0 });
+                    });
+                    return done(items);
+                }
                 done([{ src: (post && post.avatar) || placeholderAvatar, x: 0, y: 0, z: 0 }]);
             }
-            var key = userId != null ? String(userId) : '';
-            if (key && _equippedCache[key]) return finish(_equippedCache[key]);
-            if (typeof fetchEquipped === 'function' && userId != null) {
-                fetchEquipped(userId).then(function (equipped) {
-                    if (key) _equippedCache[key] = equipped || {};
-                    finish(equipped);
-                }).catch(function () { finish(null); });
-            } else {
-                finish(null);
+            function fromSavedOutfits() {
+                var url = (userId != null && String(userId) === String(currentUserId))
+                    ? '/api/outfits'
+                    : (userId != null ? '/api/users/' + encodeURIComponent(userId) + '/outfits' : null);
+                if (!url) return fromSnapshot();
+                fetch(url, { credentials: 'same-origin' })
+                    .then(function (r) { return r.ok ? r.json() : []; })
+                    .catch(function () { return []; })
+                    .then(function (outfits) {
+                        var items = outfitListToItems(outfits);
+                        if (items && items.length > 0) return done(items);
+                        fromSnapshot();
+                    });
             }
+            var equippedPromise = (typeof fetchEquipped === 'function' && userId != null)
+                ? fetchEquipped(userId).catch(function () { return null; })
+                : Promise.resolve(null);
+            equippedPromise.then(function (equipped) {
+                var layers = (typeof equippedToLayers === 'function') ? equippedToLayers(equipped) : null;
+                if (layers && layers.length && typeof layersWithBase === 'function') {
+                    return done(layersWithBase(layers));
+                }
+                fromSavedOutfits();
+            }).catch(function () { fromSavedOutfits(); });
         }
 
         function drawFullAvatarToCanvas(items, callback) {
@@ -1798,8 +1816,8 @@
         function loadPosts() {
             window._forumLoadPosts = loadPosts;
             const postsContainer = document.getElementById('posts');
+            if (!postsContainer) return;
             const topicId = getTopicId();
-            postsContainer.innerHTML = '';
 
             Promise.all([
                 fetch('/api/me', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
@@ -1808,6 +1826,7 @@
                 fetch('/api/forum/emotes', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
                 fetch('/api/forum/gifs', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : {}).catch(() => ({}))
             ]).then(([me, topics, posts, emotesData, gifsData]) => {
+                postsContainer.innerHTML = '';
                 if (emotesData && emotesData.builtin) window._forumEmotes.builtin = emotesData.builtin;
                 if (emotesData && Array.isArray(emotesData.custom)) window._forumEmotes.custom = emotesData.custom;
                 if (gifsData && Array.isArray(gifsData.custom)) window._forumGifs = gifsData.custom;
@@ -2139,6 +2158,13 @@
                     editWrap.appendChild(editActions);
                     mainBox.appendChild(editWrap);
                     postsContainer.appendChild(mainBox);
+                } else {
+                    const emptyBox = document.createElement('div');
+                    emptyBox.className = 'forum-main-box';
+                    emptyBox.innerHTML = topicId
+                        ? '<p class="text-sm text-gray-500">This thread has no posts yet.</p>'
+                        : '<p class="text-sm text-gray-500">Open a thread from the Bulletin Board to read posts.</p>';
+                    postsContainer.appendChild(emptyBox);
                 }
                 const commentsSection = document.createElement('div');
                 commentsSection.className = 'forum-comments-section';
@@ -2184,6 +2210,9 @@
                 else if (postFormWrap) postFormWrap.style.display = '';
             }).catch(function (e) {
                 console.error('loadPosts failed', e);
+                if (postsContainer && !postsContainer.querySelector('.forum-main-box')) {
+                    postsContainer.innerHTML = '<div class="forum-main-box"><p class="text-sm text-gray-500">Could not load this thread. Refresh the page or open it from the Bulletin Board.</p></div>';
+                }
             });
         }
 
