@@ -244,7 +244,7 @@ app.use('/api', (req, res, next) => {
 app.use(session({
   secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   cookie: {
     secure: isProduction || process.env.USE_HTTPS === '1',
     sameSite: isProduction ? 'lax' : 'lax',
@@ -694,9 +694,16 @@ app.post('/login', checkAuthRateLimit, (req, res) => {
   if (user) {
     const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     authRateLimit.delete(ip);
-    req.session.user = user.username;
-    req.session.userId = user.id;
-    res.redirect('/home');
+    req.session.regenerate((err) => {
+      if (err) {
+        console.error('login session regenerate failed:', err);
+        return res.redirect('/login?error=invalid');
+      }
+      req.session.user = user.username;
+      req.session.userId = user.id;
+      ensureUserInventory(req);
+      req.session.save(() => res.redirect('/home'));
+    });
   } else {
     res.redirect('/login?error=invalid');
   }
@@ -737,9 +744,16 @@ app.post('/register', checkAuthRateLimit, (req, res) => {
   });
   const ip = req.ip || req.socket?.remoteAddress || 'unknown';
   authRateLimit.delete(ip);
-  req.session.user = trimmed;
-  req.session.userId = newId;
-  res.redirect('/home');
+  req.session.regenerate((err) => {
+    if (err) {
+      console.error('register session regenerate failed:', err);
+      return res.redirect('/create-account?error=invalid');
+    }
+    req.session.user = trimmed;
+    req.session.userId = newId;
+    ensureUserInventory(req);
+    req.session.save(() => res.redirect('/home'));
+  });
 });
 
 app.get('/logout', (req, res) => {
@@ -2228,15 +2242,18 @@ function saveWishlistToProfile(userId, wishlistItems, wishlistSets) {
 }
 
 function saveUserInventoryToProfile(userId, currency, purchased, currency2, currency3, goldenTickets) {
-  const profiles = loadProfiles();
-  const key = String(userId);
-  if (!profiles[key]) profiles[key] = { currency: 1000, currency2: 0, currency3: 50, purchased: [], equipped: JSON.parse(JSON.stringify(DEFAULT_EQUIPPED_SLOTS)), bio: '', goldenTickets: 0 };
-  profiles[key].currency = currency;
-  if (typeof currency2 === 'number') profiles[key].currency2 = currency2;
-  if (typeof currency3 === 'number') profiles[key].currency3 = currency3;
-  if (typeof goldenTickets === 'number') profiles[key].goldenTickets = goldenTickets;
-  profiles[key].purchased = Array.isArray(purchased) ? purchased : [];
-  saveProfiles(profiles);
+  if (userId == null) return;
+  withLock('profiles', () => {
+    const profiles = loadProfiles();
+    const key = String(userId);
+    if (!profiles[key]) profiles[key] = { currency: 1000, currency2: 0, currency3: 50, purchased: [], equipped: JSON.parse(JSON.stringify(DEFAULT_EQUIPPED_SLOTS)), bio: '', goldenTickets: 0 };
+    profiles[key].currency = currency;
+    if (typeof currency2 === 'number') profiles[key].currency2 = currency2;
+    if (typeof currency3 === 'number') profiles[key].currency3 = currency3;
+    if (typeof goldenTickets === 'number') profiles[key].goldenTickets = goldenTickets;
+    profiles[key].purchased = Array.isArray(purchased) ? purchased : [];
+    saveProfiles(profiles);
+  });
 }
 
 const GACHA_CARDS_PER_SET = 10;
@@ -2262,6 +2279,9 @@ const DEFAULT_ITEM_PRICE = 100;
 
 app.get('/api/user-inventory', (req, res) => {
   try {
+    if (req.session.userId == null) {
+      return res.json({ currency: 0, currency2: 0, currency3: 0, goldenTickets: 0, purchased: [], gachaCards: {} });
+    }
     ensureUserInventory(req);
     try { fs.appendFileSync(wardrobeDebugLog, new Date().toISOString() + ' GET /api/user-inventory userId=' + (req.session && req.session.userId) + ' purchased=' + (req.session.purchased && req.session.purchased.length) + '\n'); } catch (_) {}
     res.json({ currency: req.session.currency, currency2: req.session.currency2 != null ? req.session.currency2 : 0, currency3: req.session.currency3 != null ? req.session.currency3 : 0, goldenTickets: req.session.goldenTickets != null ? req.session.goldenTickets : 0, purchased: req.session.purchased, gachaCards: req.session.gachaCards || {} });
@@ -2272,7 +2292,7 @@ app.get('/api/user-inventory', (req, res) => {
   }
 });
 
-app.post('/api/purchase/:filename', (req, res) => {
+app.post('/api/purchase/:filename', requireLogin, (req, res) => {
   try {
     const { filename } = req.params;
     ensureUserInventory(req);
@@ -2386,7 +2406,7 @@ app.post('/api/vintage/purchase/:listingId', (req, res) => {
 });
 
 // Earn currency from games (e.g. Berry Catch score). Also grants a small amount of silver (1 per 5 coins, max 5 per call).
-app.post('/api/earn-currency', (req, res) => {
+app.post('/api/earn-currency', requireLogin, (req, res) => {
   try {
     ensureUserInventory(req);
     const amount = Math.floor(Number(req.body.amount) || 0);
@@ -2408,7 +2428,7 @@ app.post('/api/earn-currency', (req, res) => {
 const GACHA_COST_GOLD = 50;
 const EARN_SILVER_CAP = 20;
 
-app.post('/api/earn-silver', (req, res) => {
+app.post('/api/earn-silver', requireLogin, (req, res) => {
   try {
     ensureUserInventory(req);
     const amount = Math.floor(Number(req.body.amount) || 0);
@@ -2454,7 +2474,7 @@ app.post('/api/debug-add-currency', requireLogin, (req, res) => {
   }
 });
 
-app.post('/api/gacha', (req, res) => {
+app.post('/api/gacha', requireLogin, (req, res) => {
   try {
     ensureUserInventory(req);
     const gold = req.session.currency != null ? req.session.currency : 0;
@@ -3008,27 +3028,82 @@ app.post('/api/items/sync-swatch-coordinates', (req, res) => {
   }
 });
 
-app.delete('/api/items/:filename', (req, res) => {
+function itemSetIds(item) {
+  const tags = Array.isArray(item && item.tags) ? item.tags : [];
+  const ids = [];
+  tags.forEach((t) => {
+    if (typeof t !== 'string') return;
+    if (t.startsWith('set-id:')) ids.push(t.slice('set-id:'.length));
+    else if (t.startsWith('set-name:')) ids.push(t.slice('set-name:'.length));
+    else if (t.startsWith('set:')) ids.push(t.slice('set:'.length));
+  });
+  return ids;
+}
+
+function unlinkUploadFiles(filenames) {
+  const uploadsDir = path.join(__dirname, 'Uploads');
+  filenames.forEach((f) => {
+    if (!f) return;
+    const uploadsPath = path.join(uploadsDir, f);
+    if (fs.existsSync(uploadsPath)) {
+      try { fs.unlinkSync(uploadsPath); } catch (_) { /* ignore */ }
+    }
+  });
+}
+
+function removeCatalogItems(matchFn) {
+  const items = JSON.parse(fs.readFileSync(itemsFile));
+  const kept = [];
+  const removed = [];
+  items.forEach((item) => {
+    if (item && matchFn(item)) removed.push(item);
+    else kept.push(item);
+  });
+  if (removed.length) {
+    fs.writeFileSync(itemsFile, JSON.stringify(kept, null, 2));
+    const filesToDelete = new Set();
+    removed.forEach((item) => {
+      if (item.filename) filesToDelete.add(item.filename);
+      (item.bundleParts || []).forEach((p) => { if (p && p.filename) filesToDelete.add(p.filename); });
+      if (item.background && item.background.filename) filesToDelete.add(item.background.filename);
+    });
+    unlinkUploadFiles([...filesToDelete]);
+  }
+  return removed;
+}
+
+app.delete('/api/items/:filename', requireLogin, (req, res) => {
   try {
+    if (!canSeeItemDebug(req.session.userId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
     const { filename } = req.params;
-    const items = JSON.parse(fs.readFileSync(itemsFile));
-    const itemIndex = items.findIndex(item => item.filename === filename);
-    if (itemIndex === -1) {
+    const removed = removeCatalogItems((item) => item.filename === filename);
+    if (!removed.length) {
       return res.status(404).json({ error: 'Item not found' });
     }
-    const item = items[itemIndex];
-    items.splice(itemIndex, 1);
-    fs.writeFileSync(itemsFile, JSON.stringify(items, null, 2));
-    const uploadsDir = path.join(__dirname, 'Uploads');
-    const filesToDelete = new Set([filename, ...(item.bundleParts || []).map(p => p.filename), ...(item.background && item.background.filename ? [item.background.filename] : [])]);
-    filesToDelete.forEach(f => {
-      const uploadsPath = path.join(uploadsDir, f);
-      if (fs.existsSync(uploadsPath)) fs.unlinkSync(uploadsPath);
-    });
-    res.json({ success: true });
+    res.json({ success: true, deleted: removed.map((i) => i.filename) });
   } catch (error) {
     console.error('Error deleting item:', error);
     res.status(500).json({ error: 'Failed to delete item' });
+  }
+});
+
+app.delete('/api/sets/:setId', requireLogin, (req, res) => {
+  try {
+    if (!canSeeItemDebug(req.session.userId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    const setId = decodeURIComponent(req.params.setId || '').trim();
+    if (!setId) return res.status(400).json({ error: 'Missing set id' });
+    const removed = removeCatalogItems((item) => itemSetIds(item).includes(setId));
+    if (!removed.length) {
+      return res.status(404).json({ error: 'No items found for that set' });
+    }
+    res.json({ success: true, deletedCount: removed.length, deleted: removed.map((i) => i.filename) });
+  } catch (error) {
+    console.error('Error deleting set:', error);
+    res.status(500).json({ error: 'Failed to delete set' });
   }
 });
 

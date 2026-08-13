@@ -1,11 +1,13 @@
 node_modules/
 .env
 users.json
+profiles.json
 *.log
 .cursor/
 
 # User uploads (recreate via app)
 Uploads/
+.imgbb-cache.json
 
 # Default uploads used as fallback - keep out of repo to avoid Render size limits (use external hosting or minimal set only)
 default-uploads/

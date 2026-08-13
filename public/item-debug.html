@@ -1877,13 +1877,14 @@
         const h3 = document.createElement('h3');
         h3.textContent = setName + ' (' + items.length + ')';
         header.appendChild(h3);
-        const deleteSetBtn = document.createElement('button');
-        deleteSetBtn.type = 'button';
-        deleteSetBtn.className = 'set-card-delete-btn';
-        deleteSetBtn.textContent = 'Delete set';
-        deleteSetBtn.title = 'Remove this set from all ' + items.length + ' items';
-        deleteSetBtn.addEventListener('click', function () {
-          if (!confirm('Remove set "' + setName + '" from all ' + items.length + ' items? Items will keep their category and designer.')) return;
+        const ungroupSetBtn = document.createElement('button');
+        ungroupSetBtn.type = 'button';
+        ungroupSetBtn.className = 'set-card-delete-btn';
+        ungroupSetBtn.style.background = '#6b7280';
+        ungroupSetBtn.textContent = 'Ungroup';
+        ungroupSetBtn.title = 'Remove this set grouping from all ' + items.length + ' items. Items stay in the catalog.';
+        ungroupSetBtn.addEventListener('click', function () {
+          if (!confirm('Ungroup set "' + setName + '" from all ' + items.length + ' items? Items will keep their category and designer.')) return;
           function clearSetTags(tags) {
             return (Array.isArray(tags) ? tags : []).filter(function (t) {
               if (typeof t !== 'string') return true;
@@ -1899,10 +1900,34 @@
             saveStoredSetDefinitions(filtered);
             loadItems();
             if (document.querySelector('.table-wrap.sets-view-active')) renderSetsView();
-            showMsg('Set "' + setName + '" removed from ' + items.length + ' item(s).');
+            showMsg('Set "' + setName + '" ungrouped from ' + items.length + ' item(s).');
           }).catch(function (err) {
-            showMsg('Failed to delete set: ' + (err && err.message ? err.message : 'error'), true);
+            showMsg('Failed to ungroup set: ' + (err && err.message ? err.message : 'error'), true);
           });
+        });
+        header.appendChild(ungroupSetBtn);
+        const deleteSetBtn = document.createElement('button');
+        deleteSetBtn.type = 'button';
+        deleteSetBtn.className = 'set-card-delete-btn';
+        deleteSetBtn.textContent = 'Delete set';
+        deleteSetBtn.title = 'Permanently delete all ' + items.length + ' items in this set from the catalog';
+        deleteSetBtn.addEventListener('click', function () {
+          if (!confirm('Delete set "' + setName + '" and all ' + items.length + ' items from the catalog? This cannot be undone.')) return;
+          fetch('/api/sets/' + encodeURIComponent(setId), { method: 'DELETE', credentials: 'same-origin' })
+            .then(function (res) {
+              return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+            })
+            .then(function (result) {
+              if (!result.ok) throw new Error((result.data && result.data.error) || 'Delete failed');
+              const stored = getStoredSetDefinitions();
+              saveStoredSetDefinitions(stored.filter(function (s) { return s.id !== setId; }));
+              loadItems();
+              if (document.querySelector('.table-wrap.sets-view-active')) renderSetsView();
+              showMsg('Deleted set "' + setName + '" (' + (result.data.deletedCount || items.length) + ' items).');
+            })
+            .catch(function (err) {
+              showMsg('Failed to delete set: ' + (err && err.message ? err.message : 'error'), true);
+            });
         });
         header.appendChild(deleteSetBtn);
         cardInfo.appendChild(header);
