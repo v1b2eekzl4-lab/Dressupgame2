@@ -123,7 +123,7 @@
       <div class="section">
         <label for="forum-header-graphic">Header graphic (image in the row with username and date)</label>
         <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
-          <input type="text" id="forum-header-graphic" placeholder="https://... or /Uploads/... (or use Upload from PC)" maxlength="500" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+          <input type="text" id="forum-header-graphic" placeholder="https://... or upload from PC" maxlength="2000" style="flex: 1; min-width: 200px; margin-bottom: 0;">
           <button type="button" id="forum-header-graphic-upload-btn" class="btn btn-secondary btn-sm">Upload from PC</button>
         </div>
         <input type="file" id="forum-header-graphic-file" accept="image/*" style="display: none;">
@@ -163,13 +163,15 @@
       </div>
 
       <div id="blinkies" class="section">
-        <label>Blinkies (small images next to your name, e.g. GIF URLs)</label>
-        <p class="desc" style="margin-bottom: 8px;">Add up to 10 image URLs. They will appear in the footer of your bulletin board posts.</p>
+        <label>Blinkies (small images next to your name)</label>
+        <p class="desc" style="margin-bottom: 8px;">Add up to 10 images. Upload from your PC or paste a URL. They appear in the footer of your bulletin board posts.</p>
         <div id="blinkies-list" class="blinkies-list"></div>
         <div class="add-blinky-row">
-          <input type="url" id="new-blinky-url" placeholder="https://... or /Uploads/...">
-          <button type="button" class="btn btn-secondary btn-sm" id="add-blinky-btn">Add</button>
+          <input type="url" id="new-blinky-url" placeholder="https://...">
+          <button type="button" class="btn btn-secondary btn-sm" id="add-blinky-btn">Add URL</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="upload-blinky-btn">Upload from PC</button>
         </div>
+        <input type="file" id="new-blinky-file" accept="image/*" style="display: none;">
       </div>
 
       <button type="submit" class="btn btn-primary">Save customization</button>
@@ -227,7 +229,7 @@
         var nameEl = document.getElementById('forum-preview-name');
         var blinkiesWrap = document.getElementById('forum-preview-blinkies-wrap');
         var headerVal = (document.getElementById('forum-post-header').value || '').trim().slice(0, 200);
-        var headerGraphicUrl = (document.getElementById('forum-header-graphic').value || '').trim().slice(0, 500);
+        var headerGraphicUrl = (document.getElementById('forum-header-graphic').value || '').trim().slice(0, 2000);
         var postColor = (postColorInput.value || '').trim();
         if (!/^#[0-9A-Fa-f]{3,6}$/.test(postColor)) postColor = '';
         var nameColor = (nameColorInput.value || '').trim();
@@ -385,6 +387,37 @@
         updatePreview();
       });
 
+      (function () {
+        var uploadBtn = document.getElementById('upload-blinky-btn');
+        var fileInput = document.getElementById('new-blinky-file');
+        if (!uploadBtn || !fileInput) return;
+        uploadBtn.addEventListener('click', function () { fileInput.click(); });
+        fileInput.addEventListener('change', function () {
+          var file = fileInput.files && fileInput.files[0];
+          if (!file) return;
+          if (blinkies.length >= 10) {
+            showMessage('Maximum 10 blinkies.', true);
+            fileInput.value = '';
+            return;
+          }
+          var fd = new FormData();
+          fd.append('file', file);
+          uploadBtn.disabled = true;
+          fetch('/api/forum/upload', { method: 'POST', credentials: 'same-origin', body: fd })
+            .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || 'Upload failed'); return d; }); })
+            .then(function (d) {
+              if (d && d.url) {
+                blinkies.push(d.url);
+                renderBlinkies();
+                updatePreview();
+                showMessage('Blinky uploaded. Save customization to keep it.', false);
+              }
+            })
+            .catch(function (e) { showMessage(e.message || 'Upload failed.', true); })
+            .finally(function () { uploadBtn.disabled = false; fileInput.value = ''; });
+        });
+      })();
+
       function load() {
         fetch('/api/forum-post-customization', { credentials: 'same-origin' })
           .then(function (r) {
@@ -417,7 +450,7 @@
         e.preventDefault();
         var payload = {
           forumPostHeader: (document.getElementById('forum-post-header').value || '').trim().slice(0, 200),
-          forumHeaderGraphic: (document.getElementById('forum-header-graphic').value || '').trim().slice(0, 500),
+          forumHeaderGraphic: (document.getElementById('forum-header-graphic').value || '').trim().slice(0, 2000),
           forumPostColor: (document.getElementById('forum-post-color').value || '').trim(),
           forumNameColor: (document.getElementById('forum-name-color').value || '').trim(),
           forumNameFont: (document.getElementById('forum-name-font').value || '').trim().slice(0, 80),
@@ -435,6 +468,16 @@
           .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
           .then(function (result) {
             if (result.ok) {
+              if (result.data) {
+                if (typeof result.data.forumHeaderGraphic === 'string') {
+                  document.getElementById('forum-header-graphic').value = result.data.forumHeaderGraphic;
+                }
+                if (Array.isArray(result.data.forumBlinkies)) {
+                  blinkies = result.data.forumBlinkies.slice();
+                  renderBlinkies();
+                }
+                updatePreview();
+              }
               showMessage('Customization saved. Your next bulletin board posts will use these settings.');
             } else {
               showMessage(result.data && result.data.error ? result.data.error : 'Failed to save.', true);

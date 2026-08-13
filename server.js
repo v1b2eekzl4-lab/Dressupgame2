@@ -73,6 +73,86 @@ async function hostLocalUpload(absPath, publicPath) {
   return null;
 }
 
+const CUSTOM_IMAGE_URL_MAX = 2000;
+
+function isRemoteHttpsUrl(url) {
+  return typeof url === 'string' && /^https?:\/\//i.test(url.trim()) && !/localhost|127\.0\.0\.1/i.test(url);
+}
+
+function isStoredImageUrl(url) {
+  if (typeof url !== 'string') return false;
+  const s = url.trim();
+  if (!s) return false;
+  if (s.indexOf('data:image/') === 0) return true;
+  if (isRemoteHttpsUrl(s)) return true;
+  if (s.startsWith('/Uploads/') || s.startsWith('Uploads/')) return true;
+  return false;
+}
+
+function resolveStoredImageUrl(raw, maxLen) {
+  const cap = maxLen || CUSTOM_IMAGE_URL_MAX;
+  if (!isStoredImageUrl(raw)) return '';
+  const s = raw.trim();
+  if (s.indexOf('data:image/') === 0) return s.slice(0, 100000);
+  return String(hostedUploads.resolvePublicUrl(s) || s).slice(0, cap);
+}
+
+function parseDataUrl(dataUrl) {
+  const m = /^data:([^;]+);base64,(.+)$/i.exec(String(dataUrl || ''));
+  if (!m) return null;
+  try {
+    return { mime: m[1], buffer: Buffer.from(m[2], 'base64') };
+  } catch (_) {
+    return null;
+  }
+}
+
+function localUploadAbsPath(publicPath) {
+  const key = hostedUploads.normalizeKey(publicPath);
+  if (!key || !key.startsWith('/Uploads/')) return null;
+  return path.join(__dirname, key.replace(/^\//, '').replace(/\//g, path.sep));
+}
+
+/** Host a data URL or /Uploads/ path on ImgBB; leave already-hosted https URLs unchanged. */
+async function hostAnyImageUrl(url, filenameHint) {
+  if (!url || typeof url !== 'string') return url;
+  const trimmed = url.trim();
+  if (!trimmed) return trimmed;
+  if (isRemoteHttpsUrl(trimmed)) return trimmed;
+  if (trimmed.startsWith('data:image/')) {
+    const parsed = parseDataUrl(trimmed);
+    if (!parsed || !parsed.buffer.length) return trimmed;
+    const subtype = (parsed.mime.split('/')[1] || 'png').toLowerCase().replace('jpeg', 'jpg').replace(/[^a-z0-9]+/g, '') || 'png';
+    const filename = String(filenameHint || 'image').replace(/[^a-zA-Z0-9_-]+/g, '-') + '.' + subtype;
+    const hosted = await uploadToImgBB(parsed.buffer, filename, parsed.mime);
+    return (hosted && hosted.url) ? hosted.url : trimmed;
+  }
+  const publicPath = hostedUploads.normalizeKey(trimmed);
+  if (publicPath.startsWith('/Uploads/')) {
+    const already = hostedUploads.getUrl(publicPath);
+    if (already) return already;
+    const abs = localUploadAbsPath(publicPath);
+    const hosted = abs ? await hostLocalUpload(abs, publicPath) : null;
+    return hosted || hostedUploads.resolvePublicUrl(publicPath);
+  }
+  return trimmed;
+}
+
+function forumChromeFromProfile(profileToUse) {
+  const p = profileToUse || {};
+  return {
+    forumPostHeader: typeof p.forumPostHeader === 'string' ? p.forumPostHeader.slice(0, 200) : '',
+    forumHeaderGraphic: resolveStoredImageUrl(p.forumHeaderGraphic),
+    forumPostColor: typeof p.forumPostColor === 'string' && /^#[0-9A-Fa-f]{3,6}$/.test(p.forumPostColor) ? p.forumPostColor : '',
+    forumNameColor: typeof p.forumNameColor === 'string' && /^#[0-9A-Fa-f]{3,6}$/.test(p.forumNameColor) ? p.forumNameColor : '',
+    forumNameFont: typeof p.forumNameFont === 'string' ? p.forumNameFont.slice(0, 80) : '',
+    forumBlinkies: Array.isArray(p.forumBlinkies)
+      ? p.forumBlinkies.map((u) => resolveStoredImageUrl(u)).filter(Boolean).slice(0, 10)
+      : [],
+    hoverCardSignatureImage: resolveStoredImageUrl(p.hoverCardSignatureImage)
+  };
+}
+
 /** In-process lock per key so only one read-modify-write runs at a time (prevents lost updates with concurrent users). */
 const lockQueues = new Map();
 function withLock(key, fn) {
@@ -431,8 +511,12 @@ app.put('/api/hover-card-stickers/:id/replace-image', requireLogin, stickerRepla
     fs.writeFileSync(filePath, req.file.buffer);
     const publicPath = '/Uploads/hover-card-stickers/' + id;
     const hosted = await uploadToImgBB(req.file.buffer, id, req.file.mimetype);
-    if (hosted && hosted.url) hostedUploads.setUrl(publicPath, hosted.url);
-    res.json({ id, url: hostedUploads.resolvePublicUrl(publicPath) });
+    if (hosted && hosted.url) {
+      hostedUploads.setUrl(publicPath, hosted.url);
+      list = list.map((s) => ((s.id || s.filename) === id ? Object.assign({}, s, { imageUrl: hosted.url }) : s));
+      fs.writeFileSync(hoverCardStickersFileEarly, JSON.stringify(list, null, 2), 'utf8');
+    }
+    res.json({ id, url: hostedUploads.resolvePublicUrl(hosted && hosted.url ? hosted.url : publicPath) });
   } catch (e) {
     console.error('PUT hover-card-stickers replace-image:', e);
     res.status(500).json({ error: 'Failed to replace sticker image: ' + (e.message || 'server error') });
@@ -459,10 +543,10 @@ app.post('/api/hover-card-stickers/upload', requireLogin, stickerUploadMulterEar
     if (list.some(s => (s.id || s.filename) === filename)) {
       return res.status(400).json({ error: 'Sticker with this id already exists' });
     }
-    list.push({ id: filename, filename });
-    fs.writeFileSync(hoverCardStickersFileEarly, JSON.stringify(list, null, 2), 'utf8');
     const publicPath = '/Uploads/hover-card-stickers/' + filename;
     const hosted = await hostLocalUpload(req.file.path, publicPath);
+    list.push({ id: filename, filename, imageUrl: hosted || undefined });
+    fs.writeFileSync(hoverCardStickersFileEarly, JSON.stringify(list, null, 2), 'utf8');
     res.json({ id: filename, filename, url: hosted || hostedUploads.resolvePublicUrl(publicPath) });
   } catch (e) {
     console.error('POST hover-card-stickers/upload:', e);
@@ -1293,13 +1377,14 @@ app.get('/api/forum-post-customization', (req, res) => {
     const userId = req.session.userId;
     if (userId == null) return res.status(401).json({ error: 'Not logged in' });
     const profile = getOrCreateProfile(userId);
+    const chrome = forumChromeFromProfile(profile);
     res.json({
-      forumPostHeader: typeof profile.forumPostHeader === 'string' ? profile.forumPostHeader : '',
-      forumHeaderGraphic: typeof profile.forumHeaderGraphic === 'string' ? profile.forumHeaderGraphic : '',
+      forumPostHeader: chrome.forumPostHeader,
+      forumHeaderGraphic: chrome.forumHeaderGraphic,
       forumPostColor: typeof profile.forumPostColor === 'string' ? profile.forumPostColor : '',
       forumNameColor: typeof profile.forumNameColor === 'string' ? profile.forumNameColor : '',
       forumNameFont: typeof profile.forumNameFont === 'string' ? profile.forumNameFont : '',
-      forumBlinkies: Array.isArray(profile.forumBlinkies) ? profile.forumBlinkies : [],
+      forumBlinkies: chrome.forumBlinkies,
       availableFonts: FORUM_NAME_FONTS
     });
   } catch (e) {
@@ -1308,7 +1393,7 @@ app.get('/api/forum-post-customization', (req, res) => {
   }
 });
 
-app.put('/api/forum-post-customization', (req, res) => {
+app.put('/api/forum-post-customization', async (req, res) => {
   try {
     const userId = req.session.userId;
     if (userId == null) return res.status(401).json({ error: 'Not logged in' });
@@ -1318,14 +1403,24 @@ app.put('/api/forum-post-customization', (req, res) => {
     }
     const { forumPostHeader, forumHeaderGraphic, forumPostColor, forumNameColor, forumNameFont, forumBlinkies } = req.body || {};
     const key = String(userId);
+    let hostedGraphic;
+    if (typeof forumHeaderGraphic === 'string') {
+      const u = forumHeaderGraphic.trim().slice(0, CUSTOM_IMAGE_URL_MAX);
+      hostedGraphic = u ? await hostAnyImageUrl(u, 'forum-header-' + userId) : '';
+    }
+    let hostedBlinkies;
+    if (Array.isArray(forumBlinkies)) {
+      hostedBlinkies = [];
+      const raw = forumBlinkies.filter((u) => typeof u === 'string' && u.trim()).slice(0, 10);
+      for (let i = 0; i < raw.length; i++) {
+        hostedBlinkies.push(await hostAnyImageUrl(raw[i].trim().slice(0, CUSTOM_IMAGE_URL_MAX), 'forum-blinky-' + userId + '-' + i));
+      }
+    }
     withLock('profiles', () => {
       const profiles = loadProfiles();
       if (!profiles[key]) profiles[key] = { currency: 1000, currency2: 0, currency3: 50, purchased: [], equipped: JSON.parse(JSON.stringify(DEFAULT_EQUIPPED_SLOTS)), bio: '', displayName: '', accentColor: '' };
       if (typeof forumPostHeader === 'string') profiles[key].forumPostHeader = forumPostHeader.slice(0, 200);
-      if (typeof forumHeaderGraphic === 'string') {
-        const u = forumHeaderGraphic.trim().slice(0, 500);
-        profiles[key].forumHeaderGraphic = u;
-      }
+      if (typeof hostedGraphic === 'string') profiles[key].forumHeaderGraphic = hostedGraphic.slice(0, CUSTOM_IMAGE_URL_MAX);
       if (typeof forumPostColor === 'string') {
         const c = forumPostColor.trim();
         if (c === '' || /^#[0-9A-Fa-f]{3,6}$/.test(c)) profiles[key].forumPostColor = c;
@@ -1335,17 +1430,18 @@ app.put('/api/forum-post-customization', (req, res) => {
         if (c === '' || /^#[0-9A-Fa-f]{3,6}$/.test(c)) profiles[key].forumNameColor = c;
       }
       if (typeof forumNameFont === 'string') profiles[key].forumNameFont = forumNameFont.slice(0, 80);
-      if (Array.isArray(forumBlinkies)) {
-        profiles[key].forumBlinkies = forumBlinkies.filter(u => typeof u === 'string' && u.length > 0 && u.length < 500).slice(0, 10);
+      if (Array.isArray(hostedBlinkies)) {
+        profiles[key].forumBlinkies = hostedBlinkies.filter((u) => typeof u === 'string' && u.length > 0 && u.length <= CUSTOM_IMAGE_URL_MAX).slice(0, 10);
       }
       saveProfiles(profiles);
+      const chrome = forumChromeFromProfile(profiles[key]);
       res.json({
-        forumPostHeader: profiles[key].forumPostHeader || '',
-        forumHeaderGraphic: profiles[key].forumHeaderGraphic || '',
+        forumPostHeader: chrome.forumPostHeader,
+        forumHeaderGraphic: chrome.forumHeaderGraphic,
         forumPostColor: profiles[key].forumPostColor || '',
         forumNameColor: profiles[key].forumNameColor || '',
         forumNameFont: profiles[key].forumNameFont || '',
-        forumBlinkies: profiles[key].forumBlinkies || []
+        forumBlinkies: chrome.forumBlinkies
       });
     });
   } catch (e) {
@@ -1372,8 +1468,7 @@ app.get('/api/hover-card-customization', (req, res) => {
       if (hoverCardFoil != null && (typeof hoverCardFoil !== 'object' || Array.isArray(hoverCardFoil))) hoverCardFoil = undefined;
     }
     const hoverCardSignature = typeof profile.hoverCardSignature === 'string' ? profile.hoverCardSignature.trim().slice(0, 120) : '';
-    const hoverCardSignatureImage = typeof profile.hoverCardSignatureImage === 'string' && profile.hoverCardSignatureImage.indexOf('data:image/') === 0
-      ? profile.hoverCardSignatureImage.slice(0, 100000) : '';
+    const hoverCardSignatureImage = resolveStoredImageUrl(profile.hoverCardSignatureImage);
     const hoverCardStickers = Array.isArray(profile.hoverCardStickers)
       ? profile.hoverCardStickers.filter(s => s && typeof s.id === 'string' && typeof s.x === 'number' && typeof s.y === 'number').slice(0, 12)
       : [];
@@ -1422,7 +1517,7 @@ app.get('/api/hover-card-foil-preset/:username', (req, res) => {
   }
 });
 
-app.put('/api/hover-card-customization', (req, res) => {
+app.put('/api/hover-card-customization', async (req, res) => {
   try {
     const userId = req.session.userId;
     if (userId == null) return res.status(401).json({ error: 'Not logged in' });
@@ -1439,6 +1534,12 @@ app.put('/api/hover-card-customization', (req, res) => {
     if (process.env.NODE_ENV !== 'production') {
       console.log('[hover-card PUT] hoverCardFoil in body:', body.hoverCardFoil !== undefined, 'normalized:', hoverCardFoil != null && typeof hoverCardFoil === 'object' && !Array.isArray(hoverCardFoil));
     }
+    let signatureToStore;
+    if (bodySignatureImage === '' || bodySignatureImage === null) {
+      signatureToStore = '';
+    } else if (typeof bodySignatureImage === 'string') {
+      signatureToStore = await hostAnyImageUrl(bodySignatureImage, 'hover-sig-' + userId);
+    }
     const key = String(userId);
     withLock('profiles', () => {
     const profiles = loadProfiles();
@@ -1449,10 +1550,11 @@ app.put('/api/hover-card-customization', (req, res) => {
     if (typeof avatarBgOpacity === 'number' && avatarBgOpacity >= 0 && avatarBgOpacity <= 1) profiles[key].hoverCardAvatarBgOpacity = avatarBgOpacity;
     if (typeof avatarBlurPx === 'number' && avatarBlurPx >= 0 && avatarBlurPx <= 30) profiles[key].hoverCardAvatarBlurPx = avatarBlurPx;
     if (typeof bodySignature === 'string') profiles[key].hoverCardSignature = bodySignature.trim().slice(0, 120);
-    if (typeof bodySignatureImage === 'string' && bodySignatureImage.indexOf('data:image/') === 0) {
-      profiles[key].hoverCardSignatureImage = bodySignatureImage.slice(0, 100000);
-    } else if (bodySignatureImage === '' || bodySignatureImage === null) {
+    if (signatureToStore === '') {
       delete profiles[key].hoverCardSignatureImage;
+    } else if (typeof signatureToStore === 'string') {
+      const cap = signatureToStore.indexOf('data:image/') === 0 ? 100000 : CUSTOM_IMAGE_URL_MAX;
+      profiles[key].hoverCardSignatureImage = signatureToStore.slice(0, cap);
     }
     if (Array.isArray(bodyStickers)) {
       const valid = bodyStickers.filter(s => s && typeof s.id === 'string' && typeof s.x === 'number' && typeof s.y === 'number').slice(0, 12);
@@ -1490,8 +1592,7 @@ app.put('/api/hover-card-customization', (req, res) => {
     }
     if (resFoil != null && (typeof resFoil !== 'object' || Array.isArray(resFoil))) resFoil = undefined;
     const resSignature = typeof profiles[key].hoverCardSignature === 'string' ? profiles[key].hoverCardSignature.trim().slice(0, 120) : '';
-    const resSignatureImage = typeof profiles[key].hoverCardSignatureImage === 'string' && profiles[key].hoverCardSignatureImage.indexOf('data:image/') === 0
-      ? profiles[key].hoverCardSignatureImage.slice(0, 100000) : '';
+    const resSignatureImage = resolveStoredImageUrl(profiles[key].hoverCardSignatureImage);
     const resStickers = Array.isArray(profiles[key].hoverCardStickers) ? profiles[key].hoverCardStickers.slice(0, 12) : [];
     res.json({
       cardBgOpacity: profiles[key].hoverCardBgOpacity != null ? profiles[key].hoverCardBgOpacity : 0.55,
@@ -1600,16 +1701,17 @@ app.get('/api/users/:id/forum-hover-profile', (req, res) => {
     const u = users.find(x => String(x.id) === String(id));
     if (!u) return res.status(404).json({ error: 'User not found' });
     const profileToUse = getOrCreateProfile(id);
+    const chrome = forumChromeFromProfile(profileToUse);
     let authorProfile = {
       userId: u.id,
       username: u.username || '',
       bio: (profileToUse && profileToUse.bio != null) ? profileToUse.bio : '',
-      forumPostHeader: (profileToUse && typeof profileToUse.forumPostHeader === 'string') ? profileToUse.forumPostHeader.slice(0, 200) : '',
-      forumHeaderGraphic: (profileToUse && typeof profileToUse.forumHeaderGraphic === 'string' && profileToUse.forumHeaderGraphic.trim()) ? profileToUse.forumHeaderGraphic.trim().slice(0, 500) : '',
-      forumPostColor: (profileToUse && typeof profileToUse.forumPostColor === 'string' && /^#[0-9A-Fa-f]{3,6}$/.test(profileToUse.forumPostColor)) ? profileToUse.forumPostColor : '',
-      forumNameColor: (profileToUse && typeof profileToUse.forumNameColor === 'string' && /^#[0-9A-Fa-f]{3,6}$/.test(profileToUse.forumNameColor)) ? profileToUse.forumNameColor : '',
-      forumNameFont: (profileToUse && typeof profileToUse.forumNameFont === 'string') ? profileToUse.forumNameFont.slice(0, 80) : '',
-      forumBlinkies: (profileToUse && Array.isArray(profileToUse.forumBlinkies)) ? profileToUse.forumBlinkies.filter(x => typeof x === 'string' && x.length > 0 && x.length < 500).slice(0, 10) : [],
+      forumPostHeader: chrome.forumPostHeader,
+      forumHeaderGraphic: chrome.forumHeaderGraphic,
+      forumPostColor: chrome.forumPostColor,
+      forumNameColor: chrome.forumNameColor,
+      forumNameFont: chrome.forumNameFont,
+      forumBlinkies: chrome.forumBlinkies,
       hoverCardBgOpacity: (profileToUse && typeof profileToUse.hoverCardBgOpacity === 'number') ? profileToUse.hoverCardBgOpacity : null,
       hoverCardBlurPx: (profileToUse && typeof profileToUse.hoverCardBlurPx === 'number') ? profileToUse.hoverCardBlurPx : null,
       hoverCardBorderOpacity: (profileToUse && typeof profileToUse.hoverCardBorderOpacity === 'number') ? profileToUse.hoverCardBorderOpacity : null,
@@ -1624,12 +1726,12 @@ app.get('/api/users/:id/forum-hover-profile', (req, res) => {
         return (foil != null && typeof foil === 'object' && !Array.isArray(foil)) ? foil : null;
       })(),
       hoverCardSignature: (profileToUse && typeof profileToUse.hoverCardSignature === 'string') ? profileToUse.hoverCardSignature.trim().slice(0, 120) : '',
-      hoverCardSignatureImage: (profileToUse && typeof profileToUse.hoverCardSignatureImage === 'string' && profileToUse.hoverCardSignatureImage.indexOf('data:image/') === 0) ? profileToUse.hoverCardSignatureImage.slice(0, 100000) : '',
+      hoverCardSignatureImage: chrome.hoverCardSignatureImage,
       hoverCardStickers: (profileToUse && Array.isArray(profileToUse.hoverCardStickers)) ? profileToUse.hoverCardStickers.filter(s => s && typeof s.id === 'string' && typeof s.x === 'number' && typeof s.y === 'number').slice(0, 12) : [],
       equipped: getEquippedForUser(id)
     };
     const authorRoles = getRoles(id);
-    const profilePictureUrl = (profileToUse && profileToUse.profilePictureUrl) ? profileToUse.profilePictureUrl : null;
+    const profilePictureUrl = hostedUploads.resolvePublicUrl((profileToUse && profileToUse.profilePictureUrl) || '') || null;
     res.json({ authorProfile, authorRoles, profilePictureUrl });
   } catch (error) {
     console.error('Error fetching forum hover profile:', error);
@@ -4102,23 +4204,24 @@ app.get('/api/forum/posts', (req, res) => {
       const profileKey = p.userId != null ? String(p.userId) : null;
       const prof = profileKey && profiles[profileKey] ? profiles[profileKey] : (profileKey ? getOrCreateProfile(p.userId) : null);
       if (p.userId != null && prof && prof.profilePictureUrl) {
-        copy.profilePictureUrl = prof.profilePictureUrl;
+        copy.profilePictureUrl = hostedUploads.resolvePublicUrl(prof.profilePictureUrl);
       }
       copy.authorRoles = getRoles(p.userId);
       let ap = null;
       if (p.userId != null) {
         try {
           const profileToUse = prof || getOrCreateProfile(p.userId);
+          const chrome = forumChromeFromProfile(profileToUse);
           ap = {
             userId: p.userId,
             username: p.username || '',
             bio: (profileToUse && profileToUse.bio != null) ? profileToUse.bio : '',
-            forumPostHeader: (profileToUse && typeof profileToUse.forumPostHeader === 'string') ? profileToUse.forumPostHeader.slice(0, 200) : '',
-            forumHeaderGraphic: (profileToUse && typeof profileToUse.forumHeaderGraphic === 'string' && profileToUse.forumHeaderGraphic.trim()) ? profileToUse.forumHeaderGraphic.trim().slice(0, 500) : '',
-            forumPostColor: (profileToUse && typeof profileToUse.forumPostColor === 'string' && /^#[0-9A-Fa-f]{3,6}$/.test(profileToUse.forumPostColor)) ? profileToUse.forumPostColor : '',
-            forumNameColor: (profileToUse && typeof profileToUse.forumNameColor === 'string' && /^#[0-9A-Fa-f]{3,6}$/.test(profileToUse.forumNameColor)) ? profileToUse.forumNameColor : '',
-            forumNameFont: (profileToUse && typeof profileToUse.forumNameFont === 'string') ? profileToUse.forumNameFont.slice(0, 80) : '',
-            forumBlinkies: (profileToUse && Array.isArray(profileToUse.forumBlinkies)) ? profileToUse.forumBlinkies.filter(u => typeof u === 'string' && u.length > 0 && u.length < 500).slice(0, 10) : [],
+            forumPostHeader: chrome.forumPostHeader,
+            forumHeaderGraphic: chrome.forumHeaderGraphic,
+            forumPostColor: chrome.forumPostColor,
+            forumNameColor: chrome.forumNameColor,
+            forumNameFont: chrome.forumNameFont,
+            forumBlinkies: chrome.forumBlinkies,
             hoverCardBgOpacity: (profileToUse && typeof profileToUse.hoverCardBgOpacity === 'number') ? profileToUse.hoverCardBgOpacity : null,
             hoverCardBlurPx: (profileToUse && typeof profileToUse.hoverCardBlurPx === 'number') ? profileToUse.hoverCardBlurPx : null,
             hoverCardBorderOpacity: (profileToUse && typeof profileToUse.hoverCardBorderOpacity === 'number') ? profileToUse.hoverCardBorderOpacity : null,
@@ -4133,7 +4236,7 @@ app.get('/api/forum/posts', (req, res) => {
               return (foil != null && typeof foil === 'object' && !Array.isArray(foil)) ? foil : null;
             })(),
             hoverCardSignature: (profileToUse && typeof profileToUse.hoverCardSignature === 'string') ? profileToUse.hoverCardSignature.trim().slice(0, 120) : '',
-            hoverCardSignatureImage: (profileToUse && typeof profileToUse.hoverCardSignatureImage === 'string' && profileToUse.hoverCardSignatureImage.indexOf('data:image/') === 0) ? profileToUse.hoverCardSignatureImage.slice(0, 100000) : '',
+            hoverCardSignatureImage: chrome.hoverCardSignatureImage,
             hoverCardStickers: (profileToUse && Array.isArray(profileToUse.hoverCardStickers)) ? profileToUse.hoverCardStickers.filter(s => s && typeof s.id === 'string' && typeof s.x === 'number' && typeof s.y === 'number').slice(0, 12) : []
           };
         } catch (e) {
@@ -4555,7 +4658,126 @@ function startServer() {
     console.log('[auth] Data dir:', dataDir, '| users.json exists:', fs.existsSync(usersFile), '| profiles.json exists:', fs.existsSync(profilesFile));
     console.log('[ImgBB] Item uploads to ImgBB:', process.env.IMGBB_API_KEY ? 'enabled' : 'disabled (no IMGBB_API_KEY)');
     console.log('[supabase] configured:', isSupabaseConfigured());
+    hostExistingForumMedia().catch((e) => console.warn('[ImgBB] customization backfill failed:', e.message || e));
   });
+}
+
+async function hostUrlList(items, getUrl, setUrl, nameHint) {
+  let changed = 0;
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    const current = getUrl(item, i);
+    if (!current || typeof current !== 'string' || isRemoteHttpsUrl(current)) continue;
+    const hosted = await hostAnyImageUrl(current, nameHint + '-' + i);
+    if (hosted && hosted !== current) {
+      setUrl(item, i, hosted);
+      changed++;
+    }
+    await new Promise((r) => setTimeout(r, 800));
+  }
+  return changed;
+}
+
+/** Upload leftover local customization/emote images to ImgBB and persist hosted URLs. */
+async function hostExistingForumMedia() {
+  if (!process.env.IMGBB_API_KEY) return;
+  let hostedCount = 0;
+
+  const emotes = loadForumEmotes();
+  hostedCount += await hostUrlList(emotes, (e) => e && e.url, (e, i, url) => { e.url = url; }, 'emote');
+  if (hostedCount) saveForumEmotes(emotes);
+
+  let gifCount = 0;
+  const gifs = loadForumGifs();
+  gifCount += await hostUrlList(gifs, (g) => g && g.url, (g, i, url) => { g.url = url; }, 'gif');
+  if (gifCount) saveForumGifs(gifs);
+  hostedCount += gifCount;
+
+  let stickerChanged = false;
+  try {
+    if (fs.existsSync(hoverCardStickersFile)) {
+      const stickers = JSON.parse(fs.readFileSync(hoverCardStickersFile, 'utf8'));
+      if (Array.isArray(stickers)) {
+        for (const s of stickers) {
+          if (!s) continue;
+          const filename = s.filename || s.id;
+          if (!filename) continue;
+          if (s.imageUrl && isRemoteHttpsUrl(s.imageUrl)) continue;
+          const publicPath = '/Uploads/hover-card-stickers/' + filename;
+          const hosted = await hostAnyImageUrl(s.imageUrl || publicPath, 'sticker-' + filename);
+          if (hosted && isRemoteHttpsUrl(hosted) && s.imageUrl !== hosted) {
+            s.imageUrl = hosted;
+            stickerChanged = true;
+            hostedCount++;
+          }
+        }
+        if (stickerChanged) fs.writeFileSync(hoverCardStickersFile, JSON.stringify(stickers, null, 2), 'utf8');
+      }
+    }
+  } catch (e) {
+    console.warn('[ImgBB] sticker backfill failed:', e.message || e);
+  }
+
+  let profilesChanged = false;
+  const profiles = loadProfiles();
+  for (const [userId, profile] of Object.entries(profiles || {})) {
+    if (!profile || typeof profile !== 'object') continue;
+    if (profile.forumHeaderGraphic && !isRemoteHttpsUrl(profile.forumHeaderGraphic)) {
+      const hosted = await hostAnyImageUrl(profile.forumHeaderGraphic, 'forum-header-' + userId);
+      if (hosted && hosted !== profile.forumHeaderGraphic) {
+        profile.forumHeaderGraphic = hosted;
+        profilesChanged = true;
+        hostedCount++;
+      }
+    }
+    if (Array.isArray(profile.forumBlinkies)) {
+      for (let i = 0; i < profile.forumBlinkies.length; i++) {
+        const u = profile.forumBlinkies[i];
+        if (!u || isRemoteHttpsUrl(u)) continue;
+        const hosted = await hostAnyImageUrl(u, 'forum-blinky-' + userId + '-' + i);
+        if (hosted && hosted !== u) {
+          profile.forumBlinkies[i] = hosted;
+          profilesChanged = true;
+          hostedCount++;
+        }
+      }
+    }
+    if (profile.hoverCardSignatureImage && !isRemoteHttpsUrl(profile.hoverCardSignatureImage)) {
+      const hosted = await hostAnyImageUrl(profile.hoverCardSignatureImage, 'hover-sig-' + userId);
+      if (hosted && hosted !== profile.hoverCardSignatureImage) {
+        profile.hoverCardSignatureImage = hosted;
+        profilesChanged = true;
+        hostedCount++;
+      }
+    }
+    if (profile.profilePictureUrl && !isRemoteHttpsUrl(profile.profilePictureUrl)) {
+      const hosted = await hostAnyImageUrl(profile.profilePictureUrl, 'pfp-' + userId);
+      if (hosted && hosted !== profile.profilePictureUrl) {
+        profile.profilePictureUrl = hosted;
+        profilesChanged = true;
+        hostedCount++;
+      }
+    }
+  }
+  if (profilesChanged) saveProfiles(profiles);
+
+  let postsChanged = false;
+  const posts = loadForumPosts();
+  for (const post of posts) {
+    if (!post || !Array.isArray(post.attachments)) continue;
+    for (const att of post.attachments) {
+      if (!att || att.type === 'video' || !att.url || isRemoteHttpsUrl(att.url)) continue;
+      const hosted = await hostAnyImageUrl(att.url, 'forum-att-' + (post.id || 'x'));
+      if (hosted && hosted !== att.url) {
+        att.url = hosted;
+        postsChanged = true;
+        hostedCount++;
+      }
+    }
+  }
+  if (postsChanged) saveForumPosts(posts);
+
+  if (hostedCount) console.log('[ImgBB] hosted', hostedCount, 'customization/emote image(s)');
 }
 
 startCloudSync({
@@ -4578,7 +4800,11 @@ startCloudSync({
   'messages.json': messagesFile,
   'siteSettings.json': siteSettingsFile,
   'gameScores.json': gameScoresFile,
-  'slide-gallery-meta.json': slideGalleryMetaFile
+  'slide-gallery-meta.json': slideGalleryMetaFile,
+  'hosted-uploads.json': path.join(__dirname, 'hosted-uploads.json')
 }).catch((e) => {
   console.error('[supabase] sync failed:', e.message || e);
-}).finally(startServer);
+}).finally(() => {
+  try { hostedUploads.load(); } catch (_) {}
+  startServer();
+});

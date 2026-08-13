@@ -375,6 +375,7 @@
       var previewAvatar = document.getElementById('hover-preview-avatar');
       var foilConfig = null;
       var signatureImageDataURL = '';
+      var signatureDirty = false;
       var SIG_CANVAS_W = 240;
       var SIG_CANVAS_H = 80;
       var stickerCatalog = [];
@@ -527,14 +528,19 @@
       }
 
       function getSignatureDataURL() {
+        if (!signatureDirty && signatureImageDataURL) return signatureImageDataURL;
         var c = document.getElementById('signature-canvas');
         if (!c || !c.getContext) return signatureImageDataURL || '';
-        var ctx = c.getContext('2d');
-        var id = ctx.getImageData(0, 0, c.width, c.height);
-        var d = id.data;
-        var hasPixel = false;
-        for (var i = 3; i < d.length; i += 4) { if (d[i] > 0) { hasPixel = true; break; } }
-        return hasPixel ? c.toDataURL('image/png') : '';
+        try {
+          var ctx = c.getContext('2d');
+          var id = ctx.getImageData(0, 0, c.width, c.height);
+          var d = id.data;
+          var hasPixel = false;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] > 0) { hasPixel = true; break; } }
+          return hasPixel ? c.toDataURL('image/png') : '';
+        } catch (e) {
+          return signatureImageDataURL || '';
+        }
       }
 
       function showMessage(text, isError) {
@@ -612,6 +618,7 @@
           var pos = getCanvasCoords(e);
           if (pos.x < 0 || pos.x >= sigW || pos.y < 0 || pos.y >= sigH) return;
           drawing = true;
+          signatureDirty = true;
           paintPixel(pos.x, pos.y);
           updatePreview();
         }
@@ -638,10 +645,15 @@
         canvas.addEventListener('touchend', endDraw, { passive: false });
         document.getElementById('signature-clear').addEventListener('click', function () {
           ctx.clearRect(0, 0, sigW, sigH);
-          signaturePixelData = ctx.getImageData(0, 0, sigW, sigH);
-          for (var i = 3; i < signaturePixelData.data.length; i += 4) signaturePixelData.data[i] = 0;
-          ctx.putImageData(signaturePixelData, 0, 0);
+          try {
+            signaturePixelData = ctx.getImageData(0, 0, sigW, sigH);
+            for (var i = 3; i < signaturePixelData.data.length; i += 4) signaturePixelData.data[i] = 0;
+            ctx.putImageData(signaturePixelData, 0, 0);
+          } catch (e) {
+            signaturePixelData = null;
+          }
           signatureImageDataURL = '';
+          signatureDirty = true;
           updatePreview();
         });
       })();
@@ -830,21 +842,31 @@
               try { foilConfig = typeof data.hoverCardFoil === 'object' ? data.hoverCardFoil : (typeof data.hoverCardFoil === 'string' ? JSON.parse(data.hoverCardFoil) : null); } catch (e) { foilConfig = null; }
               if (foilConfig && typeof foilConfig === 'object') { setFoilConfigFromOverlay(foilConfig); applyFoilToPreview(); }
             }
-            if (typeof data.hoverCardSignatureImage === 'string' && data.hoverCardSignatureImage.indexOf('data:image/') === 0) {
+            if (typeof data.hoverCardSignatureImage === 'string' && data.hoverCardSignatureImage && (
+              data.hoverCardSignatureImage.indexOf('data:image/') === 0 ||
+              /^https?:\/\//i.test(data.hoverCardSignatureImage) ||
+              data.hoverCardSignatureImage.indexOf('/Uploads/') === 0
+            )) {
               signatureImageDataURL = data.hoverCardSignatureImage;
+              signatureDirty = data.hoverCardSignatureImage.indexOf('data:image/') === 0;
               var canvas = document.getElementById('signature-canvas');
               if (canvas) {
                 var ctx = canvas.getContext('2d');
                 var img = new Image();
+                if (data.hoverCardSignatureImage.indexOf('data:image/') !== 0) img.crossOrigin = 'anonymous';
                 img.onload = function () {
-                  ctx.clearRect(0, 0, canvas.width, canvas.height);
-                  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                  try {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                  } catch (e) {}
                   updatePreview();
                 };
+                img.onerror = function () { updatePreview(); };
                 img.src = data.hoverCardSignatureImage;
               }
             } else {
               signatureImageDataURL = '';
+              signatureDirty = false;
               var canvas = document.getElementById('signature-canvas');
               if (canvas) {
                 var ctx = canvas.getContext('2d');
@@ -984,6 +1006,13 @@
               return;
             }
             var savedFoil = result.data && result.data.hoverCardFoil;
+            if (result.data && typeof result.data.hoverCardSignatureImage === 'string' && result.data.hoverCardSignatureImage) {
+              signatureImageDataURL = result.data.hoverCardSignatureImage;
+              signatureDirty = result.data.hoverCardSignatureImage.indexOf('data:image/') === 0;
+            } else if (result.data && !result.data.hoverCardSignatureImage) {
+              signatureImageDataURL = '';
+              signatureDirty = false;
+            }
             return fetch('/api/hover-card-customization', {
               method: 'PATCH',
               credentials: 'same-origin',

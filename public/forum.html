@@ -664,6 +664,7 @@
 
         window._forumEmotes = { builtin: {}, custom: [] };
         window._forumGifs = [];
+        window._forumStickerUrls = {};
         window._forumAttachmentList = [];
         window._replyAttachments = {};
         window._editForumAttachments = [];
@@ -702,6 +703,27 @@
             if (s == null) return '';
             var t = String(s);
             return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function forumSignatureImageUrl(url) {
+            if (!url || typeof url !== 'string') return '';
+            var s = url.trim();
+            if (s.indexOf('data:image/') === 0) return s;
+            if (/^https?:\/\//i.test(s) || s.indexOf('/Uploads/') === 0) return s;
+            return '';
+        }
+
+        function forumStickerUrl(id) {
+            if (!id) return '';
+            return window._forumStickerUrls[id] || ('/Uploads/hover-card-stickers/' + encodeURIComponent(id));
+        }
+
+        function applyForumStickerList(list) {
+            var map = window._forumStickerUrls || {};
+            (Array.isArray(list) ? list : []).forEach(function (s) {
+                if (s && (s.id || s.filename) && s.url) map[s.id || s.filename] = s.url;
+            });
+            window._forumStickerUrls = map;
         }
 
         function canUseCustomEmotes() {
@@ -823,6 +845,7 @@
                 window._forumEmotes.custom = data.custom || [];
                 if (cb) cb();
             }).catch(function() { if (cb) cb(); });
+            fetch('/api/hover-card-stickers', { credentials: 'same-origin' }).then(function(r) { return r.ok ? r.json() : []; }).then(applyForumStickerList).catch(function() {});
         }
 
         function outfitListToItems(outfits) {
@@ -1695,7 +1718,7 @@
               foilWrap.appendChild(shimmer);
               card.appendChild(foilWrap);
             }
-            var sigImageUrl = (hc.hoverCardSignatureImage && typeof hc.hoverCardSignatureImage === 'string' && hc.hoverCardSignatureImage.indexOf('data:image/') === 0) ? hc.hoverCardSignatureImage : '';
+            var sigImageUrl = forumSignatureImageUrl(hc.hoverCardSignatureImage);
             var sigText = (!sigImageUrl && hc.hoverCardSignature && typeof hc.hoverCardSignature === 'string') ? hc.hoverCardSignature.trim().slice(0, 120) : '';
             if (sigImageUrl) {
               var sigWrap = document.createElement('div');
@@ -1725,7 +1748,7 @@
                 var rotation = typeof s.rotation === 'number' ? s.rotation : 0;
                 var flipH = s.flipH ? -1 : 1, flipV = s.flipV ? -1 : 1;
                 var img = document.createElement('img');
-                img.src = '/Uploads/hover-card-stickers/' + encodeURIComponent(s.id);
+                img.src = forumStickerUrl(s.id);
                 img.alt = '';
                 var sx = Number(s.x) || 0, sy = Number(s.y) || 0;
                 var norm = (sx >= 0 && sx <= 1 && sy >= 0 && sy <= 1);
@@ -1824,12 +1847,14 @@
                 fetch('/api/forum/topics', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : []).catch(() => []),
                 topicId ? fetch('/api/forum/posts?topicId=' + encodeURIComponent(topicId) + '&_=' + Date.now(), { credentials: 'same-origin', cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []).then(arr => Array.isArray(arr) ? arr : []) : Promise.resolve([]),
                 fetch('/api/forum/emotes', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
-                fetch('/api/forum/gifs', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : {}).catch(() => ({}))
-            ]).then(([me, topics, posts, emotesData, gifsData]) => {
+                fetch('/api/forum/gifs', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+                fetch('/api/hover-card-stickers', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : []).catch(() => [])
+            ]).then(([me, topics, posts, emotesData, gifsData, stickerList]) => {
                 postsContainer.innerHTML = '';
                 if (emotesData && emotesData.builtin) window._forumEmotes.builtin = emotesData.builtin;
                 if (emotesData && Array.isArray(emotesData.custom)) window._forumEmotes.custom = emotesData.custom;
                 if (gifsData && Array.isArray(gifsData.custom)) window._forumGifs = gifsData.custom;
+                applyForumStickerList(stickerList);
                 window._forumUserRoles = (me && me.roles) ? me.roles : [];
                 var loggedIn = me && (me.userId != null || (me.username && me.username !== ''));
                 var avatarWrap = document.getElementById('forum-right-avatar-wrap');
@@ -2374,7 +2399,7 @@
               foilWrap.appendChild(shimmer);
               card.appendChild(foilWrap);
             }
-            var sigImageUrl = (hc.hoverCardSignatureImage && typeof hc.hoverCardSignatureImage === 'string' && hc.hoverCardSignatureImage.indexOf('data:image/') === 0) ? hc.hoverCardSignatureImage : '';
+            var sigImageUrl = forumSignatureImageUrl(hc.hoverCardSignatureImage);
             var sigText = (!sigImageUrl && hc.hoverCardSignature && typeof hc.hoverCardSignature === 'string') ? hc.hoverCardSignature.trim().slice(0, 120) : '';
             if (sigImageUrl) {
               var sigWrap = document.createElement('div');
@@ -2404,7 +2429,7 @@
                 var rotation = typeof s.rotation === 'number' ? s.rotation : 0;
                 var flipH = s.flipH ? -1 : 1, flipV = s.flipV ? -1 : 1;
                 var img = document.createElement('img');
-                img.src = '/Uploads/hover-card-stickers/' + encodeURIComponent(s.id);
+                img.src = forumStickerUrl(s.id);
                 img.alt = '';
                 var sx = Number(s.x) || 0, sy = Number(s.y) || 0;
                 var norm = (sx >= 0 && sx <= 1 && sy >= 0 && sy <= 1);
@@ -2473,7 +2498,7 @@
             var nameAttr = nameStyle ? ' style="' + nameStyle.replace(/"/g, '&quot;') + '"' : '';
             var headerGraphicHtml = '';
             if (authorCustom.forumHeaderGraphic && typeof authorCustom.forumHeaderGraphic === 'string') {
-                var graphicUrl = authorCustom.forumHeaderGraphic.trim().replace(/</g, '&lt;').replace(/"/g, '&quot;').slice(0, 500);
+                var graphicUrl = authorCustom.forumHeaderGraphic.trim().replace(/</g, '&lt;').replace(/"/g, '&quot;').slice(0, 2000);
                 if (graphicUrl) headerGraphicHtml = '<img src="' + graphicUrl + '" class="forum-header-graphic" alt="" loading="lazy">';
             }
             var blinkiesHtml = '';
