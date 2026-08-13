@@ -197,7 +197,7 @@
             link.href = './store.html';
             link.className = 'set-item-link';
             const img = document.createElement('img');
-            img.src = '/Uploads/' + (item.filename || '');
+            img.src = item.imageUrl || ('/Uploads/' + (item.filename || ''));
             img.alt = item.name || item.filename || '';
             img.onerror = function () { img.style.display = 'none'; };
             link.appendChild(img);

@@ -128,7 +128,7 @@
           if (normalizeSlot(item.slotId) === 'body-slot') container.classList.add('item-body');
           const img = document.createElement('img');
           img.className = 'item';
-          img.src = '/Uploads/' + item.filename;
+          img.src = item.imageUrl || ('/Uploads/' + (item.filename || ''));
           img.alt = item.name || item.filename;
           img.onerror = () => { img.src = 'https://via.placeholder.com/70?text=?'; };
           container.appendChild(img);

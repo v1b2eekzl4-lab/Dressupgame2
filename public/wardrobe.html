@@ -635,6 +635,7 @@
         if (slotId.indexOf('slot') === -1) slotId = slotId + '-slot';
         var slotIds = window.VALID_SLOT_IDS && window.VALID_SLOT_IDS.has(slotId) ? [slotId] : ['other-slot'];
         var eq = window.equippedItems || {};
+        function itemImageUrl(it) { if (!it) return ''; return (it.imageUrl || (it.filename ? '/Uploads/' + it.filename : '')) || ''; }
         var bootItems = (window.__wardrobeBootstrapData && window.__wardrobeBootstrapData.items) || [];
         var coordItem = bootItems.find(function(i) { return i && i.filename === filename; });
         var dx = (coordItem && coordItem.defaultX != null) ? Number(coordItem.defaultX) : 0;
@@ -642,7 +643,7 @@
         slotIds.forEach(function(sid) {
           if (!eq[sid]) eq[sid] = [];
           var itemId = sid + '-' + eq[sid].length;
-          var srcPath = '/Uploads/' + filename;
+          var srcPath = itemImageUrl(coordItem) || '/Uploads/' + encodeURIComponent(filename);
           eq[sid].push({ id: itemId, slotId: sid, src: srcPath, alt: img.alt || filename, zIndex: 10 + eq[sid].length, x: dx, y: dy });
           var slotEl = document.getElementById(sid);
           if (slotEl) {
@@ -661,6 +662,7 @@
         try { if (typeof window.saveEquippedItems === 'function') window.saveEquippedItems(); } catch (_) {}
         try { if (typeof window.updateEquippedItems === 'function') window.updateEquippedItems(); } catch (_) {}
       }, true);
+      function itemImageUrl(it) { if (!it) return ''; return (it.imageUrl || (it.filename ? '/Uploads/' + it.filename : '')) || ''; }
       function draw(items, purchasedList) {
         window.__wardrobeBootstrapData = { items: items || [], purchased: purchasedList || [] };
         if (!items || !items.length) {
@@ -669,8 +671,8 @@
           var html = '';
           for (var i = 0; i < items.length; i++) {
             var it = items[i];
-            if (!it || !it.filename) continue;
-            var src = '/Uploads/' + encodeURIComponent(it.filename);
+            if (!it || (!it.filename && !it.imageUrl)) continue;
+            var src = itemImageUrl(it);
             var slot = (it.slotId && String(it.slotId).indexOf('slot') >= 0) ? it.slotId : (it.slotId ? it.slotId + '-slot' : 'other-slot');
             var name = (it.name || it.filename).replace(/"/g, '&quot;');
             html += '<div class="wardrobe-item-container"><img class="item" src="' + src + '" alt="' + name + '" data-filename="' + it.filename + '" data-slot="' + slot + '"></div>';
@@ -694,8 +696,8 @@
           done = true;
           var list = Array.isArray(data) ? data : [];
           if (list.length && list[0] && Array.isArray(list[0])) list = list.flat();
-          var withFilename = list.filter(function(i) { return i && i.filename; });
-          var owned = withFilename.filter(function(i) { return purchased.indexOf(i.filename) !== -1; });
+          var withFilename = list.filter(function(i) { return i && (i.filename || i.imageUrl); });
+          var owned = withFilename.filter(function(i) { return i.filename && purchased.indexOf(i.filename) !== -1; });
           draw(owned, purchased);
         });
       }).catch(function() {
@@ -895,6 +897,26 @@
     let selectedItemId = null;
     let dragItemId = null;
     let wardrobeItems = [];
+    /** Prefer hosted imageUrl (e.g. ImgBB); else /Uploads/filename — must match store.html / server item shape. */
+    function wardrobeItemSrc(item) {
+      if (!item) return '';
+      if (item.imageUrl) return item.imageUrl;
+      if (item.filename) return '/Uploads/' + item.filename;
+      return '';
+    }
+    function wardrobePartSrc(part) {
+      if (!part) return '';
+      if (part.imageUrl) return part.imageUrl;
+      if (part.filename) return '/Uploads/' + part.filename;
+      return '';
+    }
+    function wardrobeBgSrc(bg) {
+      if (!bg) return '';
+      if (bg.src) return bg.src;
+      if (bg.imageUrl) return bg.imageUrl;
+      if (bg.filename) return '/Uploads/' + bg.filename;
+      return '';
+    }
     /** Purchased filenames (from /api/user-inventory), used when falling back to /api/items. */
     let purchased = [];
     const itemsPerPage = 20;
@@ -1041,7 +1063,7 @@
             const newItem = {
               id: itemId,
               slotId,
-              src: '/Uploads/' + part.filename,
+              src: wardrobePartSrc(part),
               alt: (wi.name || '') + (idx === 0 ? ' (1)' : ' (2)'),
               zIndex: (part.defaultZ != null) ? part.defaultZ : zOffset++,
               x: (part.defaultX != null) ? part.defaultX : 0,
@@ -1079,7 +1101,7 @@
           const newItem = {
             id: itemId,
             slotId,
-            src: '/Uploads/' + wi.filename,
+            src: wardrobeItemSrc(wi),
             alt: wi.name || wi.filename || '',
             zIndex: (coordItem.defaultZ != null) ? coordItem.defaultZ : zOffset++,
             x: (coordItem.defaultX != null) ? coordItem.defaultX : 0,
@@ -1093,7 +1115,7 @@
               defaultX: wi.background.defaultX != null ? wi.background.defaultX : 0,
               defaultY: wi.background.defaultY != null ? wi.background.defaultY : 0,
               defaultZ: wi.background.defaultZ != null ? wi.background.defaultZ : 0,
-              src: '/Uploads/' + (wi.background.filename || '')
+              src: wardrobeBgSrc(wi.background)
             };
             newItem.backgroundOn = true;
           }
@@ -1154,7 +1176,7 @@
       visible.forEach(item => {
         if (item.background && item.background.filename) {
           backgrounds.push({
-            src: '/Uploads/' + item.background.filename,
+            src: wardrobeBgSrc(item.background),
             x: item.background.defaultX != null ? item.background.defaultX : 0,
             y: item.background.defaultY != null ? item.background.defaultY : 0,
             zIndex: item.background.defaultZ != null ? item.background.defaultZ : 0
@@ -1167,7 +1189,7 @@
         if (item.bundleParts && Array.isArray(item.bundleParts) && item.bundleParts.length > 0) {
           item.bundleParts.forEach((part, idx) => {
             layers.push({
-              src: '/Uploads/' + (part.filename || ''),
+              src: wardrobePartSrc(part),
               x: part.defaultX != null ? part.defaultX : 0,
               y: part.defaultY != null ? part.defaultY : 0,
               zIndex: part.defaultZ != null ? part.defaultZ : baseZ + idx,
@@ -1177,7 +1199,7 @@
         } else {
           const coordItem = getCoordItem(item, visible);
           layers.push({
-            src: '/Uploads/' + (item.filename || ''),
+            src: wardrobeItemSrc(item),
             x: coordItem.defaultX != null ? coordItem.defaultX : 0,
             y: coordItem.defaultY != null ? coordItem.defaultY : 0,
             zIndex: coordItem.defaultZ != null ? coordItem.defaultZ : baseZ,
@@ -1240,7 +1262,7 @@
       visible.forEach(item => {
         if (item.background && item.background.filename) {
           backgrounds.push({
-            src: '/Uploads/' + item.background.filename,
+            src: wardrobeBgSrc(item.background),
             defaultX: (item.background.defaultX != null ? item.background.defaultX : 0) * scale,
             defaultY: (item.background.defaultY != null ? item.background.defaultY : 0) * scale,
             defaultZ: item.background.defaultZ != null ? item.background.defaultZ : 0
@@ -1253,7 +1275,7 @@
         if (item.bundleParts && Array.isArray(item.bundleParts) && item.bundleParts.length > 0) {
           item.bundleParts.forEach((part, idx) => {
             layers.push({
-              src: '/Uploads/' + (part.filename || ''),
+              src: wardrobePartSrc(part),
               defaultX: (part.defaultX != null ? part.defaultX : 0) * scale,
               defaultY: (part.defaultY != null ? part.defaultY : 0) * scale,
               defaultZ: part.defaultZ != null ? part.defaultZ : baseZ + idx,
@@ -1263,7 +1285,7 @@
         } else {
           const coordItem = getCoordItem(item, visible);
           layers.push({
-            src: '/Uploads/' + (item.filename || ''),
+            src: wardrobeItemSrc(item),
             defaultX: (coordItem.defaultX != null ? coordItem.defaultX : 0) * scale,
             defaultY: (coordItem.defaultY != null ? coordItem.defaultY : 0) * scale,
             defaultZ: coordItem.defaultZ != null ? coordItem.defaultZ : baseZ,
@@ -1441,7 +1463,7 @@
         return;
       }
       wardrobeItems.forEach(function (item) {
-        if (!item || !item.filename) return;
+        if (!item || (!item.filename && !item.imageUrl)) return;
         var slot = (item.slotId && String(item.slotId).indexOf('slot') >= 0) ? item.slotId : (item.slotId ? item.slotId + '-slot' : 'other-slot');
         var cont = document.createElement('div');
         cont.className = 'wardrobe-item-container';
@@ -1455,7 +1477,7 @@
         infoBtnDirect.addEventListener('mouseout', function () { if (typeof hideItemInfoTooltip === 'function') hideItemInfoTooltip(); });
         var img = document.createElement('img');
         img.className = 'item';
-        img.src = '/Uploads/' + item.filename;
+        img.src = wardrobeItemSrc(item);
         img.alt = item.name || item.filename;
         img.dataset.slot = slot;
         img.dataset.filename = item.filename;
@@ -1519,7 +1541,7 @@
         }
         let list = Array.isArray(data) ? data : [];
         if (list.length && list[0] && Array.isArray(list[0])) list = list.flat();
-        var allWithFilename = list.filter(function (item) { return item && item.filename; });
+        var allWithFilename = list.filter(function (item) { return item && (item.filename || item.imageUrl); });
         wardrobeItems = allWithFilename.filter(function (item) { return purchased.indexOf(item.filename) !== -1; });
         Object.keys(currentPages).forEach(function (c) { currentPages[c] = 1; });
         setWardrobeDebug('4/5 Items: ' + wardrobeItems.length + ', drawing…');
@@ -1684,7 +1706,7 @@
             });
 
             const img = document.createElement('img');
-            img.src = `/Uploads/${currentItem.filename}`;
+            img.src = wardrobeItemSrc(currentItem);
             img.alt = currentItem.name;
             img.onerror = () => { img.style.display = 'none'; };
             img.classList.add('item');
@@ -1744,7 +1766,7 @@
                   e.stopPropagation();
                   e.preventDefault();
                   selectedVariantByRoot[rootItem.filename] = v.filename;
-                  img.src = '/Uploads/' + v.filename;
+                  img.src = wardrobeItemSrc(v);
                   img.alt = v.name;
                   img.dataset.filename = v.filename;
                   img.dataset.slot = normalizeSlotId(v.slotId);
@@ -1772,7 +1794,7 @@
                   });
                   if (best) {
                     selectedVariantByRoot[rootItem.filename] = best.filename;
-                    img.src = '/Uploads/' + best.filename;
+                    img.src = wardrobeItemSrc(best);
                     img.alt = best.name;
                     img.dataset.filename = best.filename;
                     img.dataset.slot = normalizeSlotId(best.slotId);
@@ -1894,7 +1916,7 @@
         infoBtnFallback.addEventListener('mouseout', function () { if (typeof hideItemInfoTooltip === 'function') hideItemInfoTooltip(); });
         const img = document.createElement('img');
         img.className = 'item';
-        img.src = '/Uploads/' + currentItem.filename;
+        img.src = wardrobeItemSrc(currentItem);
         img.alt = currentItem.name || currentItem.filename;
         img.dataset.slot = (currentItem.slotId && String(currentItem.slotId).endsWith('-slot')) ? currentItem.slotId : (currentItem.slotId ? currentItem.slotId + '-slot' : 'other-slot');
         img.dataset.filename = currentItem.filename;
@@ -1917,7 +1939,7 @@
               e.stopPropagation();
               e.preventDefault();
               selectedVariantByRoot[rootItem.filename] = v.filename;
-              img.src = '/Uploads/' + v.filename;
+              img.src = wardrobeItemSrc(v);
               img.alt = v.name || v.filename;
               img.dataset.filename = v.filename;
               img.dataset.slot = (v.slotId && String(v.slotId).endsWith('-slot')) ? v.slotId : (v.slotId ? v.slotId + '-slot' : 'other-slot');
@@ -1943,7 +1965,7 @@
               });
               if (best) {
                 selectedVariantByRoot[rootItem.filename] = best.filename;
-                img.src = '/Uploads/' + best.filename;
+                img.src = wardrobeItemSrc(best);
                 img.alt = best.name || best.filename;
                 img.dataset.filename = best.filename;
                 img.dataset.slot = (best.slotId && String(best.slotId).endsWith('-slot')) ? best.slotId : (best.slotId ? best.slotId + '-slot' : 'other-slot');
@@ -2015,7 +2037,7 @@
           if (!slotSet.has(slotId)) return;
           (equippedItems[slotId] || []).forEach(item => {
             if (item.background && item.backgroundOn === undefined) item.backgroundOn = true;
-            if (item.background && !item.background.src) item.background.src = '/Uploads/' + (item.background.filename || '');
+            if (item.background && !item.background.src) item.background.src = wardrobeBgSrc(item.background);
             if (item.src && String(item.src).indexOf('/') === 0) item.src = window.location.origin + item.src;
             if (item.x == null && item.defaultX != null) item.x = Number(item.defaultX);
             if (item.y == null && item.defaultY != null) item.y = Number(item.defaultY);
@@ -2086,7 +2108,7 @@
         if (!slotSet.has(slotId)) return;
         (equippedItems[slotId] || []).forEach(item => {
           if (item.background && item.backgroundOn === undefined) item.backgroundOn = true;
-          if (item.background && !item.background.src) item.background.src = '/Uploads/' + (item.background.filename || '');
+          if (item.background && !item.background.src) item.background.src = wardrobeBgSrc(item.background);
           if (item.src && String(item.src).indexOf('/') === 0) item.src = window.location.origin + item.src;
           if (item.x == null && item.defaultX != null) item.x = Number(item.defaultX);
           if (item.y == null && item.defaultY != null) item.y = Number(item.defaultY);
@@ -2460,7 +2482,7 @@
             });
 
             const img = document.createElement('img');
-            img.src = `/Uploads/${currentItem.filename}`;
+            img.src = wardrobeItemSrc(currentItem);
             img.alt = currentItem.name;
             img.onerror = () => { img.style.display = 'none'; };
             img.classList.add('item');
@@ -2491,7 +2513,7 @@
                   e.stopPropagation();
                   e.preventDefault();
                   selectedVariantByRoot[rootFilename] = v.filename;
-                  img.src = '/Uploads/' + v.filename;
+                  img.src = wardrobeItemSrc(v);
                   img.alt = v.name;
                   img.dataset.filename = v.filename;
                   img.dataset.slot = normalizeSlotId(v.slotId);
@@ -2518,7 +2540,7 @@
                   });
                   if (best) {
                     selectedVariantByRoot[rootFilename] = best.filename;
-                    img.src = '/Uploads/' + best.filename;
+                    img.src = wardrobeItemSrc(best);
                     img.alt = best.name;
                     img.dataset.filename = best.filename;
                     img.dataset.slot = normalizeSlotId(best.slotId);
@@ -2593,7 +2615,7 @@
           const existingHeart = container.querySelector('.heart-icon');
           if (existingHeart) existingHeart.remove();
           if (!img || !img.dataset.slot) return;
-          const filename = img.src.split('/').pop();
+          const filename = (img.dataset.filename || (img.src && img.src.split('/').pop().replace(/\?.*$/, '')) || '').trim();
           const slotId = img.dataset.slot.split(',')[0];
             const item = wardrobeItems.find(i => i.filename === filename && normalizeSlotId(i.slotId) === slotId);
             if (item) {
@@ -2789,7 +2811,7 @@
         let existingItemId = null;
         let bundleIdsToRemove = [];
         if (isCombo) {
-          const bundleSrcs = wardrobeItem.bundleParts.map(p => '/Uploads/' + p.filename);
+          const bundleSrcs = wardrobeItem.bundleParts.map(p => wardrobePartSrc(p));
           for (const slotId of Object.keys(equippedItems)) {
             (equippedItems[slotId] || []).forEach(equippedItem => {
               if (bundleSrcs.indexOf(equippedItem.src) !== -1) {
@@ -2799,7 +2821,7 @@
             });
           }
         } else {
-          const itemSrcPath = '/Uploads/' + filename;
+          const itemSrcPath = wardrobeItemSrc(wardrobeItem);
           for (const slotId of slotIds) {
             if (equippedItems[slotId]) {
               const existingItem = equippedItems[slotId].find(i => (i.src === item.src || i.src === itemSrcPath));
@@ -2867,7 +2889,7 @@
               const newItem = {
                 id: itemId,
                 slotId,
-                src: '/Uploads/' + part.filename,
+                src: wardrobePartSrc(part),
                 alt: (wardrobeItem.name || '') + (idx === 0 ? ' (1)' : ' (2)'),
                 zIndex: (part.defaultZ != null) ? part.defaultZ : zOffset++,
                 x: (part.defaultX != null) ? part.defaultX : 0,
@@ -2899,7 +2921,7 @@
             });
           } else {
             const wi = wardrobeItem;
-            const srcPath = '/Uploads/' + filename;
+            const srcPath = wardrobeItemSrc(wi);
             const catalog = Array.isArray(wardrobeItems) && wardrobeItems.length > 0 ? wardrobeItems : getAllItems();
             const coordItem = getCoordItem(wi, catalog);
             slotIds.forEach(slotId => {
@@ -2923,7 +2945,7 @@
                   defaultX: wi.background.defaultX != null ? wi.background.defaultX : 0,
                   defaultY: wi.background.defaultY != null ? wi.background.defaultY : 0,
                   defaultZ: wi.background.defaultZ != null ? wi.background.defaultZ : 0,
-                  src: '/Uploads/' + (wi.background.filename || '')
+                  src: wardrobeBgSrc(wi.background)
                 };
                 newItem.backgroundOn = true;
               }
@@ -2973,7 +2995,7 @@
       withBg.sort((a, b) => (a.background.defaultZ != null ? a.background.defaultZ : 0) - (b.background.defaultZ != null ? b.background.defaultZ : 0));
       withBg.forEach(item => {
         const bg = item.background;
-        const src = bg.src || ('/Uploads/' + (bg.filename || ''));
+        const src = wardrobeBgSrc(bg);
         const img = document.createElement('img');
         img.src = src;
         img.alt = (item.alt || '') + ' (background)';

@@ -314,6 +314,11 @@
     let userHasReordered = false;
     /** When false, equipped items are hidden on the character (eye toggle). */
     let storeEquippedItemsVisible = true;
+    /** Image URL for an item or part: uses imageUrl (e.g. ImgBB) when set, else /Uploads/filename. */
+    function itemImageUrl(it) {
+      if (!it) return '';
+      return (it.imageUrl || (it.filename ? '/Uploads/' + it.filename : '')) || '';
+    }
 
     function applyPixelPerfectSize(img, maxW, maxH) {
       maxW = maxW || 250; maxH = maxH || 350;
@@ -410,9 +415,9 @@
       const layers = [];
       const visible = (setItems || []).filter(function(item) { return !hasSetPreviewHidden(item); });
       visible.forEach(item => {
-        if (item.background && item.background.filename) {
+        if (item.background && (item.background.filename || item.background.imageUrl)) {
           backgrounds.push({
-            src: '/Uploads/' + item.background.filename,
+            src: itemImageUrl(item.background),
             x: item.background.defaultX != null ? item.background.defaultX : 0,
             y: item.background.defaultY != null ? item.background.defaultY : 0,
             zIndex: item.background.defaultZ != null ? item.background.defaultZ : 0
@@ -425,7 +430,7 @@
         if (item.bundleParts && Array.isArray(item.bundleParts) && item.bundleParts.length > 0) {
           item.bundleParts.forEach((part, idx) => {
             layers.push({
-              src: '/Uploads/' + (part.filename || ''),
+              src: itemImageUrl(part),
               x: part.defaultX != null ? part.defaultX : 0,
               y: part.defaultY != null ? part.defaultY : 0,
               zIndex: part.defaultZ != null ? part.defaultZ : baseZ + idx,
@@ -435,7 +440,7 @@
         } else {
           const coordItem = getCoordItem(item, visible);
           layers.push({
-            src: '/Uploads/' + (item.filename || ''),
+            src: itemImageUrl(item),
             x: coordItem.defaultX != null ? coordItem.defaultX : 0,
             y: coordItem.defaultY != null ? coordItem.defaultY : 0,
             zIndex: coordItem.defaultZ != null ? coordItem.defaultZ : baseZ,
@@ -544,9 +549,9 @@
       const backgrounds = [];
       const layers = [];
       visible.forEach(item => {
-        if (item.background && item.background.filename) {
+        if (item.background && (item.background.filename || item.background.imageUrl)) {
           backgrounds.push({
-            src: '/Uploads/' + item.background.filename,
+            src: itemImageUrl(item.background),
             defaultX: (item.background.defaultX != null ? item.background.defaultX : 0) * scale,
             defaultY: (item.background.defaultY != null ? item.background.defaultY : 0) * scale,
             defaultZ: item.background.defaultZ != null ? item.background.defaultZ : 0
@@ -559,7 +564,7 @@
         if (item.bundleParts && Array.isArray(item.bundleParts) && item.bundleParts.length > 0) {
           item.bundleParts.forEach((part, idx) => {
             layers.push({
-              src: '/Uploads/' + (part.filename || ''),
+              src: itemImageUrl(part),
               defaultX: (part.defaultX != null ? part.defaultX : 0) * scale,
               defaultY: (part.defaultY != null ? part.defaultY : 0) * scale,
               defaultZ: part.defaultZ != null ? part.defaultZ : baseZ + idx,
@@ -569,7 +574,7 @@
         } else {
           const coordItem = getCoordItem(item, visible);
           layers.push({
-            src: '/Uploads/' + (item.filename || ''),
+            src: itemImageUrl(item),
             defaultX: (coordItem.defaultX != null ? coordItem.defaultX : 0) * scale,
             defaultY: (coordItem.defaultY != null ? coordItem.defaultY : 0) * scale,
             defaultZ: coordItem.defaultZ != null ? coordItem.defaultZ : baseZ,
@@ -637,7 +642,7 @@
             const x = (part.defaultX != null) ? part.defaultX : 0;
             const y = (part.defaultY != null) ? part.defaultY : 0;
             const z = (part.defaultZ != null) ? part.defaultZ : zOffset++;
-            const newItem = { id: itemId, slotId, src: '/Uploads/' + part.filename, alt: (wi.name || '') + (idx === 0 ? ' (1)' : ' (2)'), zIndex: z, x, y };
+            const newItem = { id: itemId, slotId, src: itemImageUrl(part), alt: (wi.name || '') + (idx === 0 ? ' (1)' : ' (2)'), zIndex: z, x, y };
             storePreviewItems[slotId].push(newItem);
             equippedOrder.push(newItem.id);
             const slotEl = document.getElementById(slotId);
@@ -662,14 +667,15 @@
           const itemId = slotId + '-' + storePreviewItems[slotId].length;
           const x = (wi.defaultX != null) ? wi.defaultX : 0;
           const y = (wi.defaultY != null) ? wi.defaultY : 0;
-          const newItem = { id: itemId, slotId, src: '/Uploads/' + wi.filename, alt: wi.name || wi.filename || '', zIndex: zOffset++, x, y };
-          if (wi.background && wi.background.filename) {
+          const newItem = { id: itemId, slotId, src: itemImageUrl(wi), alt: wi.name || wi.filename || '', zIndex: zOffset++, x, y };
+          if (wi.background && (wi.background.filename || wi.background.imageUrl)) {
             newItem.background = {
               filename: wi.background.filename,
+              imageUrl: wi.background.imageUrl,
               defaultX: wi.background.defaultX != null ? wi.background.defaultX : 0,
               defaultY: wi.background.defaultY != null ? wi.background.defaultY : 0,
               defaultZ: wi.background.defaultZ != null ? wi.background.defaultZ : 0,
-              src: '/Uploads/' + (wi.background.filename || '')
+              src: itemImageUrl(wi.background)
             };
             newItem.backgroundOn = true;
           }
@@ -1037,7 +1043,7 @@
           container.appendChild(heart);
           const img = document.createElement('img');
           img.className = 'item';
-          img.src = '/Uploads/' + currentItem.filename;
+          img.src = itemImageUrl(currentItem);
           img.alt = currentItem.name || currentItem.filename;
           img.onerror = () => { img.src = 'https://via.placeholder.com/70?text=?'; };
           if (variants.length > 1) img.title = 'Double-click and pick color from image to switch variant';
@@ -1058,7 +1064,7 @@
                 e.preventDefault();
                 e.stopPropagation();
                 selectedVariantByRoot[rootItem.filename] = v.filename;
-                img.src = '/Uploads/' + v.filename;
+                img.src = itemImageUrl(v);
                 container.dataset.filename = v.filename;
                 container.querySelectorAll('.store-swatch-dot').forEach(d => d.classList.remove('selected'));
                 dot.classList.add('selected');
@@ -1122,7 +1128,7 @@
                 });
                 if (best) {
                   selectedVariantByRoot[rootItem.filename] = best.filename;
-                  img.src = '/Uploads/' + best.filename;
+                  img.src = itemImageUrl(best);
                   container.dataset.filename = best.filename;
                   container.querySelectorAll('.store-swatch-dot').forEach(d => d.classList.remove('selected'));
                   const dotIdx = variants.indexOf(best);
@@ -1348,7 +1354,7 @@
       withBg.sort((a, b) => (a.background.defaultZ != null ? a.background.defaultZ : 0) - (b.background.defaultZ != null ? b.background.defaultZ : 0));
       withBg.forEach(item => {
         const bg = item.background;
-        const src = bg.src || ('/Uploads/' + (bg.filename || ''));
+        const src = bg.src || itemImageUrl(bg);
         const img = document.createElement('img');
         img.src = src;
         img.alt = (item.alt || '') + ' (background)';
@@ -1459,7 +1465,7 @@
           checkbox.dataset.price = String(price);
           checkbox.disabled = owned;
           const img = document.createElement('img');
-          img.src = '/Uploads/' + item.filename;
+          img.src = itemImageUrl(item);
           img.alt = item.name || item.filename;
           img.onerror = () => { img.src = 'https://via.placeholder.com/48?text=?'; };
           const nameSpan = document.createElement('span');
@@ -1532,7 +1538,7 @@
     function tryOnItem(item) {
       const isCombo = item.bundleParts && Array.isArray(item.bundleParts) && item.bundleParts.length > 0;
       if (isCombo) {
-        const bundleSrcs = item.bundleParts.map(p => '/Uploads/' + p.filename);
+        const bundleSrcs = item.bundleParts.map(p => itemImageUrl(p));
         let anyOn = false;
         const toRemove = [];
         Object.keys(storePreviewItems).forEach(slotId => {
@@ -1565,7 +1571,7 @@
             const x = (part.defaultX != null) ? part.defaultX : 0;
             const y = (part.defaultY != null) ? part.defaultY : 0;
             const z = (part.defaultZ != null) ? part.defaultZ : zOffset++;
-            const newItem = { id: itemId, slotId, src: '/Uploads/' + part.filename, alt: (item.name || '') + (idx === 0 ? ' (1)' : ' (2)'), zIndex: z, x, y };
+            const newItem = { id: itemId, slotId, src: itemImageUrl(part), alt: (item.name || '') + (idx === 0 ? ' (1)' : ' (2)'), zIndex: z, x, y };
             storePreviewItems[slotId].push(newItem);
             equippedOrder.push(newItem.id);
             const slotEl = document.getElementById(slotId);
@@ -1589,7 +1595,7 @@
         const slotId = item.slotId;
         if (!VALID_SLOT_IDS.has(slotId)) return;
         if (!storePreviewItems[slotId]) storePreviewItems[slotId] = [];
-        const existing = storePreviewItems[slotId].find(i => i.src === '/Uploads/' + item.filename);
+        const existing = storePreviewItems[slotId].find(i => i.src === itemImageUrl(item));
         if (existing) {
           storePreviewItems[slotId] = storePreviewItems[slotId].filter(i => i.id !== existing.id);
           equippedOrder = equippedOrder.filter(oid => oid !== existing.id);
@@ -1606,14 +1612,15 @@
           const x = (coordItem.defaultX != null) ? coordItem.defaultX : 0;
           const y = (coordItem.defaultY != null) ? coordItem.defaultY : 0;
           const z = (coordItem.defaultZ != null) ? coordItem.defaultZ : (allItems.length + 2);
-          const newItem = { id: itemId, slotId, src: '/Uploads/' + item.filename, alt: item.name || item.filename, zIndex: z, x, y };
-          if (item.background) {
+          const newItem = { id: itemId, slotId, src: itemImageUrl(item), alt: item.name || item.filename, zIndex: z, x, y };
+          if (item.background && (item.background.filename || item.background.imageUrl)) {
             newItem.background = {
               filename: item.background.filename,
+              imageUrl: item.background.imageUrl,
               defaultX: item.background.defaultX != null ? item.background.defaultX : 0,
               defaultY: item.background.defaultY != null ? item.background.defaultY : 0,
               defaultZ: item.background.defaultZ != null ? item.background.defaultZ : 0,
-              src: '/Uploads/' + (item.background.filename || '')
+              src: itemImageUrl(item.background)
             };
             newItem.backgroundOn = true;
           }
