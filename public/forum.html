@@ -570,7 +570,7 @@
             <div id="forum-right-avatar-wrap">
                 <p class="forum-avatar-label">Your avatar</p>
                 <div id="saved-avatar-box" class="forum-saved-avatar">
-                    <img src="https://i.ibb.co/938sCGCJ/character.png" class="forum-saved-item" alt="" id="forum-avatar-base" style="z-index:-1;transform:translate(-50%,-50%)">
+                    <img src="https://i.ibb.co/938sCGCJ/character.png" class="forum-saved-item" alt="" id="forum-avatar-base" style="z-index:0;transform:translate(-50%,-50%)">
                     <div id="saved-avatar-inner" class="forum-saved-inner"></div>
                 </div>
             </div>
@@ -829,29 +829,41 @@
             return null;
         }
 
+        var _equippedCache = {};
         function fetchFullAvatarItems(userId, currentUserId, post, cb) {
             var baseSrc = (typeof AVATAR_BASE === 'string') ? AVATAR_BASE : 'https://i.ibb.co/938sCGCJ/character.png';
-            function finish(equipped, allowSnapshot) {
-                var items = layersFromEquipped(equipped);
-                if (items && items.length > 1) return cb(items);
-                if (equipped && typeof equipped === 'object' && !allowSnapshot) {
-                    return cb([{ src: baseSrc, x: 0, y: 0, z: -1 }]);
-                }
-                if (allowSnapshot && post && post.outfitItems && Array.isArray(post.outfitItems) && post.outfitItems.length > 0) {
-                    items = [{ src: baseSrc, x: 0, y: 0, z: -1 }];
-                    post.outfitItems.forEach(function (item) {
-                        items.push({ src: item.src || '', x: item.x != null ? item.x : 0, y: item.y != null ? item.y : 0, z: item.zIndex != null ? item.zIndex : 0 });
-                    });
-                    return cb(items);
-                }
-                cb([{ src: (post && post.avatar) || placeholderAvatar, x: 0, y: 0, z: 0 }]);
+            function done(items) {
+                setTimeout(function () {
+                    try { cb(items); } catch (e) {}
+                }, 0);
             }
-            var fromProfile = post && post.authorProfile && post.authorProfile.equipped;
-            if (fromProfile) return finish(fromProfile, false);
+            function finish(equipped) {
+                try {
+                    var items = layersFromEquipped(equipped);
+                    if (items && items.length > 1) return done(items);
+                    if (post && post.outfitItems && Array.isArray(post.outfitItems) && post.outfitItems.length > 0) {
+                        items = [{ src: baseSrc, x: 0, y: 0, z: -1 }];
+                        post.outfitItems.forEach(function (item) {
+                            if (!item || typeof item !== 'object') return;
+                            items.push({ src: String(item.src || ''), x: item.x != null ? item.x : 0, y: item.y != null ? item.y : 0, z: item.zIndex != null ? item.zIndex : 0 });
+                        });
+                        if (items.length > 1) return done(items);
+                    }
+                    if (equipped && typeof equipped === 'object') {
+                        return done([{ src: baseSrc, x: 0, y: 0, z: -1 }]);
+                    }
+                } catch (e) {}
+                done([{ src: (post && post.avatar) || placeholderAvatar, x: 0, y: 0, z: 0 }]);
+            }
+            var key = userId != null ? String(userId) : '';
+            if (key && _equippedCache[key]) return finish(_equippedCache[key]);
             if (typeof fetchEquipped === 'function' && userId != null) {
-                fetchEquipped(userId).then(function (equipped) { finish(equipped, true); });
+                fetchEquipped(userId).then(function (equipped) {
+                    if (key) _equippedCache[key] = equipped || {};
+                    finish(equipped);
+                }).catch(function () { finish(null); });
             } else {
-                finish(null, true);
+                finish(null);
             }
         }
 
@@ -1903,7 +1915,17 @@
                 if (op) {
                     const mainBox = document.createElement('div');
                     mainBox.className = 'forum-main-box';
-                    const opEl = createPostElement(op, list, 0, currentUserId, topicLocked, canLock, topicId, true);
+                    var opEl = null;
+                    try {
+                        opEl = createPostElement(op, list, 0, currentUserId, topicLocked, canLock, topicId, true);
+                    } catch (e) {
+                        console.error('Failed to render main forum post', e);
+                    }
+                    if (!opEl) {
+                        opEl = document.createElement('div');
+                        opEl.className = 'forum-post-card';
+                        opEl.textContent = (op.message || '').slice(0, 2000);
+                    }
                     var opAuthor = (op.authorProfile && typeof op.authorProfile === 'object') ? op.authorProfile : {};
                     if (opAuthor.forumPostColor) {
                         mainBox.style.setProperty('--forum-post-bg', opAuthor.forumPostColor);
@@ -2132,7 +2154,11 @@
                     }).filter(Boolean);
                     replyPosts.sort(function(a, b) { return (a.timestamp || '').localeCompare(b.timestamp || ''); });
                     replyPosts.forEach(function(reply) {
-                        commentsList.appendChild(createPostElement(reply, list, 0, currentUserId, topicLocked, canLock, topicId, false));
+                        try {
+                            commentsList.appendChild(createPostElement(reply, list, 0, currentUserId, topicLocked, canLock, topicId, false));
+                        } catch (e) {
+                            console.error('Failed to render forum comment', e);
+                        }
                     });
                 }
                 commentsSection.appendChild(commentsList);
@@ -2156,6 +2182,8 @@
                 else if (lockedNotice) lockedNotice.classList.add('hidden');
                 if (topicLocked && postFormWrap && !canLock) postFormWrap.style.display = 'none';
                 else if (postFormWrap) postFormWrap.style.display = '';
+            }).catch(function (e) {
+                console.error('loadPosts failed', e);
             });
         }
 

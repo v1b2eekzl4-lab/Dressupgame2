@@ -9,9 +9,9 @@
       var arr = equipped[slotId];
       if (!Array.isArray(arr)) return;
       arr.forEach(function (item) {
-        if (!item) return;
+        if (!item || typeof item !== 'object') return;
         all.push({
-          src: item.src || item.imageUrl || '',
+          src: String(item.src || item.imageUrl || ''),
           x: item.x != null ? item.x : 0,
           y: item.y != null ? item.y : 0,
           z: item.zIndex != null ? item.zIndex : 0,

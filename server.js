@@ -4134,8 +4134,7 @@ app.get('/api/forum/posts', (req, res) => {
             })(),
             hoverCardSignature: (profileToUse && typeof profileToUse.hoverCardSignature === 'string') ? profileToUse.hoverCardSignature.trim().slice(0, 120) : '',
             hoverCardSignatureImage: (profileToUse && typeof profileToUse.hoverCardSignatureImage === 'string' && profileToUse.hoverCardSignatureImage.indexOf('data:image/') === 0) ? profileToUse.hoverCardSignatureImage.slice(0, 100000) : '',
-            hoverCardStickers: (profileToUse && Array.isArray(profileToUse.hoverCardStickers)) ? profileToUse.hoverCardStickers.filter(s => s && typeof s.id === 'string' && typeof s.x === 'number' && typeof s.y === 'number').slice(0, 12) : [],
-            equipped: getEquippedForUser(p.userId)
+            hoverCardStickers: (profileToUse && Array.isArray(profileToUse.hoverCardStickers)) ? profileToUse.hoverCardStickers.filter(s => s && typeof s.id === 'string' && typeof s.x === 'number' && typeof s.y === 'number').slice(0, 12) : []
           };
         } catch (e) {
           ap = { userId: p.userId, username: p.username || '', bio: '' };
