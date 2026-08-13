@@ -1,5 +1,7 @@
 require('dotenv').config();
 const express = require('express');
+const { getSupabase, isSupabaseConfigured } = require('./lib/supabase');
+const { startCloudSync } = require('./lib/cloud-store');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -17,6 +19,39 @@ function writeAtomic(filePath, content) {
   const tmpPath = filePath + '.tmp.' + process.pid + '.' + Date.now();
   fs.writeFileSync(tmpPath, content, 'utf8');
   fs.renameSync(tmpPath, filePath);
+}
+
+/** Upload image buffer to ImgBB; returns { url } or null if no API key or upload fails. */
+async function uploadToImgBB(buffer, filename, mimetype) {
+  const key = process.env.IMGBB_API_KEY;
+  if (!key || !buffer || !Buffer.isBuffer(buffer)) {
+    if (key && (!buffer || !Buffer.isBuffer(buffer))) console.warn('[ImgBB] No buffer received');
+    return null;
+  }
+  try {
+    const name = filename ? path.basename(filename, path.extname(filename)) : 'image';
+    const ext = (filename && path.extname(filename)) || '.png';
+    const type = mimetype || 'image/png';
+    const form = new FormData();
+    form.append('key', key);
+    form.append('image', new Blob([buffer], { type }), name + ext);
+    const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: form });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch (_) { data = null; }
+    if (!data) {
+      console.error('[ImgBB] Non-JSON response:', res.status, text.slice(0, 200));
+      return null;
+    }
+    if (data.success && data.data && data.data.url) {
+      return { url: data.data.url };
+    }
+    console.error('[ImgBB] Upload failed:', data.error ? data.error.message || data.error : data, 'status:', res.status);
+    return null;
+  } catch (e) {
+    console.error('[ImgBB] Error:', e.message || e);
+    return null;
+  }
 }
 
 /** In-process lock per key so only one read-modify-write runs at a time (prevents lost updates with concurrent users). */
@@ -244,11 +279,17 @@ app.use(function (req, res, next) {
   next();
 });
 
-// Resolve uploads dir: prefer 'Uploads', fallback to 'uploads' (folder may exist as lowercase)
-const uploadsDir = fs.existsSync(path.join(__dirname, 'Uploads'))
-  ? path.join(__dirname, 'Uploads')
-  : path.join(__dirname, 'uploads');
+// Uploads dir must exist before static + multer: on Linux (Render) `Uploads` and `uploads` differ;
+// multer uses this path — if we served `uploads` while files landed in `Uploads`, images 404.
+const uploadsDir = path.join(__dirname, 'Uploads');
+try {
+  if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+} catch (e) {
+  console.error('[uploads] Could not create Uploads:', e.message || e);
+}
+const defaultUploadsDir = path.join(__dirname, 'default-uploads');
 app.use('/Uploads', express.static(uploadsDir, { maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0 }));
+app.use('/Uploads', express.static(defaultUploadsDir, { maxAge: process.env.NODE_ENV === 'production' ? '7d' : 0 }));
 
 // Sticker dir and multer (fully defined here so route order is guaranteed)
 const hoverCardStickersDirEarly = path.join(uploadsDir, 'hover-card-stickers');
@@ -609,8 +650,18 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 // Routes (API and redirects)
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ ok: true });
+app.get('/api/health', async (req, res) => {
+  const configured = isSupabaseConfigured();
+  let connected = false;
+  if (configured) {
+    try {
+      const { error } = await getSupabase().from('app_users').select('id').limit(1);
+      connected = !error;
+    } catch (_) {
+      connected = false;
+    }
+  }
+  res.status(200).json({ ok: true, supabase: { configured, connected } });
 });
 
 app.get('/api/session-check', (req, res) => {
@@ -1757,13 +1808,15 @@ app.get('/store', requireLogin, (req, res) => {
 // Multer setup for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'Uploads');
+    cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname));
   }
 });
 const upload = multer({ storage });
+const itemUploadStorage = process.env.IMGBB_API_KEY ? multer.memoryStorage() : storage;
+const itemUploadMulter = multer({ storage: itemUploadStorage });
 const profilePictureUpload = multer({ storage: multer.memoryStorage() });
 const uploadCombo = multer({ storage }).fields([
   { name: 'item1', maxCount: 1 },
@@ -1886,7 +1939,7 @@ const DEFAULT_EQUIPPED_SLOTS = {
 const profilePicturesDir = path.join(__dirname, 'Uploads', 'profile-pictures');
 const outfitsUploadDir = path.join(__dirname, 'Uploads', 'outfits');
 try {
-  if (!fs.existsSync('Uploads')) fs.mkdirSync('Uploads');
+  if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
   if (!fs.existsSync(profilePicturesDir)) fs.mkdirSync(profilePicturesDir, { recursive: true });
   if (!fs.existsSync(outfitsUploadDir)) fs.mkdirSync(outfitsUploadDir, { recursive: true });
   if (!fs.existsSync(hoverCardStickersDir)) fs.mkdirSync(hoverCardStickersDir, { recursive: true });
@@ -2679,13 +2732,37 @@ app.post('/api/wishlist/reorder', (req, res) => {
   }
 });
 
-app.post('/api/items/upload', upload.single('item'), (req, res) => {
+app.post('/api/items/upload', itemUploadMulter.single('item'), async (req, res) => {
   try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const { name, slotId, tags, designer, isSet, defaultX, defaultY, defaultZ, frameCount, spriteSheetFrameW, spriteSheetFrameH } = req.body;
     const items = JSON.parse(fs.readFileSync(itemsFile));
     const newId = randomItemId();
+    const ext = path.extname(req.file.originalname || '') || '.png';
+    let filename = (req.file.filename || (Date.now() + ext));
+    let imageUrl = null;
+    if (process.env.IMGBB_API_KEY && req.file.buffer) {
+      const result = await uploadToImgBB(req.file.buffer, req.file.originalname || filename, req.file.mimetype);
+      if (result && result.url) {
+        imageUrl = result.url;
+        filename = 'imgbb-' + Date.now() + ext;
+      } else {
+        console.warn('[items/upload] ImgBB key set but upload failed or returned no URL; saving file to Uploads instead');
+      }
+    }
+    if (!imageUrl && req.file.path && fs.existsSync(req.file.path)) {
+      filename = path.basename(req.file.path);
+    } else if (!imageUrl && req.file.buffer) {
+      try {
+        const diskName = Date.now() + ext;
+        fs.writeFileSync(path.join(uploadsDir, diskName), req.file.buffer);
+        filename = diskName;
+      } catch (w) {
+        console.error('[items/upload] Could not write image to disk:', w.message || w);
+      }
+    }
     const newItem = {
-      filename: req.file.filename,
+      filename,
       id: newId,
       name: name && String(name).trim() ? String(name).trim() : newId,
       slotId,
@@ -2698,6 +2775,7 @@ app.post('/api/items/upload', upload.single('item'), (req, res) => {
       defaultZ: parseInt(defaultZ) || 0,
       dateAdded: new Date().toISOString()
     };
+    if (imageUrl) newItem.imageUrl = imageUrl;
     const fc = parseInt(frameCount, 10);
     if (fc > 1) {
       newItem.frameCount = fc;
@@ -4160,8 +4238,36 @@ app.use((err, req, res, next) => {
   }
 });
 
-// Start server on all network interfaces
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server running at http://192.168.86.249:${port}`);
-  console.log('[auth] Data dir:', dataDir, '| users.json exists:', fs.existsSync(usersFile), '| profiles.json exists:', fs.existsSync(profilesFile));
-});
+function startServer() {
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running at http://192.168.86.249:${port}`);
+    console.log('[auth] Data dir:', dataDir, '| users.json exists:', fs.existsSync(usersFile), '| profiles.json exists:', fs.existsSync(profilesFile));
+    console.log('[ImgBB] Item uploads to ImgBB:', process.env.IMGBB_API_KEY ? 'enabled' : 'disabled (no IMGBB_API_KEY)');
+    console.log('[supabase] configured:', isSupabaseConfigured());
+  });
+}
+
+startCloudSync({
+  'users.json': usersFile,
+  'profiles.json': profilesFile,
+  'items.json': itemsFile,
+  'vintage.json': vintageFile,
+  'equipped.json': equippedFile,
+  'outfits.json': outfitsFile,
+  'hover-card-foil.json': hoverCardFoilFile,
+  'hover-card-stickers.json': hoverCardStickersFile,
+  'forumTopics.json': forumTopicsFile,
+  'forumPosts.json': forumPostsFile,
+  'forumEmotes.json': forumEmotesFile,
+  'forumGifs.json': forumGifsFile,
+  'reports.json': reportsFile,
+  'dashboardSlides.json': dashboardSlidesFile,
+  'dashboardSlideSubmissions.json': dashboardSlideSubmissionsFile,
+  'projects.json': projectsFile,
+  'messages.json': messagesFile,
+  'siteSettings.json': siteSettingsFile,
+  'gameScores.json': gameScoresFile,
+  'slide-gallery-meta.json': slideGalleryMetaFile
+}).catch((e) => {
+  console.error('[supabase] sync failed:', e.message || e);
+}).finally(startServer);

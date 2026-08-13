@@ -2,7 +2,7 @@
   "name": "dressupgame",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "test": "jest tests/ --testEnvironment=node",
@@ -12,14 +12,16 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "bcrypt": "^5.1.1",
+    "@supabase/supabase-js": "^2.112.3",
+    "bcrypt": "^6.0.0",
     "dotenv": "^16.4.5",
     "express": "^5.1.0",
     "express-session": "^1.18.2",
     "multer": "^2.0.2"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
+    "jest": "^19.0.2",
+    "supabase": "^2.114.0",
     "supertest": "^7.0.0",
     "tailwindcss": "^3.4.17"
   }

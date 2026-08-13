@@ -13,6 +13,21 @@ A browser-based dress-up game with wardrobe, store, forum (bulletin board), and 
    - Copy `.env.example` to `.env`
    - Set `SESSION_SECRET` to a long random string (e.g. `openssl rand -hex 32`)
    - For production: set `ADMIN_PASSWORD` (and optionally `ADMIN_USERNAME`) so the default admin account is secure
+   - For Supabase: set `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` from **Project Settings → API**
+
+## Supabase
+
+The GitHub integration watches this repo. Set **Working directory** to `.` in **Project Settings → Integrations**.
+
+On startup the server syncs JSON data files (`users.json`, `items.json`, `profiles.json`, and the rest) with the `json_store` table:
+
+- First run (empty cloud): uploads your local JSON
+- Production (`NODE_ENV=production` or `DATA_DIR` set): restores JSON from the cloud, so Render deploys keep accounts and items
+- Local development: keeps your local files; saves still upload to the cloud
+
+Set these on Render (and in `.env` locally): `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`.
+
+`GET /api/health` returns `{ ok, supabase: { configured, connected } }`.
 
 3. **Run**
    ```bash

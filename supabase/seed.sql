@@ -1,0 +1,1 @@
+-- Optional local seed data. Production GitHub deploys ignore seed files by default.
