@@ -8,7 +8,7 @@ window.SITE_ASSETS = {
   "heart_false.svg": "/img/heart_false.svg",
   "site-wallpaper.png": "https://i.ibb.co/xqGngknQ/site-wallpaper.png",
   "move-up.png": "https://i.ibb.co/Q3Pb7z60/move-up.png",
-  "dfer5erer.png": "https://i.ibb.co/8gv72hPT/dfer5erer.png",
+  "dfer5erer.png": "/img/character.png",
   "body-icon.png": "/img/body1.png",
   "shirt-icon.png": "/img/shirt1.png",
   "pants-icon.png": "/img/pants1.png",
@@ -29,4 +29,4 @@ window.assetUrl = function (path) {
   var name = String(path || "").replace(/^\/Uploads\//, "");
   return (window.SITE_ASSETS && window.SITE_ASSETS[name]) || path;
 };
-window.CHARACTER_BASE = (window.SITE_ASSETS && window.SITE_ASSETS["character.png"]) || "/img/character.png";
+window.CHARACTER_BASE = "/img/character.png";

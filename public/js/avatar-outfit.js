@@ -1,9 +1,10 @@
 (function (w) {
   var SLOT_ORDER = ['body-slot', 'shirt-slot', 'pants-slot', 'skirt-slot', 'dress-slot', 'jacket-slot', 'shoes-slot', 'hat-slot', 'jewelry-slot', 'other-slot', 'hair-slot', 'socks-slot', 'makeup-slot'];
-  var BASE = (w.CHARACTER_BASE) || '/img/character.png';
+  var BASE = '/img/character.png';
 
   function isPlaceholderAvatarSrc(src) {
-    return /dfer5erer/i.test(String(src || ''));
+    var s = String(src || '');
+    return /dfer5erer/i.test(s) || /via\.placeholder\.com/i.test(s) || /p4vl0v\.neocities\.org\/dfer5erer/i.test(s);
   }
 
   function canvasImageSrc(src) {

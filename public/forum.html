@@ -657,7 +657,7 @@
         </div>
     </div>
 
-    <script src="/js/avatar-outfit.js?v=avatar3"></script>
+    <script src="/js/avatar-outfit.js?v=avatar4"></script>
     <script>
         window._forumEmotes = { builtin: {}, custom: [] };
         window._forumGifs = [];
@@ -2215,21 +2215,31 @@
             postElement.className = 'forum-post-card' + (indentLevel > 0 ? ' forum-post-reply' : '') + (isFirstPost ? ' forum-post-op' : '');
             if (indentLevel > 0) postElement.style.marginLeft = (indentLevel * 24) + 'px';
 
-            // Avatar wrap: use same saved outfit as home (fetch current user outfit, not post snapshot)
+            // Avatar: character base immediately; clothes from live equipped only
             const avatarWrap = document.createElement('div');
             avatarWrap.className = 'forum-avatar-wrap';
             const avatarBox = document.createElement('div');
             avatarBox.className = 'forum-avatar-box';
             const inner = document.createElement('div');
             inner.className = 'forum-avatar-inner';
+            const baseImg = document.createElement('img');
+            baseImg.className = 'forum-outfit-item';
+            baseImg.src = (window.location.origin || '') + '/img/character.png';
+            baseImg.alt = '';
+            baseImg.style.zIndex = '-1';
+            baseImg.style.transform = 'translate(-50%, -50%)';
+            inner.appendChild(baseImg);
             avatarBox.appendChild(inner);
             const authorUserId = post.userId != null ? post.userId : null;
             fetchFullAvatarItems(authorUserId, currentUserId, post, function (items) {
                 if (!items || items.length === 0) return;
                 items.forEach(function (item) {
+                    var raw = item.src || '';
+                    if (typeof isPlaceholderAvatarSrc === 'function' && isPlaceholderAvatarSrc(raw)) return;
+                    if (raw.indexOf('character.png') !== -1) return;
                     const img = document.createElement('img');
                     img.className = 'forum-outfit-item';
-                    var src = item.src || '';
+                    var src = raw;
                     if (typeof canvasImageSrc === 'function') src = canvasImageSrc(src);
                     if (src && src.indexOf('/') === 0) src = (window.location.origin || '') + src;
                     img.src = src;

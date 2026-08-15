@@ -2447,6 +2447,11 @@ function getEquippedForUser(userId) {
   return hostedUploads.resolveUrlsDeep(equipped);
 }
 
+function isEquippedEmpty(equipped) {
+  if (!equipped || typeof equipped !== 'object' || Array.isArray(equipped)) return true;
+  return !Object.keys(equipped).some((k) => Array.isArray(equipped[k]) && equipped[k].length > 0);
+}
+
 function getWishlistItems(profile) {
   const raw = profile && profile.wishlistItems;
   if (!Array.isArray(raw)) return [];
@@ -4301,6 +4306,9 @@ app.get('/api/forum/posts', (req, res) => {
     const enriched = filtered.map(p => {
       const copy = { ...p };
       copy.avatar = CHARACTER_BASE_URL;
+      if (p.userId == null || isEquippedEmpty(getEquippedForUser(p.userId))) {
+        delete copy.outfitItems;
+      }
       const profileKey = p.userId != null ? String(p.userId) : null;
       const prof = profileKey && profiles[profileKey] ? profiles[profileKey] : (profileKey ? getOrCreateProfile(p.userId) : null);
       if (p.userId != null && prof && prof.profilePictureUrl) {
