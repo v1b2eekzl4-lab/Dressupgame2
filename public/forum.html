@@ -572,7 +572,7 @@
             <div id="forum-right-avatar-wrap">
                 <p class="forum-avatar-label">Your avatar</p>
                 <div id="saved-avatar-box" class="forum-saved-avatar">
-                    <img src="https://i.ibb.co/938sCGCJ/character.png" class="forum-saved-item" alt="" id="forum-avatar-base" style="z-index:0;transform:translate(-50%,-50%)">
+                    <img src="/img/character.png" class="forum-saved-item" alt="" id="forum-avatar-base" style="z-index:0;transform:translate(-50%,-50%)">
                     <div id="saved-avatar-inner" class="forum-saved-inner"></div>
                 </div>
             </div>
@@ -657,11 +657,8 @@
         </div>
     </div>
 
-    <script src="/js/avatar-outfit.js"></script>
+    <script src="/js/avatar-outfit.js?v=avatar3"></script>
     <script>
-        // Placeholder avatar URL
-        const placeholderAvatar = 'https://p4vl0v.neocities.org/dfer5erer.png';
-
         window._forumEmotes = { builtin: {}, custom: [] };
         window._forumGifs = [];
         window._forumStickerUrls = {};
@@ -848,64 +845,21 @@
             fetch('/api/hover-card-stickers', { credentials: 'same-origin' }).then(function(r) { return r.ok ? r.json() : []; }).then(applyForumStickerList).catch(function() {});
         }
 
-        function outfitListToItems(outfits) {
-            if (!Array.isArray(outfits) || outfits.length === 0) return null;
-            var last = outfits[outfits.length - 1];
-            if (!last || !last.items || typeof last.items !== 'object') return null;
-            var slotOrder = ['body-slot','shirt-slot','pants-slot','skirt-slot','dress-slot','jacket-slot','shoes-slot','hat-slot','jewelry-slot','other-slot','hair-slot','socks-slot'];
-            var all = [];
-            slotOrder.forEach(function (slotId) {
-                var arr = last.items[slotId];
-                if (Array.isArray(arr)) arr.forEach(function (item) {
-                    if (!item || typeof item !== 'object') return;
-                    all.push({ src: item.src || '', x: item.x != null ? item.x : 0, y: item.y != null ? item.y : 0, z: item.zIndex != null ? item.zIndex : 0 });
-                });
-            });
-            if (all.length === 0) return null;
-            all.sort(function (a, b) { return (a.z || 0) - (b.z || 0); });
-            return [{ src: 'https://i.ibb.co/938sCGCJ/character.png', x: 0, y: 0, z: -1 }].concat(all);
-        }
-
         function fetchFullAvatarItems(userId, currentUserId, post, cb) {
-            var baseSrc = 'https://i.ibb.co/938sCGCJ/character.png';
+            var baseSrc = '/img/character.png';
             function done(items) {
                 try { cb(items); } catch (e) {}
-            }
-            function fromSnapshot() {
-                if (post && post.outfitItems && Array.isArray(post.outfitItems) && post.outfitItems.length > 0) {
-                    var items = [{ src: baseSrc, x: 0, y: 0, z: -1 }];
-                    post.outfitItems.forEach(function (item) {
-                        if (!item || typeof item !== 'object') return;
-                        items.push({ src: item.src || '', x: item.x != null ? item.x : 0, y: item.y != null ? item.y : 0, z: item.zIndex != null ? item.zIndex : 0 });
-                    });
-                    return done(items);
-                }
-                done([{ src: (post && post.avatar) || placeholderAvatar, x: 0, y: 0, z: 0 }]);
-            }
-            function fromSavedOutfits() {
-                var url = (userId != null && String(userId) === String(currentUserId))
-                    ? '/api/outfits'
-                    : (userId != null ? '/api/users/' + encodeURIComponent(userId) + '/outfits' : null);
-                if (!url) return fromSnapshot();
-                fetch(url, { credentials: 'same-origin' })
-                    .then(function (r) { return r.ok ? r.json() : []; })
-                    .catch(function () { return []; })
-                    .then(function (outfits) {
-                        var items = outfitListToItems(outfits);
-                        if (items && items.length > 0) return done(items);
-                        fromSnapshot();
-                    });
             }
             var equippedPromise = (typeof fetchEquipped === 'function' && userId != null)
                 ? fetchEquipped(userId).catch(function () { return null; })
                 : Promise.resolve(null);
             equippedPromise.then(function (equipped) {
-                var layers = (typeof equippedToLayers === 'function') ? equippedToLayers(equipped) : null;
-                if (layers && layers.length && typeof layersWithBase === 'function') {
-                    return done(layersWithBase(layers));
-                }
-                fromSavedOutfits();
-            }).catch(function () { fromSavedOutfits(); });
+                var layers = (typeof equippedToLayers === 'function') ? equippedToLayers(equipped) : [];
+                if (typeof layersWithBase === 'function') return done(layersWithBase(layers || []));
+                done([{ src: baseSrc, x: 0, y: 0, z: -1 }].concat(Array.isArray(layers) ? layers : []));
+            }).catch(function () {
+                done([{ src: baseSrc, x: 0, y: 0, z: -1 }]);
+            });
         }
 
         function drawFullAvatarToCanvas(items, callback) {
@@ -934,9 +888,11 @@
             }
             items.forEach(function (item, i) {
                 var img = new Image();
+                img.referrerPolicy = 'no-referrer';
+                img.crossOrigin = 'anonymous';
                 img.onload = function () { imgs[i] = img; loaded++; draw(); };
                 img.onerror = function () { loaded++; draw(); };
-                img.src = item.src || '';
+                img.src = (typeof canvasImageSrc === 'function' ? canvasImageSrc(item.src) : item.src) || '';
             });
         }
 
@@ -966,21 +922,19 @@
             }
             items = items.slice();
             items.sort(function (a, b) { return (a.z || 0) - (b.z || 0); });
-            var isSingleFallback = (items.length === 1 && (items[0].src || '').indexOf('character') === -1);
-            if (isSingleFallback) {
-                var fallbackImg = document.createElement('img');
-                fallbackImg.alt = '';
-                fallbackImg.className = 'forum-user-card-full-avatar';
-                fallbackImg.src = items[0].src || '';
-                fallbackImg.onerror = function () { fallbackImg.style.display = 'none'; };
-                placeholderEl.innerHTML = '';
-                placeholderEl.appendChild(fallbackImg);
-                if (callback) callback();
-                return;
+            if (typeof isPlaceholderAvatarSrc === 'function') {
+                items = items.filter(function (it) { return it && !isPlaceholderAvatarSrc(it.src); });
+            } else {
+                items = items.filter(function (it) { return it && String(it.src || '').indexOf('dfer5erer') === -1; });
+            }
+            if (!items.length || (items[0].src || '').indexOf('character') === -1) {
+                items = [{ src: '/img/character.png', x: 0, y: 0, z: -1 }].concat(items);
             }
             var box = document.createElement('div');
             box.className = 'forum-avatar-outfit-box';
-            var baseUrl = (items[0] && items[0].src) ? items[0].src : 'https://i.ibb.co/938sCGCJ/character.png';
+            var baseUrl = (items[0] && items[0].src) ? items[0].src : '/img/character.png';
+            if (typeof canvasImageSrc === 'function') baseUrl = canvasImageSrc(baseUrl);
+            if (baseUrl.indexOf('i.ibb.co/938sCGCJ') !== -1) baseUrl = '/img/character.png';
             var baseImg = document.createElement('img');
             baseImg.className = 'forum-avatar-base';
             baseImg.src = baseUrl.indexOf('/') === 0 ? (window.location.origin || '') + baseUrl : baseUrl;
@@ -988,7 +942,11 @@
             baseImg.setAttribute('width', '250');
             baseImg.setAttribute('height', '350');
             baseImg.draggable = false;
-            baseImg.onerror = function () { baseImg.style.display = 'none'; };
+            baseImg.onerror = function () {
+              if (baseImg.getAttribute('data-fallback') === '1') { baseImg.style.display = 'none'; return; }
+              baseImg.setAttribute('data-fallback', '1');
+              baseImg.src = '/img/character.png';
+            };
             hookPixelPerfect(baseImg);
             box.appendChild(baseImg);
             var itemsContainer = document.createElement('div');
@@ -997,9 +955,11 @@
             for (var i = startIdx; i < items.length; i++) {
                 var it = items[i];
                 var src = (it.src || '').trim();
+                if (typeof canvasImageSrc === 'function') src = canvasImageSrc(src);
                 if (src && src.indexOf('/') === 0) src = (window.location.origin || '') + src;
                 var el = document.createElement('img');
                 el.className = 'forum-avatar-item';
+                el.referrerPolicy = 'no-referrer';
                 el.src = src || '';
                 el.alt = it.alt || '';
                 el.loading = 'lazy';
@@ -2266,25 +2226,19 @@
             const authorUserId = post.userId != null ? post.userId : null;
             fetchFullAvatarItems(authorUserId, currentUserId, post, function (items) {
                 if (!items || items.length === 0) return;
-                if (items.length === 1 && (items[0].src || '').indexOf('character') === -1) {
-                    const avatarImg = document.createElement('img');
-                    avatarImg.className = 'single-avatar';
-                    avatarImg.src = items[0].src || placeholderAvatar;
-                    avatarImg.alt = '';
-                    avatarImg.onerror = function () { avatarImg.style.display = 'none'; };
-                    inner.appendChild(avatarImg);
-                } else {
-                    items.forEach(function (item) {
-                        const img = document.createElement('img');
-                        img.className = 'forum-outfit-item';
-                        img.src = item.src || '';
-                        img.alt = '';
-                        img.style.zIndex = (item.z != null ? item.z : 2);
-                        img.style.transform = 'translate(-50%, -50%) translate(' + (item.x || 0) + 'px, ' + (item.y || 0) + 'px)';
-                        img.onerror = function () { img.style.display = 'none'; };
-                        inner.appendChild(img);
-                    });
-                }
+                items.forEach(function (item) {
+                    const img = document.createElement('img');
+                    img.className = 'forum-outfit-item';
+                    var src = item.src || '';
+                    if (typeof canvasImageSrc === 'function') src = canvasImageSrc(src);
+                    if (src && src.indexOf('/') === 0) src = (window.location.origin || '') + src;
+                    img.src = src;
+                    img.alt = '';
+                    img.style.zIndex = (item.z != null ? item.z : 2);
+                    img.style.transform = 'translate(-50%, -50%) translate(' + (item.x || 0) + 'px, ' + (item.y || 0) + 'px)';
+                    img.onerror = function () { img.style.display = 'none'; };
+                    inner.appendChild(img);
+                });
             });
             const authorRoles = (post.authorRoles && Array.isArray(post.authorRoles)) ? post.authorRoles : [];
             const authorProfile = post.authorProfile || {};
@@ -2530,7 +2484,7 @@
                     </div>
                     ${(post.attachments && post.attachments.length) ? '<div class="forum-attachments">' + post.attachments.map(function(a) {
                         var u = escapeForumHtml(a.url || '');
-                        if (a.type === 'video') return '<div class="forum-attachment-item"><video src="' + u + '" controls></video></div>';
+                        if (a.type === 'video') return '<div class="forum-attachment-item"><video src="' + u + '" controls playsinline preload="metadata"></video></div>';
                         return '<div class="forum-attachment-item"><img src="' + u + '" alt="Attachment" loading="lazy"></div>';
                     }).join('') + '</div>' : ''}
                 </div>

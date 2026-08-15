@@ -3,6 +3,7 @@ const express = require('express');
 const { getSupabase, isSupabaseConfigured } = require('./lib/supabase');
 const { startCloudSync } = require('./lib/cloud-store');
 const hostedUploads = require('./lib/hosted-uploads');
+const { uploadPersistentFile } = require('./lib/persistent-storage');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -74,6 +75,12 @@ async function hostLocalUpload(absPath, publicPath) {
 }
 
 const CUSTOM_IMAGE_URL_MAX = 2000;
+const CHARACTER_BASE_URL = '/img/character.png';
+const FORUM_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
+
+function isLegacyPlaceholderAvatar(url) {
+  return /dfer5erer/i.test(String(url || ''));
+}
 
 function isRemoteHttpsUrl(url) {
   return typeof url === 'string' && /^https?:\/\//i.test(url.trim()) && !/localhost|127\.0\.0\.1/i.test(url);
@@ -136,6 +143,19 @@ async function hostAnyImageUrl(url, filenameHint) {
     return hosted || hostedUploads.resolvePublicUrl(publicPath);
   }
   return trimmed;
+}
+
+function persistForumAttachments(attachments) {
+  const list = Array.isArray(attachments) ? attachments : [];
+  return list
+    .filter((a) => a && (a.type === 'image' || a.type === 'video') && typeof a.url === 'string' && a.url)
+    .map((a) => {
+      const url = String(hostedUploads.resolvePublicUrl(a.url) || a.url).trim();
+      if (!url) return null;
+      if (!isRemoteHttpsUrl(url) && !url.startsWith('/Uploads/')) return null;
+      return { type: a.type, url };
+    })
+    .filter(Boolean);
 }
 
 function forumChromeFromProfile(profileToUse) {
@@ -338,6 +358,46 @@ app.use((req, res, next) => {
 app.use('/api', (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   next();
+});
+
+/** Same-origin proxy for ImgBB so avatars/canvas can load images without hotlink or CORS failures. */
+const ibbProxyCache = new Map();
+const IBB_PROXY_MAX = 80;
+app.get('/media/proxy', async (req, res) => {
+  try {
+    const raw = String(req.query.u || '').trim();
+    let parsed;
+    try { parsed = new URL(raw); } catch (_) { return res.status(400).end(); }
+    if (!/^i\.ibb\.co$/i.test(parsed.hostname)) return res.status(400).end();
+    const key = parsed.href.split('?')[0];
+    const cached = ibbProxyCache.get(key);
+    if (cached && (Date.now() - cached.at) < 6 * 60 * 60 * 1000) {
+      res.setHeader('Content-Type', cached.type);
+      res.setHeader('Cache-Control', 'public, max-age=604800');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return res.end(cached.buf);
+    }
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 15000);
+    const upstream = await fetch(key, { signal: ac.signal, headers: { Accept: 'image/*' } });
+    clearTimeout(timer);
+    if (!upstream.ok) return res.status(upstream.status).end();
+    const type = String(upstream.headers.get('content-type') || 'image/png').split(';')[0];
+    if (!/^image\//i.test(type)) return res.status(502).end();
+    const buf = Buffer.from(await upstream.arrayBuffer());
+    if (buf.length > 8 * 1024 * 1024) return res.status(413).end();
+    if (ibbProxyCache.size >= IBB_PROXY_MAX) {
+      const first = ibbProxyCache.keys().next().value;
+      if (first) ibbProxyCache.delete(first);
+    }
+    ibbProxyCache.set(key, { buf, type, at: Date.now() });
+    res.setHeader('Content-Type', type);
+    res.setHeader('Cache-Control', 'public, max-age=604800');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.end(buf);
+  } catch (e) {
+    if (!res.headersSent) res.status(502).end();
+  }
 });
 
 app.use(session({
@@ -739,6 +799,19 @@ const adjustNoCache = (req, res) => {
 };
 app.get('/adjust', adjustNoCache);
 app.get('/adjust.html', adjustNoCache);
+
+const forumNoCache = (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.sendFile(path.join(__dirname, 'public', 'forum.html'));
+};
+app.get('/forum', forumNoCache);
+app.get('/forum.html', forumNoCache);
+app.get('/js/avatar-outfit.js', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.sendFile(path.join(__dirname, 'public', 'js', 'avatar-outfit.js'));
+});
 
 // Page routes BEFORE static so /login, /, etc. are always matched first
 app.get('/', (req, res) => {
@@ -2039,6 +2112,22 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage });
+const forumUpload = multer({
+  storage,
+  limits: { fileSize: FORUM_UPLOAD_MAX_BYTES },
+  fileFilter(req, file, cb) {
+    const mt = (file.mimetype || '').toLowerCase();
+    if (/^image\//.test(mt) || /^video\//.test(mt)) return cb(null, true);
+    cb(new Error('Only images and videos are allowed'));
+  }
+});
+function handleForumUpload(req, res, next) {
+  forumUpload.single('file')(req, res, (err) => {
+    if (!err) return next();
+    if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'File too large (max 32 MB)' });
+    return res.status(400).json({ error: err.message || 'Upload failed' });
+  });
+}
 const itemUploadStorage = process.env.IMGBB_API_KEY ? multer.memoryStorage() : storage;
 const itemUploadMulter = multer({ storage: itemUploadStorage });
 const profilePictureUpload = multer({ storage: multer.memoryStorage() });
@@ -3718,7 +3807,9 @@ app.post('/api/equipped-items', requireLogin, (req, res) => {
     withLock('profiles', () => {
       const profiles = loadProfiles();
       if (!profiles[key]) profiles[key] = { currency: 1000, currency2: 0, currency3: 50, purchased: [], equipped: JSON.parse(JSON.stringify(DEFAULT_EQUIPPED_SLOTS)) };
-      profiles[key].equipped = req.body && typeof req.body === 'object' ? req.body : JSON.parse(JSON.stringify(DEFAULT_EQUIPPED_SLOTS));
+      profiles[key].equipped = hostedUploads.resolveUrlsDeep(
+        req.body && typeof req.body === 'object' ? req.body : JSON.parse(JSON.stringify(DEFAULT_EQUIPPED_SLOTS))
+      );
       saveProfiles(profiles);
     });
     res.json({ success: true });
@@ -4043,7 +4134,7 @@ function saveForumGifs(custom) {
   fs.writeFileSync(forumGifsFile, JSON.stringify({ custom: custom || [] }, null, 2));
 }
 
-app.post('/api/forum/upload', requireLogin, upload.single('file'), async (req, res) => {
+app.post('/api/forum/upload', requireLogin, handleForumUpload, async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const mimetype = (req.file.mimetype || '').toLowerCase();
@@ -4051,8 +4142,16 @@ app.post('/api/forum/upload', requireLogin, upload.single('file'), async (req, r
     const isVideo = /^video\//.test(mimetype);
     if (!isImage && !isVideo) return res.status(400).json({ error: 'Only images and videos are allowed' });
     const publicPath = '/Uploads/' + path.basename(req.file.path);
-    const hosted = isImage ? await hostLocalUpload(req.file.path, publicPath) : null;
-    const url = hosted || hostedUploads.resolvePublicUrl(publicPath);
+    let url = isImage ? await hostLocalUpload(req.file.path, publicPath) : null;
+    if (!url) url = await uploadPersistentFile(req.file.path, publicPath, mimetype);
+    if (!url && !isRender) url = hostedUploads.resolvePublicUrl(publicPath);
+    if (!url) {
+      return res.status(503).json({
+        error: isVideo
+          ? 'Could not store video for other users. Check that Supabase storage is configured.'
+          : 'Could not store file. Try again in a moment.'
+      });
+    }
     res.json({ url, type: isImage ? 'image' : 'video' });
   } catch (e) {
     console.error('Forum upload error:', e);
@@ -4201,6 +4300,7 @@ app.get('/api/forum/posts', (req, res) => {
     const profiles = loadProfiles();
     const enriched = filtered.map(p => {
       const copy = { ...p };
+      copy.avatar = CHARACTER_BASE_URL;
       const profileKey = p.userId != null ? String(p.userId) : null;
       const prof = profileKey && profiles[profileKey] ? profiles[profileKey] : (profileKey ? getOrCreateProfile(p.userId) : null);
       if (p.userId != null && prof && prof.profilePictureUrl) {
@@ -4295,7 +4395,7 @@ app.post('/api/forum/topics', (req, res) => {
     topics.unshift(newTopic);
     saveForumTopics(topics);
     const outfitItems = req.body.outfitItems || null;
-    const att = Array.isArray(attachments) ? attachments.filter(a => a && (a.type === 'image' || a.type === 'video') && typeof a.url === 'string' && a.url) : [];
+    const att = persistForumAttachments(attachments);
     const firstPost = {
       id: postId,
       topicId,
@@ -4306,7 +4406,7 @@ app.post('/api/forum/topics', (req, res) => {
       banner: '',
       bannerText: '',
       timestamp: now,
-      avatar: 'https://p4vl0v.neocities.org/dfer5erer.png',
+      avatar: CHARACTER_BASE_URL,
       outfitItems,
       attachments: att.length ? att : undefined,
       replies: []
@@ -4338,7 +4438,7 @@ app.post('/api/forum/posts', (req, res) => {
     }
     const postId = Date.now().toString();
     const now = new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' });
-    const att = Array.isArray(attachments) ? attachments.filter(a => a && (a.type === 'image' || a.type === 'video') && typeof a.url === 'string' && a.url) : [];
+    const att = persistForumAttachments(attachments);
     const newPost = {
       id: postId,
       topicId: topicIdStr || null,
@@ -4349,7 +4449,7 @@ app.post('/api/forum/posts', (req, res) => {
       banner: banner || '',
       bannerText: bannerText || '',
       timestamp: now,
-      avatar: 'https://p4vl0v.neocities.org/dfer5erer.png',
+      avatar: CHARACTER_BASE_URL,
       outfitItems: outfitItems || null,
       attachments: att.length ? att : undefined,
       replies: []
@@ -4410,7 +4510,7 @@ app.patch('/api/forum/topics/:topicId', (req, res) => {
           if (content) firstPost.message = content;
         }
         if (req.body.attachments !== undefined) {
-          const att = Array.isArray(req.body.attachments) ? req.body.attachments.filter(a => a && (a.type === 'image' || a.type === 'video') && typeof a.url === 'string' && a.url) : [];
+          const att = persistForumAttachments(req.body.attachments);
           firstPost.attachments = att.length ? att : undefined;
         }
         saveForumPosts(posts);
@@ -4442,7 +4542,7 @@ app.patch('/api/forum/posts/:postId', (req, res) => {
     if (banner !== undefined) post.banner = (banner || '').toString();
     if (bannerText !== undefined) post.bannerText = (bannerText || '').toString();
     if (attachments !== undefined) {
-      const att = Array.isArray(attachments) ? attachments.filter(a => a && (a.type === 'image' || a.type === 'video') && typeof a.url === 'string' && a.url) : [];
+      const att = persistForumAttachments(attachments);
       post.attachments = att.length ? att : undefined;
     }
     saveForumPosts(posts);
@@ -4658,7 +4758,8 @@ function startServer() {
     console.log('[auth] Data dir:', dataDir, '| users.json exists:', fs.existsSync(usersFile), '| profiles.json exists:', fs.existsSync(profilesFile));
     console.log('[ImgBB] Item uploads to ImgBB:', process.env.IMGBB_API_KEY ? 'enabled' : 'disabled (no IMGBB_API_KEY)');
     console.log('[supabase] configured:', isSupabaseConfigured());
-    hostExistingForumMedia().catch((e) => console.warn('[ImgBB] customization backfill failed:', e.message || e));
+    try { sanitizeForumPostAvatars(); } catch (e) { console.warn('[forum] avatar sanitize failed:', e.message || e); }
+    hostExistingForumMedia().catch((e) => console.warn('[media] customization backfill failed:', e.message || e));
   });
 }
 
@@ -4678,14 +4779,79 @@ async function hostUrlList(items, getUrl, setUrl, nameHint) {
   return changed;
 }
 
+function sanitizeForumPostAvatars() {
+  const posts = loadForumPosts();
+  let changed = 0;
+  for (const p of posts) {
+    if (!p) continue;
+    if (isLegacyPlaceholderAvatar(p.avatar) || !p.avatar) {
+      p.avatar = CHARACTER_BASE_URL;
+      changed++;
+    }
+    if (!Array.isArray(p.outfitItems)) continue;
+    for (const item of p.outfitItems) {
+      if (!item || typeof item.src !== 'string' || !item.src) continue;
+      if (isLegacyPlaceholderAvatar(item.src)) {
+        item.src = CHARACTER_BASE_URL;
+        changed++;
+        continue;
+      }
+      const resolved = hostedUploads.resolvePublicUrl(item.src);
+      if (resolved && resolved !== item.src) {
+        item.src = resolved;
+        changed++;
+      }
+    }
+  }
+  if (changed) {
+    saveForumPosts(posts);
+    console.log('[forum] replaced', changed, 'legacy avatar/upload URL(s)');
+  }
+}
+
 /** Upload leftover local customization/emote images to ImgBB and persist hosted URLs. */
-async function hostExistingForumMedia() {
-  if (!process.env.IMGBB_API_KEY) return;
+async function persistForumVideos() {
   let hostedCount = 0;
+  let postsChanged = false;
+  const posts = loadForumPosts();
+  for (const post of posts) {
+    if (!post || !Array.isArray(post.attachments)) continue;
+    for (const att of post.attachments) {
+      if (!att || att.type !== 'video' || !att.url || isRemoteHttpsUrl(att.url)) continue;
+      const publicPath = hostedUploads.normalizeKey(att.url);
+      const already = hostedUploads.getUrl(publicPath);
+      if (already) {
+        att.url = already;
+        postsChanged = true;
+        hostedCount++;
+        continue;
+      }
+      const abs = localUploadAbsPath(publicPath);
+      if (!abs || !fs.existsSync(abs)) continue;
+      const hosted = await uploadPersistentFile(abs, publicPath, 'video/mp4');
+      if (hosted && hosted !== att.url) {
+        att.url = hosted;
+        postsChanged = true;
+        hostedCount++;
+      }
+    }
+  }
+  if (postsChanged) saveForumPosts(posts);
+  return hostedCount;
+}
+
+async function hostExistingForumMedia() {
+  let hostedCount = 0;
+  const videoCount = await persistForumVideos();
+  if (videoCount) console.log('[storage] hosted', videoCount, 'forum video(s)');
+  hostedCount += videoCount;
+
+  if (!process.env.IMGBB_API_KEY) return;
 
   const emotes = loadForumEmotes();
-  hostedCount += await hostUrlList(emotes, (e) => e && e.url, (e, i, url) => { e.url = url; }, 'emote');
-  if (hostedCount) saveForumEmotes(emotes);
+  const emoteCount = await hostUrlList(emotes, (e) => e && e.url, (e, i, url) => { e.url = url; }, 'emote');
+  if (emoteCount) saveForumEmotes(emotes);
+  hostedCount += emoteCount;
 
   let gifCount = 0;
   const gifs = loadForumGifs();

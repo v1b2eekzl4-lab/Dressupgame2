@@ -1,6 +1,19 @@
 (function (w) {
   var SLOT_ORDER = ['body-slot', 'shirt-slot', 'pants-slot', 'skirt-slot', 'dress-slot', 'jacket-slot', 'shoes-slot', 'hat-slot', 'jewelry-slot', 'other-slot', 'hair-slot', 'socks-slot', 'makeup-slot'];
-  var BASE = (w.CHARACTER_BASE) || 'https://i.ibb.co/938sCGCJ/character.png';
+  var BASE = (w.CHARACTER_BASE) || '/img/character.png';
+
+  function isPlaceholderAvatarSrc(src) {
+    return /dfer5erer/i.test(String(src || ''));
+  }
+
+  function canvasImageSrc(src) {
+    src = String(src || '').trim();
+    if (!src || isPlaceholderAvatarSrc(src)) return BASE;
+    if (src.indexOf('i.ibb.co/938sCGCJ/character.png') !== -1) return BASE;
+    src = src.replace(/^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(\/Uploads\/.+)$/i, '$1');
+    if (/^https?:\/\/i\.ibb\.co\//i.test(src)) return '/media/proxy?u=' + encodeURIComponent(src);
+    return src;
+  }
 
   function equippedToLayers(equipped) {
     if (!equipped || typeof equipped !== 'object') return null;
@@ -10,8 +23,10 @@
       if (!Array.isArray(arr)) return;
       arr.forEach(function (item) {
         if (!item || typeof item !== 'object') return;
+        var src = String(item.src || item.imageUrl || '');
+        if (!src || isPlaceholderAvatarSrc(src)) return;
         all.push({
-          src: String(item.src || item.imageUrl || ''),
+          src: src,
           x: item.x != null ? item.x : 0,
           y: item.y != null ? item.y : 0,
           z: item.zIndex != null ? item.zIndex : 0,
@@ -27,8 +42,14 @@
   }
 
   function layersWithBase(layers) {
-    if (!layers || !layers.length) return null;
-    return [{ src: BASE, x: 0, y: 0, z: -1, zIndex: -1 }].concat(layers);
+    var rest = Array.isArray(layers) ? layers.filter(function (l) {
+      if (!l) return false;
+      var src = String(l.src || '');
+      if (!src || isPlaceholderAvatarSrc(src)) return false;
+      if (src.indexOf('character.png') !== -1) return false;
+      return true;
+    }) : [];
+    return [{ src: BASE, x: 0, y: 0, z: -1, zIndex: -1 }].concat(rest);
   }
 
   function fetchEquipped(userId) {
@@ -52,8 +73,9 @@
     layers.forEach(function (item) {
       var el = document.createElement('img');
       if (opts.className) el.className = opts.className;
-      var src = (item.src || '').trim();
+      var src = canvasImageSrc((item.src || item.imageUrl || '').trim());
       if (src && src.indexOf('/') === 0) src = w.location.origin + src;
+      el.referrerPolicy = 'no-referrer';
       el.src = src || '';
       el.alt = item.alt || '';
       el.style.zIndex = item.zIndex != null ? item.zIndex : 2;
@@ -65,6 +87,8 @@
   }
 
   w.AVATAR_BASE = BASE;
+  w.isPlaceholderAvatarSrc = isPlaceholderAvatarSrc;
+  w.canvasImageSrc = canvasImageSrc;
   w.equippedToLayers = equippedToLayers;
   w.layersWithBase = layersWithBase;
   w.fetchEquipped = fetchEquipped;
